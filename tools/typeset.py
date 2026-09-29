@@ -46,8 +46,8 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=18):
     return lbs
 
 
-def typeset(blocks, measurer, grid='body', reserve=0, variants=None):
+def typeset(blocks, measurer, grid='body', reserve=0, variants=None, tail_min=2):
     from .layout import GRIDS
     lbs = make_lbs(blocks, measurer, grid, variants)
-    plan = solve(lbs, GRIDS[grid]['n'], reserve)
+    plan = solve(lbs, GRIDS[grid]['n'], reserve, tail_min)
     return lbs, plan

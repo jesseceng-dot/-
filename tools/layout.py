@@ -256,7 +256,7 @@ def _bef_options(lb):
     return [(base, 0.0)]
 
 
-def solve(lbs, N=N, reserve=0):
+def solve(lbs, N=N, reserve=0, tail_min=2):
     """DP over blocks; state = (slots used on the current page, logical page index capped at 2).
 
     reserve > 0 keeps `reserve` slots free at the top of logical pages 0 and 1 (the two columns of the first physical
@@ -333,7 +333,7 @@ def solve(lbs, N=N, reserve=0):
     best = None
     for (f, pg), (c, _, _) in dp[nb].items():
         used = f - top(pg)
-        cc = c + (300.0 if 0 < used <= 2 else 0.0)
+        cc = c + (300.0 if 0 < used <= tail_min else 0.0)
         if best is None or cc < best[0]:
             best = (cc, (f, pg))
     cost, key = best

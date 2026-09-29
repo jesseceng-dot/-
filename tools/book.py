@@ -155,14 +155,15 @@ class BookBuilder:
             mod.hpos, mod.reserve = pos, slot
             mod.lbs, mod.plan = typeset.typeset(body, self.m, mod.grid, mod.reserve)
             return
-        lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+        tm = getattr(mod, 'tail_min', 2)               # modules may ask for a longer last page (a table of contents)
+        lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid, tail_min=tm)
         mod.lbs, mod.plan = lbs, plan
         if hyph.hyphenate_blocks(mod, self.hyph_log):
-            lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+            lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid, tail_min=tm)
             mod.lbs, mod.plan = lbs, plan
         if _gaps(plan):
             # a page that cannot be filled with the usual letter-spacing steps: try the wider ones once
-            lbs2, plan2 = typeset.typeset(mod.blocks, self.m, mod.grid, variants=style.VARIANTS_ALL)
+            lbs2, plan2 = typeset.typeset(mod.blocks, self.m, mod.grid, variants=style.VARIANTS_ALL, tail_min=tm)
             if _gaps(plan2) < _gaps(plan):
                 mod.lbs, mod.plan = lbs2, plan2
 

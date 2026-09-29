@@ -381,5 +381,6 @@ def book(v):
     plates = plate_modules(v, fig_list, '')
     allm = front + body + plates
     toc = Mod(mid='toc', zone='front', title='目录', blocks=make_toc(allm), toc=False, head=True)
+    toc.tail_min = 5                     # a table of contents does not end on a page holding one or two entries
     mods += [toc] + allm
     return dict(id=f'k{v}', title=TITLES[v], meta=m, modules=mods, toc=toc, vol=v)
