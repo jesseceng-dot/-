@@ -112,7 +112,7 @@ def build(cfg, out_pdf, redo=()):
     render.print_pdf(html, raw, work_html=out_pdf + '.html')
     print('printed', round(time.time() - t0, 1), 's', flush=True)
     info = finish_pdf(raw, out_pdf, bb.anchors, outline_for(bb), labels_for(bb),
-                      {'title': cfg['title'], 'author': cfg['meta']['author'], 'subject': '贺麟中译黑格尔经典著作'})
+                      {'title': cfg['title'], 'author': cfg['meta']['author'], 'subject': cfg['meta'].get('subject', '贺麟中译黑格尔经典著作')})
     os.remove(raw)
     meta = dict(pages=len(bb.pages), anchors={k: [int(v[0]), float(v[1])] for k, v in bb.anchors.items()},
                 outline=outline_for(bb), labels=labels_for(bb), toc=[(p.mod.mid, p.label) for p in bb.pages if p.first])

@@ -35,6 +35,7 @@ STYLES = {
     'epi':      dict(cls='s-quote',   fs=10.0, first=0, left=2, right=2, align='c', slots=1, before=1, after=1, keep=0),
     'left':     dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'sep':      dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=1, after=1, keep=0),
+    'secn':     dict(cls='s-secnum',  fs=9.5,  first=0, left=0, right=0, align='c', slots=1, before=1, after=0, keep=2),
     'secnum':   dict(cls='s-secnum',  fs=9.5,  first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=2),
     'h1':       dict(cls='s-h1',      fs=17.0, first=0, left=0, right=0, align='c', slots=2, before=3, after=2, keep=2, top_keep=1),
     'h2':       dict(cls='s-h2',      fs=14.0, first=0, left=0, right=0, align='c', slots=1, before=2, after=1, keep=2),
@@ -43,6 +44,9 @@ STYLES = {
     'h5':       dict(cls='s-h5',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h6':       dict(cls='s-h6',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h7':       dict(cls='s-h7',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'h8':       dict(cls='s-h8',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'h9':       dict(cls='s-h9',      fs=9.5,  first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'ck':       dict(cls='s-quote',   fs=10.0, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
     'toc0':     dict(cls='s-toc0',    fs=11.0, first=0, left=0, right=3, align='l', slots=1, before=2, after=0, keep=2),
     'mtoc':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'mbook':    dict(cls='s-mbook',   fs=12.0, first=0, left=0, right=6, align='l', slots=1, before=2, after=0, keep=3),
@@ -50,6 +54,9 @@ STYLES = {
     'mtocnote': dict(cls='s-mtocnote', fs=9.0, first=0, left=0, right=0, align='c', slots=1, before=0, after=1, keep=0),
     'mnote':    dict(cls='s-mnote',   fs=9.0, first=0, left=0, right=0, align='r', slots=1, before=0, after=0, keep=0),   # right-hand label of a book line (calibration only)
     'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
+    'toc1i':    dict(cls='s-toc1',    fs=10.5, first=-1, left=2, right=3, align='l', slots=1, before=1, after=0, keep=0),
+    'toc2i':    dict(cls='s-toc2',    fs=10.5, first=-1, left=3.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
+    'toc3i':    dict(cls='s-toc3',    fs=10.0, first=-1, left=5.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'tochead':  dict(cls='s-h1',      fs=17.0, first=0, left=0, right=0, align='c', slots=2, before=3, after=2, keep=2, top_keep=1),
@@ -214,11 +221,11 @@ def _norm_end(res, after, N, reserve):
     """State (f, pg) after a block: exact fill or overflowing `after` space opens the next page."""
     f, pg = res['f_end'], res['pg_end']
     single = len(res['pieces']) == 1
-    if f >= N or (single and after and f + after >= N):
+    if f >= N:
         pg = min(pg + 1, 2)
         return _top(pg, reserve), pg
-    if single and after:
-        f += after
+    if single and after and f + after < N:
+        f += after                     # space after a block is dropped at the bottom of a page (it would be a blank last line)
     return f, pg
 
 
@@ -375,6 +382,6 @@ def replay(lbs, choices, cost, N=N, reserve=0):
             pos += cnt
         f_end, pg_end = res['f_end'], res['pg_end']
         single = len(res['pieces']) == 1
-        if f_end >= N or (single and st['after'] and f_end + st['after'] >= N):
+        if f_end >= N:
             fresh = True
     return dict(pages=pages, variants=variants, cost=cost)

@@ -127,3 +127,75 @@ def plate_divider_html(title, note):
     return (_center(_html.escape(title), 180, 17, 'HeiTi', 700, 0.3) +
             f'<div style="position:absolute;left:{style.LEFT + 30}pt;top:0;width:{style.TEXT_W - 60}pt;text-align:center;'
             f'font-family:SongBody;font-size:9.5pt;line-height:17pt;color:#333;transform:translate(0pt,232pt)">{_html.escape(note)}</div>')
+
+
+# ------------------------------------------------------------------------------------------ Kant: dividers and packed plate pages
+PLATE_CAP, PLATE_LINK, PLATE_GAP = 18.0, 16.0, 14.0
+
+
+def plate_size(img):
+    """Scaled size (pt) of a plate image: as wide as the text block, at most 388 pt high, small figures magnified a little."""
+    if img.startswith('table:'):
+        from . import kant_tables
+        return kant_tables.size(img)
+    w, h = Image.open(os.path.join(IMG_DIR, img)).size
+    s = min(style.TEXT_W / w, 388.0 / h, 1.6 if w < 300 else 1.0)
+    return w * s, h * s
+
+
+def divider_html(lines):
+    """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
+    smaller underneath.  Long titles get balanced line breaks."""
+    from . import normalize
+    from .model import run, runs_html
+    out, y = '', 176.0
+    first = True
+    for lvl, text in lines:
+        if not text.strip():
+            continue
+        if lvl <= 1.0:
+            fam, fs, wt, ls, lh, gap = 'HeiTi', 24.0, 700, 0.08, 34.0, 20.0
+        elif lvl <= 2.0:
+            fam, fs, wt, ls, lh, gap = 'KaiTi', 16.0, 700, 0.06, 25.0, 12.0
+        elif lvl < 50:
+            fam, fs, wt, ls, lh, gap = 'KaiTi', 13.0, 700, 0.04, 21.0, 8.0
+        else:
+            fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, 2.0
+        runs = normalize.balance_title([run(text)], fs, style.TEXT_W - 20, slack=0.92)
+        n = 1 + sum(1 for r in runs if r['t'] == '\n')
+        body = runs_html(runs)
+        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
+                f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
+                f'transform:translate(0pt,{y:.1f}pt)">{body}</div>')
+        y += n * lh + gap
+    return out
+
+
+def plates_page_html(ks, imgs, builder, page, caption=''):
+    """A back-of-book page with one or more plates stacked: caption 'Plate N', the image, and a return link to the text.
+    The plate anchors (plate-N) are registered here so that the links in the text land on the right page."""
+    from .style import LINK_BASE
+    out, y = '', float(style.TOP)
+    for k, img in zip(ks, imgs):
+        iw, ih = plate_size(img)
+        builder.anchors[f'plate-{k}'] = (page.index, y)
+        out += _center(_html.escape(f'插图 {k}'), y, 10.5, 'HeiTi', 700, 0.12)
+        x = style.LEFT + (style.TEXT_W - iw) / 2
+        if img.startswith('table:'):
+            from . import kant_tables
+            for a in kant_tables.anchors(img):
+                builder.anchors[a] = (page.index, y + PLATE_CAP)
+            out += (f'<div style="position:absolute;left:0;top:0;transform:translate({x:.2f}pt,{y + PLATE_CAP:.2f}pt)">'
+                    f'{kant_tables.html(img)}</div>')
+        else:
+            out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
+                f'transform:translate({x:.2f}pt,{y + PLATE_CAP:.2f}pt);outline:.4pt solid #bbb">')
+        ref = f'figref-{k}'
+        label = ''
+        if ref in builder.anchors:
+            label = f'（第{builder.pages[builder.anchors[ref][0]].label}页）'
+        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:HeiTi;'
+                f'font-size:9.5pt;transform:translate(0pt,{y + PLATE_CAP + ih + 3:.2f}pt)">'
+                f'<a href="{LINK_BASE}{ref}" style="color:#1a44c8">↩ 返回正文{label}</a></div>')
+        y += PLATE_CAP + ih + PLATE_LINK + PLATE_GAP
+    return out

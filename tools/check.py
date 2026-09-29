@@ -6,7 +6,7 @@ from .layout import GRIDS
 from .model import runs_text
 from . import normalize
 
-HEAD_STYLES = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'secnum', 'idxhead', 'tochead'}
+HEAD_STYLES = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'h9', 'secn', 'secnum', 'idxhead', 'tochead'}
 
 
 def module_report(mod):

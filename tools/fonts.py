@@ -28,6 +28,8 @@ FACES = {
     'SungtiL-Regular':  ('/usr/share/fonts/truetype/arphic-gbsn00lp/gbsn00lp.ttf', None),   # 文鼎报宋 (AR PL SungtiL GB)
     'MicroHei-Regular': ('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 0),          # 文泉驿微米黑
     'UMing-Regular':    ('/usr/share/fonts/truetype/arphic/uming.ttc', 0),              # 文鼎明体 (AR PL UMing CN)
+    'KaitiM-Regular':   ('/usr/share/fonts/truetype/arphic-gkai00mp/gkai00mp.ttf', None),   # 文鼎简中楷 (AR PL KaitiM GB), 8th heading level
+    'Droid-Regular':    ('/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf', None),  # Droid Sans Fallback, 9th heading level
 }
 
 def otf_to_ttf(font, max_err=1.0):
@@ -66,7 +68,10 @@ def corpus_codepoints():
     cps |= set(range(0x2100, 0x2200)) | set(range(0x2460, 0x2500)) | set(range(0x25a0, 0x2600))
     cps |= set(range(0x0370, 0x0400)) | set(range(0x2150, 0x2190))
     cps |= {0x7560}                       # 畠 (stands behind a private-use glyph of the ebook)
-    for f in glob.glob('/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad/unpack/x/mobi8/OEBPS/Text/*.xhtml'):
+    cps |= set(range(0x1f00, 0x2000)) | set(range(0x2070, 0x20a0)) | set(range(0x2200, 0x2300)) | set(range(0x00c0, 0x0180))
+    cps |= {0x03ca, 0x00bd, 0x2153}       # ϊ ½ ⅓ (transcribed formulas)
+    scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
+    for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
     # GB2312 level-1/2 hanzi for safety
     for hi in range(0xb0, 0xf8):
@@ -142,7 +147,7 @@ def embolden(src_name, dst_name, amount=0.022):
 
 
 BOLD_FROM = {'UKai-Bold': 'UKai-Regular', 'SungtiL-Bold': 'SungtiL-Regular', 'MicroHei-Bold': 'MicroHei-Regular',
-             'UMing-Bold': 'UMing-Regular'}
+             'UMing-Bold': 'UMing-Regular', 'KaitiM-Bold': 'KaitiM-Regular', 'Droid-Bold': 'Droid-Regular'}
 
 if __name__ == '__main__' and False:
     pass
