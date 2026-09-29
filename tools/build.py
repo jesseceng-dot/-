@@ -23,6 +23,7 @@ def outline_for(bb):
     out = []
     has_vol = any(m.volume for m in bb.mods)
     last_vol = None
+    under = False                      # inside a work (divider page) of the Kant volumes: its modules are one level down
     for mod in bb.mods:
         pgs = bb.pages_of(mod)
         first = pgs[0].index + 1
@@ -34,6 +35,10 @@ def outline_for(bb):
             last_vol = mod.volume
             out.append([1, mod.volume, first])
         base = 2 if (has_vol and mod.volume) else 1
+        if mod.kind == 'page' and mod.toc and mod.toc_level == 0:
+            under = mod.mid != 'plates'
+        elif under:
+            base += 1
         if vol_page_only:
             continue
         if not mod.toc and mod.mid != 'toc' and not mod.title:
@@ -44,11 +49,15 @@ def outline_for(bb):
         lv = base + (1 if mod.toc_level == 2 else 0)
         out.append([lv, title, first])
         if mod.kind == 'text':
-            for bi, blk in enumerate(mod.blocks):
-                if blk['k'] == 'h' and blk.get('rank', 9) in (2, 3) and not blk.get('notoc'):
-                    pg = bb.block_pages.get((mod.mid, bi))
-                    if pg is not None:
-                        out.append([lv + blk['rank'] - 1, B.title_text(blk['runs']), pg + 1])
+            heads = getattr(mod, 'toc_heads', None)          # Kant volumes: the headings that the contents page lists
+            if heads is None:
+                heads = [(bi, blk['rank']) for bi, blk in enumerate(mod.blocks)
+                         if blk['k'] == 'h' and blk.get('rank', 9) in (2, 3) and not blk.get('notoc')]
+            for bi, rk in heads:
+                blk = mod.blocks[bi]
+                pg = bb.block_pages.get((mod.mid, bi))
+                if pg is not None:
+                    out.append([lv + max(rk, 2) - 1, B.title_text(blk['runs']), pg + 1])
     fixed, last = [], 0
     for lv, t, p in out:
         lv = max(1, min(lv, last + 1))

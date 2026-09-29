@@ -23,6 +23,8 @@ LINK_BASE = 'https://book.local/#'     # every internal link is emitted as this 
 
 # ---- letter-spacing variants (em) used by the paginator to absorb line-count differences --
 VARIANTS = [0.0, -0.012, 0.012, -0.024, 0.024, -0.036, 0.036]
+# wider variants, only tried for a module whose first solution leaves a page unfilled (still well below what the eye notices)
+VARIANTS_ALL = VARIANTS + [-0.048, 0.048, -0.06, 0.06]
 
 FONTS_CSS = """
 @font-face{font-family:"SongBody";src:url("%(f)s/SerifSC-Regular.ttf");font-weight:400}

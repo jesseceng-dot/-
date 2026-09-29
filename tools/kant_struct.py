@@ -64,6 +64,7 @@ def is_name(t, cls, after_heading):
     return False
 
 
+KNOWN_NAMES = {'李秋零', '苗力田'}
 HEAD_WORDS = {'证明', '定理', '解说', '附释', '附注', '说明', '阐明', '解释', '运用', '问题', '注释', '定义', '结论', '前言', '后记',
               '正论', '反论', '预示', '划分', '答复', '反驳', '附论', '例证', '导论', '导言', '附录', '结语', '总说明', '总附释'}
 
@@ -122,6 +123,23 @@ def centre_weak_runs(els):
     return out
 
 
+def split_runs(runs, pos):
+    """Split a run list at character offset `pos`."""
+    a, b, n = [], [], 0
+    for r in runs:
+        t = r['t']
+        if n + len(t) <= pos:
+            a.append(r)
+        elif n >= pos:
+            b.append(r)
+        else:
+            k = pos - n
+            a.append(dict(r, t=t[:k]))
+            b.append(dict(r, t=t[k:]))
+        n += len(t)
+    return a, b
+
+
 def strip_breaks(runs):
     runs = [dict(r) for r in runs]
     while runs and runs[0]['t'] and not runs[0].get('i'):
@@ -173,6 +191,19 @@ def elements(items, vol, part=None):
             runs = strip_breaks(runs)
             if not runs:
                 continue
+            tt = plain(runs)
+            if '\u2028' in tt:
+                head, _, tail = tt.rpartition('\u2028')
+                if head.strip('\u2028') and is_name(tail.strip(), 'center', True):     # 'title / editor's name' in one heading
+                    hr, nr = split_runs(runs, len(head))
+                    els.append(dict(k='h', lvl=float(it['lvl']), runs=strip_breaks(hr), id=it['id'], src=f'h{it["lvl"]}.{cls}'))
+                    els.append(dict(k='p', style='center', runs=strip_breaks(nr), name=1, nomerge=True, src='name'))
+                    prev_heading = False
+                    continue
+            if it['lvl'] >= 2 and prev_heading and (tt in KNOWN_NAMES or ('·' in tt and is_name(tt, 'center', True))):
+                els.append(dict(k='p', style='center', runs=runs, id=it['id'], src=f'h{it["lvl"]}.{cls}', name=1, nomerge=True))
+                prev_heading = False                        # an author's name under a title (h2 in the source), not a heading
+                continue
             els.append(dict(k='h', lvl=float(it['lvl']), runs=runs, id=it['id'], src=f'h{it["lvl"]}.{cls}'))
             prev_heading = True
             continue
@@ -219,6 +250,9 @@ def short_line(b, t, cls, align, after_heading):
         return b
     if is_name(t, cls, after_heading):
         b.update(style='center', name=1)
+        return b
+    if cls in ('bold', 'ch', 'yinwen0') and re.search(r'[！：]$', t) and len(t) <= 24 and not re.match(r'^[%s第]' % CN, t):
+        b['style'] = 'noindent'                            # salutation of a letter / dedication
         return b
     lv = pattern_level(t, cls)
     if cls in HEAD_CLS or (cls in ('ch', 'bold', 'jz', 'juzhong', 'center') and lv is not None):
@@ -335,8 +369,8 @@ def divider_len(els, v, nxt_lvl):
                 continue
         break
     rest = els[k:]
-    if rest and rest[0]['k'] == 'h' and nxt_lvl is not None and nxt_lvl > rest[0]['lvl'] and text_len(rest) < 500 \
-            and is_title_page(rest):
+    if rest and rest[0]['k'] == 'h' and nxt_lvl is not None and nxt_lvl > rest[0]['lvl'] and text_len(rest) < 260 \
+            and len(rest) <= 10 and is_title_page(rest):
         if not (k == 0 and rest[0]['lvl'] > 6):
             return len(els)
     return k
@@ -452,12 +486,12 @@ NUM_PATTERNS = [
 ]
 
 
-_CJK_SP = re.compile(r'(?<=[\u4e00-\u9fff，、；：！？）》”—〕］])\u2028(?=[\u4e00-\u9fff（《“—〔［])')
+_CJK_SP = re.compile(r'(?<=[\u4e00-\u9fff，、；：！？）》”—〕］])\u2028+(?=[\u4e00-\u9fff（《“—〔［])')
 
 
 def _tidy(t, head_done):
     t = _CJK_SP.sub('', t)
-    t = t.replace('\u2028', ' ')
+    t = re.sub('\u2028+', ' ', t)
     # a single space between two Chinese strings inside a heading is a label gap ('导言 先验逻辑的理念')
     t = re.sub(r'(?<=[\u4e00-\u9fff]) (?=[\u4e00-\u9fff])', '\u3000', t) if head_done else t
     return t
@@ -548,6 +582,8 @@ TITLE_FIX = {
 # headings that are really lines of a letter (address / salutation): part -> [(regex, style)]
 STYLE_FIX = {
     108: [(r'^尊贵的骑兵上尉夫人', 'center'), (r'^慈和的夫人', 'noindent')],
+    7: [(r'^(BACO DEVERULAMIO|Instauratio|《伟大的复兴》序言|维鲁兰姆的培根)', 'center')],
+    8: [(r'^(献给|王家国务大臣|策德利茨男爵阁下)', 'center')],
     241: [(r'^(尊贵的先生|博学的、经验丰富的博士先生|至堪敬慕的保护人)', 'noindent')],
     249: [(r'^(最尊贵、最强大的国王|最仁慈的国王和君主)', 'noindent')],
     252: [(r'^第一部分\u3000关于恒星中的系统状态', 'center')],

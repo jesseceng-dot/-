@@ -153,11 +153,12 @@ def items(part):
                     for im in imgs:
                         add('img', el, src=os.path.basename(im.get('src') or ''), runs=[])
                     txt = plain(el)
-                    if txt and not imgs:
-                        add('p', el, runs=clean_runs(inline(el, part)), align='center', cap=1)
-                    elif txt and imgs:
-                        # a caption written inside the picture div ('图1')
-                        add('p', el, runs=clean_runs(inline(el, part)), align='center', cap=1)
+                    if txt:
+                        # a caption written inside the picture div ('图1'); the image itself is a separate item
+                        cr = [r for r in clean_runs(inline(el, part)) if not r.get('i')]
+                        cr = clean_runs(cr)
+                        if cr:
+                            add('p', el, runs=cr, align='center', cap=1)
                 elif 'contents' in ' '.join(cls) or plain(el) == '返回总目录':
                     continue
                 else:

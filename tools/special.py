@@ -161,7 +161,16 @@ def divider_html(lines):
             fam, fs, wt, ls, lh, gap = 'KaiTi', 13.0, 700, 0.04, 21.0, 8.0
         else:
             fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, 2.0
-        runs = normalize.balance_title([run(text)], fs, style.TEXT_W - 20, slack=0.92)
+        cap = (style.TEXT_W - 20) * 0.92 / fs
+        wtxt = sum(normalize._w(ch) for ch in text)
+        if '\u3000' in text and wtxt > cap and text.index('\u3000') < len(text) - 2:
+            i = text.index('\u3000')
+            runs = [run(text[:i]), run('\n'), run(text[i + 1:])]      # break after the ordinal ('第一部分 / 审美判断力的批判')
+            rest = normalize.balance_title([run(text[i + 1:])], fs, style.TEXT_W - 20, slack=0.92)
+            if len(rest) > 1:
+                runs = [run(text[:i]), run('\n')] + rest
+        else:
+            runs = normalize.balance_title([run(text)], fs, style.TEXT_W - 20, slack=0.92)
         n = 1 + sum(1 for r in runs if r['t'] == '\n')
         body = runs_html(runs)
         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'

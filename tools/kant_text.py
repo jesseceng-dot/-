@@ -14,7 +14,7 @@ PUA = {
 }
 CHARS = {
     '﹒': '.',            # 小写句点 ﹒ 用作缩写点（G﹒Chr﹒Recard）
-    '＜': '《', '＞': '》',    # 书名号写成了全角小于/大于号
+    '＜': '《',            # 书名号写成了全角小于号（源里的 ＜ 只有这一种用法）；大于号见 _RE_GT
     '‐': '-',            # U+2010 连字符 -> ASCII（下面再处理断行连字符）
     '\xa0': ' ',
 }
@@ -90,11 +90,14 @@ FORMULA = {
     'image04234.jpeg': '(1/125)·(1/1048)=1/130000',
     'image04240.jpeg': 'ϊ',
 }
-_FX = re.compile(r'\^\{([^}]*)\}|_\{([^}]*)\}|⟦([^⟧]*)⟧')
+_FX = re.compile(r'\^\{([^}]*)\}|_\{([^}]*)\}')
+_BAR = re.compile(r'⟦([^⟧]*)⟧')
 
 
 def fx_runs(s, base):
-    """Markup string -> runs.  `base` carries the attributes of the surrounding run (bold, ...)."""
+    """Markup string -> runs.  `base` carries the attributes of the surrounding run (bold, ...).  ⟦x⟧ (the radicand under a
+    root sign) is set in parentheses, unless it is a plain number."""
+    s = _BAR.sub(lambda m: m.group(1) if re.fullmatch(r'[\d.]+', m.group(1)) else '(' + m.group(1) + ')', s)
     out, pos = [], 0
 
     def add(t, c=''):
@@ -102,17 +105,11 @@ def fx_runs(s, base):
             r = dict(base)
             r['t'] = t
             r.pop('i', None)
-            cc = ' '.join(x for x in (base.get('c', ''), 'fx', c) if x)
-            r['c'] = cc
+            r['c'] = ' '.join(x for x in (base.get('c', ''), 'fx', c) if x)
             out.append(r)
     for m in _FX.finditer(s):
         add(s[pos:m.start()])
-        if m.group(1) is not None:
-            add(m.group(1), 'msup')
-        elif m.group(2) is not None:
-            add(m.group(2), 'msub')
-        else:
-            add(m.group(3), 'ov')
+        add(m.group(1) if m.group(1) is not None else m.group(2), 'msup' if m.group(1) is not None else 'msub')
         pos = m.end()
     add(s[pos:])
     return out
@@ -156,11 +153,17 @@ def set_volume(v):
     VOLUME = v
 
 
+_RE_GT = re.compile('(?<=[\u4e00-\u9fff])＞')
+_RE_NBSP_GAP = re.compile('(?<=[\u4e00-\u9fff，。、；：！？”）])[ \xa0]*\xa0[ \xa0]*(?=[\u4e00-\u9fff“（《])')
+
+
 def fix_text(t):
+    t = _RE_NBSP_GAP.sub('', t)                  # NBSP runs inside a sentence (layout residue of the source)
     for k, v in PUA.items():
         t = t.replace(k, v)
     for k, v in CHARS.items():
         t = t.replace(k, v)
+    t = _RE_GT.sub('》', t)                        # ＞ closing a title; a ＞ after ')' / a letter is the math sign, kept
     t = DASH3.sub('——', t)
     t = re.sub(r' {2,}', ' ', t)                 # runs of blanks (NBSP layout hacks of the source)
     for k, v in GREEK.items():

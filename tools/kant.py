@@ -280,6 +280,7 @@ def make_toc(mods, title='目　录'):
             cand = [c for c in cand if c[1]['rank'] <= 2]
         if len(cand) > 45:
             cand = [c for c in cand if c[1]['rank'] <= 1]
+        mod.toc_heads = [(bi, b['rank']) for bi, b, t in cand]
         for bi, b, t in cand:
             if not b.get('id'):
                 b['id'] = f'{mod.mid}#h{bi}'

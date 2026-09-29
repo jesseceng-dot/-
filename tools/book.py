@@ -53,6 +53,10 @@ class Mod:
     npages: int = 1
 
 
+def _gaps(plan):
+    return sum(p['gap'] for p in plan['pages'][:-1])
+
+
 def title_text(runs):
     """Plain title: no forced breaks, no superscript note markers."""
     t = ''.join(r['t'] for r in runs if not r.get('s')).replace(BR, '')
@@ -156,6 +160,11 @@ class BookBuilder:
         if hyph.hyphenate_blocks(mod, self.hyph_log):
             lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
             mod.lbs, mod.plan = lbs, plan
+        if _gaps(plan):
+            # a page that cannot be filled with the usual letter-spacing steps: try the wider ones once
+            lbs2, plan2 = typeset.typeset(mod.blocks, self.m, mod.grid, variants=style.VARIANTS_ALL)
+            if _gaps(plan2) < _gaps(plan):
+                mod.lbs, mod.plan = lbs2, plan2
 
     # ---------------------------------------------------------------- page sequence and labels
     def sequence(self):

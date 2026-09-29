@@ -97,16 +97,27 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
     g = GRIDS[grid]
     gap = page.get('gap', 0)
     n = g['n']
-    k = n / (n - gap) if gap and gap < n else 1.0
+    k = (n - 1) / (n - gap - 1) if gap and gap < n - 1 else 1.0      # last line lands exactly on the last grid line
+    # A page the solver could not fill exactly: the missing slots become extra space above the last heading of the page
+    # (line pitch stays uniform); only a page without a heading is stretched.
+    shift_from = None
+    if gap:
+        for idx in range(len(page['items']) - 1, 0, -1):
+            if lbs[page['items'][idx][0]].block['k'] == 'h':
+                shift_from = idx
+                k = 1.0
+                break
     x0 = style.LEFT + col * (g['W'] + g['gutter'])
     parts = []
-    for (bi, lo, hi, slot0) in page['items']:
+    for ii, (bi, lo, hi, slot0) in enumerate(page['items']):
+        if shift_from is not None and ii >= shift_from:
+            slot0 += gap
         lb = lbs[bi]
         st = lb.st
         vi = variants[bi]
         starts = lb.starts[vi]
         ends = starts[1:] + [None]
-        ls = style.VARIANTS[vi]
+        ls = style.VARIANTS_ALL[vi]
         runs = lb.block['runs']
         if lb.block['k'] == 'img':
             b = lb.block
