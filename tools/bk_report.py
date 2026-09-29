@@ -22,11 +22,16 @@ def counter(t):
 def source_counter(b):
     """Characters of the source parts of book b that end up in the book (contents / copyright / cover pages excluded)."""
     C = bk.CFG[b]
-    parts = [n for n, _ in C['front']] + list(C['body']) + list(C['back'])
+    parts = [n for n, _ in C['front']]
+    for x in C['body']:
+        parts += list(x) if isinstance(x, (list, tuple)) else [x]
+    parts += [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes', ()))
     c = collections.Counter()
     for n in parts:
         for it in BE.items(bk.P(n)):
             if it['k'] == 'img':
+                continue
+            if set(it['cls'].split()) & set(C.get('cls_skip', ())) or ''.join(r['t'] for r in it.get('runs', [])).strip() in C.get('skip_text', ()):
                 continue
             if it['k'] == 'table':
                 for row in it['rows']:

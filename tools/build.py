@@ -38,7 +38,10 @@ def outline_for(bb):
         if mod.kind == 'page' and mod.toc and mod.toc_level == 0:
             under = mod.mid != 'plates'
         elif under:
-            base += 1
+            if getattr(mod, 'unnest', False):                  # back matter after the last part divider is not inside that part
+                under = False
+            else:
+                base += 1
         if vol_page_only:
             continue
         if not mod.toc and mod.mid != 'toc' and not mod.title:

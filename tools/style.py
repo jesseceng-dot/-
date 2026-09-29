@@ -100,7 +100,7 @@ a{{color:inherit;text-decoration:none}}
 .it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}
 /* table cells: inline boxes of fixed width (em of the line font) */
 .tw{{display:inline-block;vertical-align:baseline;white-space:nowrap}}
-.w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w10{{width:10em}} .w12{{width:12em}}
+.w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w10{{width:10em}} .w12{{width:12em}} .w14{{width:14em}} .w16{{width:16em}} .w18{{width:18em}} .w20{{width:20em}} .w22{{width:22em}} .w24{{width:24em}} .w26{{width:26em}} .w28{{width:28em}}
 .s-kaibody{{font-family:"KaiTi","GrkSerif","SongBody",serif}}
 .kai{{font-family:"KaiTi","GrkSerif","SongBody",serif;line-height:0}}
 .s-refhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}

@@ -16,7 +16,8 @@ from lxml import etree
 from .model import run, merge_runs, collapse_ws, BR, OBJ
 from .extract import ln, anchor_key, resolve_href, load_body, clean_runs
 
-MARK_RE = re.compile(r'^[\[［(（]\s*\d+\s*[\]］)）]$|^\d{1,3}$')
+MARK_RE = re.compile(r'^[\[［(（〔]\s*\d+\s*[\]］)）〕]$|^\d{1,3}$')
+NOTE_CLS = ('fnote', 'note1')                       # paragraph classes that are note entries
 ITALIC_CLS = ('italic', 'kindle-cn-italic')
 KAI_CLS = ('kaiti', 'kindle-cn-kai')
 BOLD_CLS = ('kindle-cn-bold', 'bold')
@@ -62,6 +63,10 @@ def inline(el, part, mark_breaks=False):
                 rec(ch, b, _cls(c, 'it'), h, a, s)
             elif t == 'img':
                 out.append(run(OBJ, b, 0, h, a, i=os.path.basename(ch.get('src') or ''), c=ch.get('class') or ''))
+            elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
+                m = re.search(r'(\d+)$', ch.get('id') or '')
+                if m and ch.get('href'):                          # an icon (image) as the note mark: the number comes from the id
+                    out.append(run(m.group(1), b, 1, resolve_href(part, ch.get('href')), anchor_key(part, ch.get('id')), c=c))
             elif t == 'a':
                 if ch.get('href'):
                     href = resolve_href(part, ch.get('href'))
@@ -77,7 +82,9 @@ def inline(el, part, mark_breaks=False):
                     rec(ch, b, c, h, a, s)
             elif t == 'sup':
                 txt = ''.join(ch.itertext()).strip()
-                if MARK_RE.match(txt) or h:
+                if not txt and any(ln(x) == 'a' and 'duokan-footnote' in (x.get('class') or '') for x in ch.iter() if isinstance(x.tag, str)):
+                    rec(ch, b, c, h, a, 1)
+                elif MARK_RE.match(txt) or h:
                     rec(ch, b, c, h, a, 1)
                 elif txt:
                     rec(ch, b, _cls(c, 'msup'), h, a, s)
@@ -142,7 +149,9 @@ def items(part):
                     if 'konghang' in cls or 'empty' in cls:
                         add('p', el, runs=[], q=q, box=box, blank=1)
                     continue
-                add('note' if (note or 'fnote' in cls) else 'p', el, runs=runs, q=q, box=box)
+                if note and runs and not runs[0].get('h') and not runs[0].get('a') and runs[0]['t'].strip('\u3000 ') == '' and len(runs) > 1:
+                    runs = runs[1:]                                   # the ebook indents a note entry with ideographic spaces before its number
+                add('note' if (note or set(cls) & set(NOTE_CLS)) else 'p', el, runs=runs, q=q, box=box)
             elif t == 'blockquote':
                 walk(el, q=1, box=box, fig=fig, note=note)
             elif t == 'aside':
@@ -153,7 +162,18 @@ def items(part):
                 if any(c.startswith(('kindle-cn-toc', 'sgc-toc')) for c in cls):
                     continue
                 walk(el, q=q, box=1 if 'roundsolid' in cls else box, fig=1 if 'chatu' in cls else fig,
-                     note=1 if 'fnote' in cls else note)
+                     note=1 if ('fnote' in cls or 'annotation' in cls) else note)
+            elif t in ('ul', 'ol') and 'duokan-footnote-content' in cls:
+                for li in el:
+                    if not (isinstance(li.tag, str) and ln(li) == 'li' and li.get('id')):
+                        continue
+                    m = re.search(r'(\d+)$', li.get('id'))
+                    back = next((resolve_href(part, a.get('href')) for a in li.iter() if isinstance(a.tag, str) and ln(a) == 'a' and a.get('href')), '')
+                    if '_end_' in li.get('id'):                        # (one entry of the ebook links to a non-existent anchor: derive the mark's id)
+                        back = anchor_key(part, li.get('id').replace('_end_', '_start_'))
+                    runs = clean_runs([dict(r, h='', a='') for r in inline(li, part)])
+                    if runs and m:                                # the whole entry is one back-link in the ebook: marker = back-link, text plain
+                        add('note', li, runs=[run(m.group(1), 0, 0, back, anchor_key(part, li.get('id')))] + runs, q=0, box=0)
             elif t in ('ul', 'ol'):
                 if 'Level-1' in cls:
                     continue
