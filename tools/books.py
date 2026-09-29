@@ -80,7 +80,7 @@ def index_module(part, book_id, zone, fixes=(), title=None):
                 b['style'] = 'idxnote'
             elif t.startswith('——'):
                 b['style'] = 'indexc'
-        b['runs'] = normalize.replace_greek(b['runs'])
+        b['runs'] = normalize.fix_dates(normalize.replace_greek(b['runs']))
         blocks.append(b)
     blocks = normalize.mark_markers(blocks)
     blocks = normalize.apply_fixes(blocks, fixes)

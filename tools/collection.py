@@ -26,6 +26,10 @@ def master_toc_blocks(cfgs, metas):
                 continue
             if mod.volume and mod.volume != last_vol:
                 last_vol = mod.volume
+                first_of_vol = next((x for x in cfg['modules'] if x.volume == mod.volume and x.mid in labels), None)
+                if first_of_vol is not None:
+                    blocks.append(dict(k='p', style='toc0', runs=[run(mod.volume, h=f'{bid}:{first_of_vol.mid}')],
+                                       h=f'{bid}:{first_of_vol.mid}', pg=labels[first_of_vol.mid], keep=1))
             label = mod.toc_title or mod.title
             if not label or mod.mid not in labels:
                 continue

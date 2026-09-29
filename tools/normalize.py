@@ -602,5 +602,10 @@ def fix_dates(runs):
         t = re.sub('出处页\u3000+码', '出处页码', t)
         t2 = re.sub(r'(?<=\d) (?=[年月日])', '', t)
         t2 = re.sub(r'(?<=[年月]) (?=\d)', '', t2)
+        # ASCII space before a full-width closing mark / after a full-width opening bracket (source typo; it would let a
+        # line start with '）' or '，' or leave a visible gap before the mark)
+        t2 = re.sub(r'(?<=[A-Za-z0-9一-鿿]) +(?=[）】〕」』，。、；：！？》])', '', t2)
+        t2 = re.sub(r'(?<=[（【〔「『《]) +(?=\S)', '', t2)
+        t2 = re.sub(r'(?<=[，、；：]) +(?=[？！])', '', t2)          # '，？—1679' (unknown birth year in the index)
         out.append(dict(r, t=t2) if t2 != r['t'] else r)
     return out
