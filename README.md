@@ -64,3 +64,57 @@ python -m tools.index_report             # 生成 docs/index-pages.md（索引�
   “印刷页 ↔ 正文位置”，再把每个页码换成本 PDF 页码（可点击）。换算的方法、命中率和留一法检验精度见 `docs/index-pages.md`，逐条对照见 `docs/index-page-map/`；
   索引开头有一段小字说明。条目词在正文里找不到的，按前后页码内插，可能与原书页码相差一页。
 - 全部改动与无法还原的地方见 `docs/dispositions.md`；希腊文小图的逐张核对见 `docs/greek-ocr.md`。
+
+
+---
+
+# 康德文集（注释版）（套装共 10 册）：AZW3 → 出版级 PDF
+
+`source/kant-collection.azw3` 是中国人民大学出版社 2016 年版《康德文集（注释版）》（李秋零译注）的 10 册合集，
+`out/kant/` 是转换结果：每册各成一本，另有一个合集 PDF（封面 + 总目录 + 十册，各册保留自己的页码与目录）。
+
+| 文件 | 内容 | 页数 | 大小 |
+|---|---|---|---|
+| `out/kant/00-康德文集（注释版）（合集）.pdf` | 合集：封面 + 总目录 + 十册（各册保留自己的页码、目录与书签） | 6787 | 41.4 MB |
+| `out/kant/01-康德三大批判合集.pdf` | 康德三大批判合集 | 1199 | 5.4 MB |
+| `out/kant/02-康德人类学文集.pdf` | 康德人类学文集 | 371 | 2.7 MB |
+| `out/kant/03-康德道德哲学文集.pdf` | 康德道德哲学文集 | 932 | 5.1 MB |
+| `out/kant/04-康德历史哲学文集.pdf` | 康德历史哲学文集 | 245 | 1.9 MB |
+| `out/kant/05-康德政治哲学文集.pdf` | 康德政治哲学文集 | 406 | 2.8 MB |
+| `out/kant/06-康德美学文集.pdf` | 康德美学文集 | 457 | 2.4 MB |
+| `out/kant/07-康德认识论文集.pdf` | 康德认识论文集 | 1360 | 7.5 MB |
+| `out/kant/08-康德自然哲学文集.pdf` | 康德自然哲学文集 | 1073 | 9.1 MB |
+| `out/kant/09-康德宗教哲学文集.pdf` | 康德宗教哲学文集 | 572 | 3.1 MB |
+| `out/kant/10-康德教育哲学文集.pdf` | 康德教育哲学文集 | 156 | 1.4 MB |
+
+## 版式（与《贺麟中译黑格尔经典著作》同一套）
+
+- 大 32 开（397 × 575 pt），左右页边距相同；正文思源宋体五号 10.5 pt，每页 27 行、行距 17 pt，注释/版权页用 8.5–9 pt 小字（40 行/页的密网格），末行基线与正文页重合。
+- **标题最多九级，每级各用不同的字体族，且都不与正文相同**：一级思源黑体粗、二级霞鹜文楷粗、三级文泉驿正黑、四级文鼎楷体粗、五级文鼎报宋粗、六级文泉驿微米黑粗、
+  七级文鼎明体粗、八级文鼎简中楷粗、九级 Droid Sans Fallback 粗（前六种之外的字体原本只有常规字重，`tools/fonts.py` 用 skia-pathops 加粗轮廓，不用浏览器伪粗体，避免 Type3 字体）。
+- 每册：封面 → 半书名页 → 书名页 → 版权页 → 目录（点线、页码、可点击，作品名加粗，篇章缩进在作品名之下）→ 前言（李秋零）→ 序（苗力田）及其注释 → 正文 →
+  书后插图；作品名、“相关论述”等整页为分隔页；页眉（单页书名 / 双页篇名）、页脚页码（前置部分罗马数字）、PDF 书签与页码标签齐全。
+- 注释紧随所属篇章，用小字号、编号列 + 回链排；相邻短篇的注释合并为一组（每篇前有小标题），不出现只有几行的注释页。
+- 图表：独立的图和表（判断表、范畴表、几何示意图、自然哲学图 1–26 等）一律移到书后插图，正文原处是蓝字黄框的“见书后插图N”（可点击），每幅图下有“返回正文（第N页）”；
+  第 1 册里用空格排成四象限的 4 张表按原文重建为矢量表；夹在句子里的 26 张小图（着重号文字、公式）转成文字（着重号用 `text-emphasis`），见 `docs/kant/inline-images.md`。
+- 文字：私用区字符、三连破折号、全角标点前后多余空格、断行连字符、无重音的希腊文等逐类修复，全部列在 `docs/kant/dispositions.md`、`docs/kant/greek.md`。
+
+## 验收（`docs/kant/QA-report.md` 有逐册实测数字）
+
+五条验收标准与黑格尔各册相同：每页文字页（含注释页）末行基线严格相同；标题不落页底、标题后至少两行；封面与链接保留；长标题按词平衡换行；
+序号与标题之间用不会被吞掉的全角空格；没有孤立标点/角标行、没有只剩 1–2 字的末页；逐字符核对正文无出入（改动全部有说明）。
+
+## 复现
+
+```
+python -m tools.unpack source/kant-collection.azw3      # 需 BOOK_SCRATCH=<工作目录>
+BOOK_FONT_DIR=<字体目录> python tools/fonts.py           # 子集字体 + 真粗体（fonts.py 里的 BOLD_FROM）
+python -m tools.kant_make_all --dest=out/kant            # 十册 + 合集
+python -m tools.kant_build 3 --redo=part0058             # 只重排第 3 册的某个模块
+python -m tools.kant_report                              # 验收数字 -> docs/kant/QA-report.md
+python -m tools.kant_docs                                # dispositions / greek / inline-images
+```
+
+结构：`tools/kant_extract.py` 解析 XHTML；`kant_struct.py` 标题层级、短行样式、模块单元（分隔页/并合/拆分）；`kant_text.py` 文字修复、希腊文、公式转写；
+`kant_tables.py` 第 1 册的四象限表；`kant.py` 每册的模块装配（注释分组、书后插图、目录）；`kant_build.py` / `kant_collection.py` / `kant_make_all.py` 构建；
+`kant_report.py` / `kant_docs.py` 验收与文档。排版引擎（`layout.py` / `measure.py` / `typeset.py` / `render.py` / `book.py`）与黑格尔各册共用。
