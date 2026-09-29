@@ -226,44 +226,45 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
     idx = [i for i in range(1, len(text)) if _breakable(text, i)]
     idx = _word_boundaries(text, idx)
     best = None
-    for k in range(n_lines, n_lines + 2):
+    from math import comb
+    for k in range(n_lines, n_lines + 3):
+        if comb(len(idx), k - 1) > 150000:
+            continue
         for cuts in itertools.combinations(idx, k - 1):
             bounds = (0,) + cuts + (len(text),)
             ws = [sum(widths[bounds[j]:bounds[j + 1]]) - (0.28 if text[bounds[j + 1] - 1] == ' ' else 0)
                   for j in range(k)]
             if max(ws) > cap:
                 continue
-            score = (max(ws) - min(ws)) * 0.6
+            score = (max(ws) - min(ws)) * 0.6 + 7.0 * (k - n_lines)
             for c in cuts:
-                a, b = text[c - 1], text[c]
+                a_, b_ = text[c - 1], text[c]
                 if depth[c] > 0 and depth[c - 1] > 0:
-                    score += 5.0 if ('《' in text[:c] and '》' in text[c:]) else 3.0
-                if a == '）' and '（' in text[max(0, c - 5):c]:
-                    score += 5.0                    # keep a short ordinal like （a） with the words after it
-                if a in '：；':
-                    score -= 6.0
-                elif a in '，、）' or a == '\u3000':
+                    score += 9.0 if ('《' in text[:c] and '》' in text[c:]) else 3.0
+                if (a_ in '年月' and b_.isdigit()) or (a_.isdigit() and b_ in '年月日'):
+                    score += 8.0                    # never split a date
+                if a_ == '》':
                     score -= 3.0
-                elif b in '（〔《':
+                if a_ == '）' and '（' in text[max(0, c - 5):c]:
+                    score += 5.0                    # keep a short ordinal like （a） with the words after it
+                if a_ in '：；':
+                    score -= 6.0
+                elif a_ in '，、）' or a_ == '\u3000':
+                    score -= 3.0
+                elif b_ in '（〔《':
                     score -= 2.5
-                elif a == ' ':
-                    score -= 0.0
-                elif ord(a) < 0x2000 and a != ' ':
+                elif ord(a_) < 0x2000 and a_ != ' ':
                     score += 1.0
-                if a in '的与和及而或之在于对' and a != '\u3000':
+                if a_ in '的与和及而或之在于对' and a_ != '\u3000':
                     score -= 1.2
-                if b in '的之而':
+                if b_ in '的之而':
                     score += 2.5
-                if a == ' ' or b == ' ':
+                if a_ == ' ' or b_ == ' ':
                     score += 1.5
-                # do not strand very short pieces
             if min(ws) < 3.5:
                 score += 6.0
-            key = (k, score)
-            if best is None or key < best[0]:
-                best = (key, cuts)
-        if best:
-            break
+            if best is None or score < best[0]:
+                best = (score, cuts)
     if not best:
         return runs
     cuts = set(best[1])
@@ -460,7 +461,7 @@ def wrap_short_lines(blocks):
     after a closing bracket (date | signature) when both parts fit, otherwise balanced."""
     from .layout import STYLES
     for b in blocks:
-        if b['k'] == 'p' and b['style'] in ('right', 'center') and BR not in text_of(b):
+        if b['k'] == 'p' and b['style'] in ('right', 'center', 'epi') and BR not in text_of(b) and len(text_of(b)) <= 90:
             st = STYLES[b['style']]
             avail = 294 - (st['left'] + st['right']) * st['fs']
             text = text_of(b)
@@ -598,6 +599,7 @@ def fix_dates(runs):
         for k, v in PRINT_HYPHENS.items():
             if k in t:
                 t = t.replace(k, v)
+        t = re.sub('出处页\u3000+码', '出处页码', t)
         t2 = re.sub(r'(?<=\d) (?=[年月日])', '', t)
         t2 = re.sub(r'(?<=[年月]) (?=\d)', '', t2)
         out.append(dict(r, t=t2) if t2 != r['t'] else r)

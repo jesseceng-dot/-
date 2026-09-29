@@ -38,6 +38,10 @@ class Mod:
     toc_level: int = 1            # level of the module entry in the TOC
     anchor: str = ''              # extra anchor id resolving to the first page
     single: bool = False          # must fit on one page
+    header_n: int = 0             # leading blocks laid out full width above a two-column body (index title/intro)
+    hlbs: list = None
+    hpos: list = None
+    reserve: int = 0
     # filled in by the builder
     lbs: list = None
     plan: dict = None
@@ -78,7 +82,7 @@ class BookBuilder:
         cache_dir = cache_dir or os.path.join(style.SCRATCH, 'cache')
         os.makedirs(cache_dir, exist_ok=True)
         code = b''.join(open(os.path.join(os.path.dirname(__file__), f), 'rb').read()
-                        for f in ('layout.py', 'style.py', 'hyph.py', 'measure.py', 'typeset.py', 'model.py'))
+                        for f in ('layout.py', 'style.py', 'hyph.py', 'measure.py', 'typeset.py', 'model.py', 'book.py'))
         code_key = hashlib.sha1(code).hexdigest()
         for mod in self.mods:
             if mod.kind != 'text':
@@ -88,23 +92,39 @@ class BookBuilder:
                                 + mod.grid).encode('utf8')).hexdigest()
             path = os.path.join(cache_dir, f'{mod.mid}-{key[:16]}.pkl')
             if mod.mid not in redo and os.path.exists(path):
-                blocks, lbs, plan = pickle.load(open(path, 'rb'))
+                blocks, lbs, plan, hlbs, hpos, reserve = pickle.load(open(path, 'rb'))
                 mod.blocks = blocks
-                # re-bind lb.block to the (restored) block objects
-                for lb, blk in zip(lbs, blocks):
+                body = blocks[mod.header_n:]
+                for lb, blk in zip(lbs, body):
                     lb.block = blk
-                mod.lbs, mod.plan = lbs, plan
+                for lb, blk in zip(hlbs or [], blocks[:mod.header_n]):
+                    lb.block = blk
+                mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve = lbs, plan, hlbs, hpos, reserve
             else:
-                lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
-                mod.lbs, mod.plan = lbs, plan
-                from . import hyph
-                if hyph.hyphenate_blocks(mod, self.hyph_log):
-                    lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
-                    mod.lbs, mod.plan = lbs, plan
-                pickle.dump((mod.blocks, mod.lbs, mod.plan), open(path, 'wb'))
+                self._typeset_module(mod)
+                pickle.dump((mod.blocks, mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve), open(path, 'wb'))
             g = GRIDS[mod.grid]
             mod.npages = (len(mod.plan['pages']) + g['cols'] - 1) // g['cols']
         return self
+
+    def _typeset_module(self, mod):
+        from . import hyph
+        if mod.header_n:
+            head, body = mod.blocks[:mod.header_n], mod.blocks[mod.header_n:]
+            mod.hlbs = typeset.make_lbs(head, self.m, 'small1')
+            slot, pos = 0, []
+            for i, lb in enumerate(mod.hlbs):
+                slot += lb.st['before'] if (i > 0 or lb.st.get('top_keep')) else 0
+                pos.append(slot)
+                slot += lb.nl[0] * lb.st['slots'] + lb.st['after']
+            mod.hpos, mod.reserve = pos, slot
+            mod.lbs, mod.plan = typeset.typeset(body, self.m, mod.grid, mod.reserve)
+            return
+        lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+        mod.lbs, mod.plan = lbs, plan
+        if hyph.hyphenate_blocks(mod, self.hyph_log):
+            lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+            mod.lbs, mod.plan = lbs, plan
 
     # ---------------------------------------------------------------- page sequence and labels
     def sequence(self):
@@ -163,6 +183,10 @@ class BookBuilder:
                     if lpi < len(mod.plan['pages']):
                         inner += render.logical_page_html(mod.plan['pages'][lpi], mod.lbs, mod.plan['variants'],
                                                           mod.grid, c, self.anchors, p.index)
+                if k == 0 and mod.hlbs:
+                    hp = dict(items=[(i, 0, lb.nl[0], mod.hpos[i]) for i, lb in enumerate(mod.hlbs)], gap=0)
+                    inner = render.logical_page_html(hp, mod.hlbs, [0] * len(mod.hlbs), 'small1', 0, self.anchors,
+                                                     p.index) + inner
                 if k == 0:
                     self.anchors.setdefault(mod.mid, (p.index, style.TOP))
                     if mod.anchor:

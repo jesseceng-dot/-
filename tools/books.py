@@ -85,7 +85,10 @@ def index_module(part, book_id, zone, fixes=(), title=None):
     blocks = normalize.mark_markers(blocks)
     blocks = normalize.apply_fixes(blocks, fixes)
     t = title or first_title(blocks)
-    return Mod(mid=part, zone=zone, title=t, blocks=blocks, grid='small1')
+    hn = 1
+    if len(blocks) > 1 and blocks[1]['style'] == 'idxnote':
+        hn = 2
+    return Mod(mid=part, zone=zone, title=t, blocks=blocks, grid='small2', header_n=hn)
 
 
 def notes_module(part, book_id, zone, title='注　释', mid=None):
@@ -122,7 +125,7 @@ def book1():
         page_module('title', 'front', special.title_html(meta), folio=False),
         copyright_module(P(2), 'b1'),
     ]
-    front = [(3, {}), (4, {}), (5, {}), (6, {}), (7, {}), (8, {}), (9, {}), (10, {})]
+    front = [(3, {}), (4, dict(fixes=[('style', 1, 'epi')])), (5, {}), (6, {}), (7, {}), (8, {}), (9, {}), (10, {})]
     body = [11, 12, 13, 14, 15]
     body_mods = []
     front_mods = [text_module(P(n), 'b1', 'front', **kw) for n, kw in front]
@@ -190,7 +193,7 @@ def book2():
                 publisher='上海人民出版社')
     head = book_meta_mods('image02003.jpeg', meta, 'b2') + [copyright_module(P(20), 'b2')]
     front = [text_module(P(21), 'b2', 'front', fixes=[('style', 1, 'right')]),
-             text_module(P(22), 'b2', 'front'),
+             text_module(P(22), 'b2', 'front', fixes=[('style', 1, 'epi')]),
              text_module(P(23), 'b2', 'front')]
     body = []
     body += chapter(P(24), 'b2', 'body',
@@ -256,11 +259,11 @@ def book3():
                 publisher='上海人民出版社')
     head = book_meta_mods('image02010.jpeg', meta, 'b3') + [copyright_module(P(33), 'b3')]
     up_front = [text_module(P(34), 'b3', 'front', fixes=[('drop', 0)]),
-                text_module(P(35), 'b3', 'front'),
+                text_module(P(35), 'b3', 'front', fixes=[('style', 1, 'quote'), ('set', 1, {'first': 0})]),
                 text_module(P(36), 'b3', 'front')]
     up_body = [text_module(P(n), 'b3', 'body') for n in (37, 38, 39, 40, 41)]
     up_back = [text_module(P(42), 'b3', 'body'), text_module(P(43), 'b3', 'body')]
-    dn_front = [text_module(P(44), 'b3', 'body', fixes=[('drop', 0)])]
+    dn_front = [text_module(P(44), 'b3', 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     dn_body = [text_module(P(n), 'b3', 'body') for n in (45, 46, 47)]
     dn_back = [index_module(P(48), 'b3', 'body'), index_module(P(49), 'b3', 'body')]
     sec, plates = plate_modules(P(50), 'b3', 'body', [f'image{n:05d}.jpeg' for n in range(2011, 2020)])
@@ -298,7 +301,7 @@ def book4():
     B4 = 'b4'
     # ---- volume 1
     f1 = [text_module(P(55), B4, 'front', fixes=[('drop', 0), ('style', 2, 'right')]),
-          text_module(P(56), B4, 'front')]
+          text_module(P(56), B4, 'front', fixes=[('style', 1, 'epi')])]
     f1 += chapter(P(57), B4, 'front', fixes=[('style', 1, 'center'), ('style', 2, 'noindent')])
     f1 += [text_module(P(58), B4, 'front')]
     b1 = []
@@ -312,18 +315,18 @@ def book4():
     b1 += chapter(P(63), B4, 'body', fixes=[('style', idxs(P(63), r'^\u3000+\d+'), 'quote'), ('lstrip', idxs(P(63), r'^\u3000+\d+'))] + v63)
     k1 = [index_module(P(65), B4, 'body'), text_module(P(66), B4, 'body')]
     # ---- volume 2
-    f2 = [text_module(P(67), B4, 'body', fixes=[('drop', 0)])]
+    f2 = [text_module(P(67), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b2 = (chapter(P(68), B4, 'body', fixes=[('style', (150, 151), 'verse'), ('set', (150, 151), {'left': 2})]) +
           chapter(P(69), B4, 'body', fixes=[('style', (8, 11), 'verse')]))
     k2 = [index_module(P(70), B4, 'body'), text_module(P(71), B4, 'body')]
     # ---- volume 3
-    f3 = [text_module(P(72), B4, 'body', fixes=[('drop', 0)])]
+    f3 = [text_module(P(72), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b3 = []
     for n in (73, 74, 75, 76, 77, 78):
         b3 += chapter(P(n), B4, 'body')
     k3 = [index_module(P(79), B4, 'body'), text_module(P(80), B4, 'body')]
     # ---- volume 4
-    f4 = [text_module(P(81), B4, 'body', fixes=[('drop', 0)])]
+    f4 = [text_module(P(81), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b4 = []
     b4 += chapter(P(82), B4, 'body')
     b4 += chapter(P(83), B4, 'body', fixes=[('style', [33, 36, 38], 'center')])

@@ -32,6 +32,7 @@ STYLES = {
     'verse':    dict(cls='s-quote',   fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'center':   dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
     'right':    dict(cls='s-body',    fs=10.5, first=0, left=0, right=2, align='r', slots=1, before=0, after=0, keep=0),
+    'epi':      dict(cls='s-quote',   fs=10.0, first=0, left=2, right=2, align='c', slots=1, before=1, after=1, keep=0),
     'left':     dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'sep':      dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=1, after=1, keep=0),
     'secnum':   dict(cls='s-secnum',  fs=9.5,  first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=2),
@@ -153,17 +154,21 @@ def gap_pen(g):
     return 0.0 if g == 0 else 200.0 * g + 500.0 * (g - 1) ** 2
 
 
-def paginate(n, s, f0, g1, g2, splittable, N=N):
-    """Place n lines of `s` slots each, starting at slot f0 of the current page.
+def _top(pg, reserve):
+    """Slots reserved at the top of logical page `pg` (a spanning heading over both columns of a two-column module)."""
+    return reserve if pg < 2 else 0
 
-    Returns (pieces, gaps, f1, extra_pen) or None.
-      pieces: list of line counts, first entry = lines on the current page; gaps: unused slots at the end of each page
-      f1: slots used on the last page (0 = exactly full).
+
+def paginate(n, s, f0, g1, g2, splittable, N=N, pg=2, reserve=0):
+    """Place n lines of `s` slots each, starting at slot f0 of logical page `pg` (capped at 2).
+
+    Returns dict(pieces, gaps, f_end, pg_end, extra) or None.
+      pieces: line counts, first entry = lines on the current page; gaps: unused slots at the end of each page
+      f_end: absolute slots used on the last page (== capacity when exactly full); pg_end: its page index (capped)
     """
     room = N - f0
     if n * s <= room:
-        f1 = f0 + n * s
-        return [n], [0], (0 if f1 >= N else f1), 0.0
+        return dict(pieces=[n], gaps=[0], f_end=f0 + n * s, pg_end=pg, extra=0.0)
     if not splittable or s != 1:
         return None
     k1 = room - g1
@@ -172,17 +177,22 @@ def paginate(n, s, f0, g1, g2, splittable, N=N):
     pieces, gaps = [k1], [g1]
     r = n - k1
     used_g2 = False
+    idx = 0
     while True:
-        if r <= N:
+        cap = N - _top(min(pg + 1 + idx, 2), reserve)
+        capn = N - _top(min(pg + 2 + idx, 2), reserve)
+        if r <= cap:
             pieces.append(r); gaps.append(0)
             break
-        if (r - N) <= N and g2 and not used_g2:
-            take = N - g2
+        if (r - cap) <= capn and g2 and not used_g2:
+            take = cap - g2
             pieces.append(take); gaps.append(g2); used_g2 = True
             r -= take
+            idx += 1
             continue
-        pieces.append(N); gaps.append(0)
-        r -= N
+        pieces.append(cap); gaps.append(0)
+        r -= cap
+        idx += 1
     if g2 and not used_g2:
         return None
     extra = 0.0
@@ -192,8 +202,20 @@ def paginate(n, s, f0, g1, g2, splittable, N=N):
         extra += 50.0
     if pieces[-1] == 2 and n > 6:
         extra += 6.0
-    f1 = pieces[-1] if pieces[-1] < N else 0
-    return pieces, gaps, f1, extra
+    pg_end = min(pg + len(pieces) - 1, 2)
+    return dict(pieces=pieces, gaps=gaps, f_end=_top(pg_end, reserve) + pieces[-1], pg_end=pg_end, extra=extra)
+
+
+def _norm_end(res, after, N, reserve):
+    """State (f, pg) after a block: exact fill or overflowing `after` space opens the next page."""
+    f, pg = res['f_end'], res['pg_end']
+    single = len(res['pieces']) == 1
+    if f >= N or (single and after and f + after >= N):
+        pg = min(pg + 1, 2)
+        return _top(pg, reserve), pg
+    if single and after:
+        f += after
+    return f, pg
 
 
 def bef_options(lb):
@@ -214,13 +236,16 @@ def bef_options(lb):
     return [(base, 0.0)]
 
 
-def solve(lbs, N=N):
-    """DP over blocks; state = slots used on the current page (0..N-1, 0 = fresh page).
+def solve(lbs, N=N, reserve=0):
+    """DP over blocks; state = (slots used on the current page, logical page index capped at 2).
+
+    reserve > 0 keeps `reserve` slots free at the top of logical pages 0 and 1 (the two columns of the first physical
+    page of a two-column module carry a spanning heading there).  With reserve == 0 the page index is irrelevant.
 
     Returns dict(pages=[{items:[(block, lo, hi, slot0)], gap:int}], variants=[v per block], cost=float)
     """
     nb = len(lbs)
-    # need[i]: slots (after the block's own before-space) that must be free on the page so that keep-chains stay together
+    top = lambda pg: _top(pg, reserve)
     need = [0] * (nb + 1)
     depth = [0] * (nb + 1)          # length of the keep chain starting at i (capped)
     for i in range(nb - 1, -1, -1):
@@ -237,84 +262,84 @@ def solve(lbs, N=N):
                 own += min(st['keep'], nx.nl[0]) * nx.st['slots']
         need[i] = own
 
+    pg_init = 0 if reserve else 2
     dp = [dict() for _ in range(nb + 1)]
-    dp[0][0] = (0.0, None, None)
+    dp[0][(top(pg_init), pg_init)] = (0.0, None, None)
     for i, b in enumerate(lbs):
         st = b.st
         s = st['slots']
         prev_keep = lbs[i - 1].st['keep'] if i > 0 and not b.brk else 0
         top_bef = st['before'] if st.get('top_keep') else 0
         bopts = bef_options(b)
-        for f, (c0, _, _) in dp[i].items():
-            opts = []                                   # (start slot, cost, gap before, broke)
+        for (f, pg), (c0, _, _) in dp[i].items():
+            opts = []                                   # (start slot, cost, gap before, broke, page of the start)
             if not b.brk:
-                if f == 0:
+                if f == top(pg):
                     if not b.block.get('nostart') or i == 0:
-                        opts.append((top_bef, c0, 0, False))
+                        opts.append((f + top_bef, c0, 0, False, pg))
                 else:
                     for bef, bc in bopts:
                         if f + bef < N:
-                            opts.append((f + bef, c0 + bc, 0, False))
-            if (f > 0 or b.brk) and not (prev_keep and not b.brk) and not (b.block.get('nostart') and i > 0):
-                g = (N - f) if f > 0 else 0
-                opts.append((top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True))
-            for f0, c1, g0, broke in opts:
+                            opts.append((f + bef, c0 + bc, 0, False, pg))
+            if (f > top(pg) or b.brk) and not (prev_keep and not b.brk) and not (b.block.get('nostart') and i > 0):
+                g = (N - f) if f > top(pg) else 0
+                pg2 = min(pg + 1, 2)
+                opts.append((top(pg2) + top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True, pg2))
+            for f0, c1, g0, broke, pgs in opts:
                 for vi, n in enumerate(b.nl):
                     vp = b.pen[vi]
                     if vp == INF:
                         continue
-                    if st['keep'] and f0 + need[i] > N and f0 > top_bef:
+                    if st['keep'] and f0 + need[i] > N and f0 > top(pgs) + top_bef:
                         continue
                     if st['keep'] and f0 + b.nl[vi] * s > N:
                         continue
                     for g1 in ((0,) if not b.splittable else (0, 1, 2)):
                         for g2 in (0, 1):
-                            res = paginate(n, s, f0, g1, g2, b.splittable, N)
+                            res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve)
                             if res is None:
                                 continue
-                            pieces, gaps, f1, extra = res
+                            pieces = res['pieces']
                             if len(pieces) == 1 and (g1 or g2):
                                 continue
                             if prev_keep and len(pieces) > 1 and pieces[0] < prev_keep:
                                 continue
-                            cost = c1 + vp + extra + sum(gap_pen(g) for g in gaps)
-                            if len(pieces) == 1 and f1 and st['after'] and f1 + st['after'] < N:
-                                f1 += st['after']
-                            elif len(pieces) == 1 and st['after'] and f1 + st['after'] >= N:
-                                f1 = 0
-                            _push(dp[i + 1], f1, cost, f, (vi, f0, broke, g0, g1, g2))
+                            cost = c1 + vp + res['extra'] + sum(gap_pen(g) for g in res['gaps'])
+                            _push(dp[i + 1], _norm_end(res, st['after'], N, reserve), cost, (f, pg),
+                                  (vi, f0, broke, g0, g1, g2, pgs))
         if not dp[i + 1]:
             raise RuntimeError(f'no feasible layout at block {i}: {runs_text(b.block["runs"])[:30]!r}')
 
     best = None
-    for f, (c, _, _) in dp[nb].items():
-        cc = c + (300.0 if 0 < f <= 2 else 0.0)
+    for (f, pg), (c, _, _) in dp[nb].items():
+        used = f - top(pg)
+        cc = c + (300.0 if 0 < used <= 2 else 0.0)
         if best is None or cc < best[0]:
-            best = (cc, f)
-    cost, f = best
+            best = (cc, (f, pg))
+    cost, key = best
     choices = [None] * nb
     for i in range(nb, 0, -1):
-        c, pf, ch = dp[i][f]
+        c, pk, ch = dp[i][key]
         choices[i - 1] = ch
-        f = pf
-    return replay(lbs, choices, cost, N)
+        key = pk
+    return replay(lbs, choices, cost, N, reserve)
 
 
 def prev_keep_forbids_break(prev_keep, f):
     return False
 
 
-def _push(d, f, c, pf, ch):
-    if f not in d or c < d[f][0]:
-        d[f] = (c, pf, ch)
+def _push(d, key, c, pk, ch):
+    if key not in d or c < d[key][0]:
+        d[key] = (c, pk, ch)
 
 
-def replay(lbs, choices, cost, N=N):
+def replay(lbs, choices, cost, N=N, reserve=0):
     pages = [dict(items=[], gap=0)]
-    used = 0
     variants = []
+    fresh = False                      # the previous block filled its page: the next block opens a new one
     for i, b in enumerate(lbs):
-        vi, f0, broke, g0, g1, g2 = choices[i]
+        vi, f0, broke, g0, g1, g2, pgs = choices[i]
         st = b.st
         s = st['slots']
         n = b.nl[vi]
@@ -323,20 +348,20 @@ def replay(lbs, choices, cost, N=N):
             if pages[-1]['items']:
                 pages[-1]['gap'] = g0 if not b.brk else 0
                 pages.append(dict(items=[], gap=0))
-        elif used == 0 and pages[-1]['items']:
+        elif fresh and pages[-1]['items']:
             pages.append(dict(items=[], gap=0))
-        pieces, gaps, f1, _ = paginate(n, s, f0, g1, g2, b.splittable, N)
+        fresh = False
+        res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve)
         pos = 0
-        for pi, (cnt, gp) in enumerate(zip(pieces, gaps)):
+        for pi, (cnt, gp) in enumerate(zip(res['pieces'], res['gaps'])):
             if pi > 0:
                 pages.append(dict(items=[], gap=0))
-            slot0 = f0 if pi == 0 else 0
+            slot0 = f0 if pi == 0 else _top(len(pages) - 1, reserve)
             pages[-1]['items'].append((i, pos, pos + cnt, slot0))
             pages[-1]['gap'] = gp
             pos += cnt
-        used = f1
-        if len(pieces) == 1 and f1 and st['after'] and f1 + st['after'] < N:
-            used = f1 + st['after']
-        elif len(pieces) == 1 and st['after'] and f1 + st['after'] >= N:
-            used = 0
+        f_end, pg_end = res['f_end'], res['pg_end']
+        single = len(res['pieces']) == 1
+        if f_end >= N or (single and st['after'] and f_end + st['after'] >= N):
+            fresh = True
     return dict(pages=pages, variants=variants, cost=cost)
