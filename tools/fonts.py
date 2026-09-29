@@ -115,7 +115,7 @@ def compose_hong(font, cp=0x2B689):
     pen = TTGlyphPen(gs)
     res.draw(pen)
     glyph = pen.glyph()
-    name = 'cid%05d' % len(font.getGlyphOrder())
+    name = 'uni%X' % cp                     # a name that no CID-named glyph of the Noto fonts can collide with
     order = list(font.getGlyphOrder()) + [name]
     glyph.recalcBounds(glyf)
     hmtx.metrics[name] = (1000, glyph.xMin)

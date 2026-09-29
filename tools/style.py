@@ -48,6 +48,7 @@ FONTS_CSS = """
 @font-face{font-family:"KaiM";src:url("%(f)s/KaitiM-Bold.ttf");font-weight:700}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Regular.ttf");font-weight:400}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Bold.ttf");font-weight:700}
+@font-face{font-family:"LatIt";src:url("%(f)s/NotoSerif-Italic.ttf");font-style:italic;font-weight:400;unicode-range:U+0000-024F,U+0370-03FF,U+1F00-1FFF,U+2000-206F}
 @font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
@@ -87,6 +88,9 @@ a{{color:inherit;text-decoration:none}}
 .msup{{font-size:.7em;position:relative;top:-.4em;line-height:0}}
 .msub{{font-size:.7em;position:relative;top:.28em;line-height:0}}
 .ov{{border-top:.5pt solid;padding:0 .06em 0 .1em}}
+.it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}
+.kai{{font-family:"KaiTi","GrkSerif","SongBody",serif;line-height:0}}
+.s-refhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .fx{{white-space:nowrap;font-family:"GrkSerif","SongBody","Noto Serif",serif}}
 .s-toc0{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
 .s-toc1{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:500}}

@@ -468,7 +468,7 @@ def wrap_short_lines(blocks):
             cap = avail * 0.9 / st['fs']
             if sum(_w(c) for c in text) <= cap:
                 continue
-            cuts = [i + 1 for i, c in enumerate(text[:-1]) if c in '）)' and i + 1 >= 4]
+            cuts = [i + 1 for i, c in enumerate(text[:-1]) if c in '）)' and i + 1 >= 4 and text[i + 1] not in '，。、；：！？）》”』」']
             done = False
             for c in cuts:
                 if sum(_w(x) for x in text[:c]) <= cap and sum(_w(x) for x in text[c:]) <= cap:
