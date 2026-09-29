@@ -217,26 +217,14 @@ def plate_modules(v, figs, caption):
     if not figs:
         return []
     divider = page_module('plates', 'back', special.plate_divider_html(
-        '书后插图', '本册正文中的图表一律集中排在此处；正文中以蓝色“见书后插图N”标示，点击可跳转，每幅图下附返回链接。'),
+        '书后插图', '本册正文中的图表一律集中排在此处，每页一图；正文中以蓝色“见书后插图N”标示，点击可跳转，每页底部附返回链接。'),
         toc=True, toc_title='书后插图', toc_level=0, title='书后插图', folio=True)
-    # pack plates onto pages: caption + image + return link + gap must fit in the text block
-    pages, cur, used = [], [], 0.0
-    for k, img in enumerate(figs, 1):
-        need = special.PLATE_CAP + special.plate_size(img)[1] + special.PLATE_LINK + special.PLATE_GAP
-        if cur and used + need > style.TEXT_H + special.PLATE_GAP:
-            pages.append(cur)
-            cur, used = [], 0.0
-        cur.append(k)
-        used += need
-    if cur:
-        pages.append(cur)
     mods = [divider]
-    for pi, ks in enumerate(pages):
-        def html(bb, page, ks=ks):
-            return special.plates_page_html(ks, [figs[k - 1] for k in ks], bb, page, caption)
-        m = page_module(f'plate-page{pi + 1}', 'back', html, toc=False, title=f'书后插图 {ks[0]}—{ks[-1]}' if len(ks) > 1 else f'书后插图 {ks[0]}',
-                        folio=True, head=True)
-        m.anchor = f'plate-{ks[0]}'
+    for k, img in enumerate(figs, 1):
+        def html(bb, page, k=k, img=img):
+            return special.plates_page_html(k, img, bb, page, caption)
+        m = page_module(f'plate-page{k}', 'back', html, toc=False, title=f'书后插图 {k}', folio=True, head=True)
+        m.anchor = f'plate-{k}'
         mods.append(m)
     return mods
 

@@ -48,12 +48,13 @@ FONTS_CSS = """
 @font-face{font-family:"KaiM";src:url("%(f)s/KaitiM-Bold.ttf");font-weight:700}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Regular.ttf");font-weight:400}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Bold.ttf");font-weight:700}
+@font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
 """ % {'f': 'file://' + FONT_DIR}
 
 # Paragraph / line styles.  size in pt, family stack, weight; used for BOTH measuring and rendering.
-BODY_FAMILY = '"GrkSerif","SongBody","Noto Serif",serif'
+BODY_FAMILY = '"GrkSerif","SongBody","HanExt","Noto Serif",serif'
 STYLE_CSS = f"""
 html{{-webkit-text-size-adjust:none}}
 body{{margin:0;padding:0;font-family:{BODY_FAMILY};font-size:{FONT}pt;color:#000;

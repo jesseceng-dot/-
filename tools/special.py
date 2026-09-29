@@ -180,31 +180,30 @@ def divider_html(lines):
     return out
 
 
-def plates_page_html(ks, imgs, builder, page, caption=''):
-    """A back-of-book page with one or more plates stacked: caption 'Plate N', the image, and a return link to the text.
-    The plate anchors (plate-N) are registered here so that the links in the text land on the right page."""
+def plates_page_html(k, img, builder, page, caption=''):
+    """One back-of-book plate per page (same page design as the Hegel plates): caption 'Plate N' at the top, the figure
+    right below it, and the return link to the reference in the text at the foot of the text block.  The plate anchor
+    (plate-N) is registered here so that the link in the text lands on this page."""
     from .style import LINK_BASE
-    out, y = '', float(style.TOP)
-    for k, img in zip(ks, imgs):
-        iw, ih = plate_size(img)
-        builder.anchors[f'plate-{k}'] = (page.index, y)
-        out += _center(_html.escape(f'插图 {k}'), y, 10.5, 'HeiTi', 700, 0.12)
-        x = style.LEFT + (style.TEXT_W - iw) / 2
-        if img.startswith('table:'):
-            from . import kant_tables
-            for a in kant_tables.anchors(img):
-                builder.anchors[a] = (page.index, y + PLATE_CAP)
-            out += (f'<div style="position:absolute;left:0;top:0;transform:translate({x:.2f}pt,{y + PLATE_CAP:.2f}pt)">'
-                    f'{kant_tables.html(img)}</div>')
-        else:
-            out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
-                f'transform:translate({x:.2f}pt,{y + PLATE_CAP:.2f}pt);outline:.4pt solid #bbb">')
-        ref = f'figref-{k}'
-        label = ''
-        if ref in builder.anchors:
-            label = f'（第{builder.pages[builder.anchors[ref][0]].label}页）'
-        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:HeiTi;'
-                f'font-size:9.5pt;transform:translate(0pt,{y + PLATE_CAP + ih + 3:.2f}pt)">'
-                f'<a href="{LINK_BASE}{ref}" style="color:#1a44c8">↩ 返回正文{label}</a></div>')
-        y += PLATE_CAP + ih + PLATE_LINK + PLATE_GAP
+    iw, ih = plate_size(img)
+    x = style.LEFT + (style.TEXT_W - iw) / 2
+    y = style.TOP + 34
+    builder.anchors[f'plate-{k}'] = (page.index, style.TOP)
+    out = _center(_html.escape(f'插图 {k}' + (f'　{caption}' if caption else '')), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
+    if img.startswith('table:'):
+        from . import kant_tables
+        for a in kant_tables.anchors(img):
+            builder.anchors[a] = (page.index, y)
+        out += (f'<div style="position:absolute;left:0;top:0;transform:translate({x:.2f}pt,{y:.2f}pt)">'
+                f'{kant_tables.html(img)}</div>')
+    else:
+        out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
+                f'transform:translate({x:.2f}pt,{y:.2f}pt);outline:.4pt solid #bbb">')
+    ref = f'figref-{k}'
+    label = ''
+    if ref in builder.anchors:
+        label = f'（第{builder.pages[builder.anchors[ref][0]].label}页）'
+    out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:HeiTi;'
+            f'font-size:9.5pt;transform:translate(0pt,{style.TOP + style.TEXT_H - 4}pt)">'
+            f'<a href="{LINK_BASE}{ref}" style="color:#1a44c8">↩ 返回正文{label}</a></div>')
     return out

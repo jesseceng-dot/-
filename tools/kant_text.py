@@ -18,6 +18,13 @@ CHARS = {
     '‐': '-',            # U+2010 连字符 -> ASCII（下面再处理断行连字符）
     '\xa0': ' ',
 }
+# 电子书里字库没有的生僻字（简化后的鱼部字，Unicode 扩展 B/C/D 区）排成了占位符 NFDA1…NFDA4，只出现在第 8 册《自然地理学》“鱼”一节，
+# 依据见 docs/kant/dispositions.md：编者注 43（舟鰤）、44（魟）、46（足鳍目=鮟鱇）与各鱼名的通用规范汉字形。
+NFDA = {'NFDA1': '\U0002B695',      # 𫚕 舟鰤（Lotsenfisch, Naucrates ductor）
+        'NFDA2': '\U0002B689',      # 𫚉 魟（Rochen）
+        'NFDA3': '\U00029F7E',      # 𩽾 鮟（Seeteufel = 鮟鱇）
+        'NFDA4': '\U00029F8C'}      # 𩾌 鱇
+_RE_NFDA = re.compile('NFDA[1-4]')
 DASH3 = re.compile('—{3,}')          # 第 1 册用 ——— 表示破折号，其余各册均为 ——
 
 # 印刷版在行末拆开的外文词（连字符是排版遗留），以及少数缺空格/错字的外文词
@@ -159,6 +166,8 @@ _RE_NBSP_GAP = re.compile('(?<=[\u4e00-\u9fff，。、；：！？”）])[ \xa0
 
 def fix_text(t):
     t = _RE_NBSP_GAP.sub('', t)                  # NBSP runs inside a sentence (layout residue of the source)
+    if 'NFDA' in t:
+        t = _RE_NFDA.sub(lambda m: NFDA[m.group(0)], t)
     for k, v in PUA.items():
         t = t.replace(k, v)
     for k, v in CHARS.items():

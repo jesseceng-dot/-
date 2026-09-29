@@ -70,6 +70,7 @@ def corpus_codepoints():
     cps |= {0x7560}                       # 畠 (stands behind a private-use glyph of the ebook)
     cps |= set(range(0x1f00, 0x2000)) | set(range(0x2070, 0x20a0)) | set(range(0x2200, 0x2300)) | set(range(0x00c0, 0x0180))
     cps |= {0x03ca, 0x00bd, 0x2153}       # ϊ ½ ⅓ (transcribed formulas)
+    cps |= {0x2B695, 0x29F7E, 0x29F8C, 0x2B689}   # 𫚕 𩽾 𩾌 𫚉: fish characters behind the NFDA1-4 placeholders (Kant vol. 8)
     scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
     for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
@@ -79,6 +80,59 @@ def corpus_codepoints():
             try: cps.add(ord(bytes([hi, lo]).decode('gb2312')))
             except Exception: pass
     return sorted(cps)
+
+def compose_hong(font, cp=0x2B689):
+    """Noto Serif CJK has no glyph for U+2B689 𫚉 (simplified 魟 hóng: 鱼 + 工); the ebook's NFDA2 placeholder stands for it.
+    Build it from the family's own strokes -- the 鱼 radical of 鲸 on the left, the 工 of 红 squeezed into the right half --
+    so the character keeps the serif style of the running text instead of falling back to a sans face."""
+    import pathops
+    from fontTools.pens.ttGlyphPen import TTGlyphPen
+    gs = font.getGlyphSet()
+    cm = font.getBestCmap()
+    glyf, hmtx, cmap, maxp = font['glyf'], font['hmtx'], font['cmap'], font['maxp']   # decompile before the glyph order grows
+    if 'vmtx' in font:
+        font['vmtx']
+
+    def outline(ch):
+        p = pathops.Path()
+        gs[cm[ord(ch)]].draw(p.getPen(glyphSet=gs))
+        return p
+    left = pathops.Path()
+    for c in outline('鲸').contours:               # 鱼 is the left component (x <= 470); 京 lies to its right
+        if c.bounds[2] <= 470:
+            left.addPath(c)
+    gong = pathops.Path()
+    for c in outline('红').contours:               # 工 is the right component; 纟 ends at x = 453
+        if c.bounds[0] >= 300:
+            gong.addPath(c)
+    x0, _, x1, _ = gong.bounds
+    sx = 440.0 / (x1 - x0)
+    gong = gong.transform(sx, 0, 0, 1.0, 505 - x0 * sx, 0)
+    res = pathops.Path(left)
+    res.addPath(gong)
+    res.simplify(fix_winding=True)
+    res.convertConicsToQuads()
+    pen = TTGlyphPen(gs)
+    res.draw(pen)
+    glyph = pen.glyph()
+    name = 'cid%05d' % len(font.getGlyphOrder())
+    order = list(font.getGlyphOrder()) + [name]
+    glyph.recalcBounds(glyf)
+    hmtx.metrics[name] = (1000, glyph.xMin)
+    if 'vmtx' in font:
+        font['vmtx'].metrics[name] = (1000, 880 - glyph.yMax)
+    glyf.glyphs[name] = glyph
+    font.setGlyphOrder(order)
+    glyf.glyphOrder = order
+    for t in cmap.tables:
+        if t.isUnicode() and t.format == 12:
+            t.cmap[cp] = name
+    maxp.numGlyphs = len(order)
+    post = font['post']
+    if getattr(post, 'formatType', 0) == 2.0:
+        post.glyphOrder = order
+    return name
+
 
 def build(name):
     path, idx = FACES[name]
@@ -91,6 +145,8 @@ def build(name):
     sub = subset.Subsetter(opts); sub.populate(unicodes=corpus_codepoints()); sub.subset(font)
     if 'CFF ' in font:
         otf_to_ttf(font)
+    if name == 'SerifSC-Regular':
+        compose_hong(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 
@@ -151,3 +207,5 @@ BOLD_FROM = {'UKai-Bold': 'UKai-Regular', 'SungtiL-Bold': 'SungtiL-Regular', 'Mi
 
 if __name__ == '__main__' and False:
     pass
+
+
