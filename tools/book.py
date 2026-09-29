@@ -270,14 +270,14 @@ class BookBuilder:
         out = ''
         if mod.folio and p.label:
             out += (f'<div class="hd c" style="width:{style.PAGE_W}pt;text-align:center;'
-                    f'transform:translate(0pt,{style.PAGE_H - 36}pt);font-size:9pt">{p.label}</div>')
+                    f'transform:translate(0pt,{style.PAGE_H - style.BOTTOM_MARGIN + 18}pt);font-size:9pt">{p.label}</div>')
         if mod.head and not opener and p.label:
             recto = (p.index % 2 == 0) == (self.pages[0].mod.zone != 'cover') if False else None
             verso = self._is_verso(p)
             text = self.cfg['title'] if verso else (mod.toc_title or mod.title)
             out += (f'<div class="hd" style="width:{style.TEXT_W}pt;left:{style.LEFT}pt;text-align:{"left" if verso else "right"};'
-                    f'transform:translate(0pt,34pt)">{_html.escape(text)}</div>'
-                    f'<div class="rule" style="left:{style.LEFT}pt;width:{style.TEXT_W}pt;top:46pt"></div>')
+                    f'transform:translate(0pt,{style.TOP - 28}pt)">{_html.escape(text)}</div>'
+                    f'<div class="rule" style="left:{style.LEFT}pt;width:{style.TEXT_W}pt;top:{style.TOP - 16}pt"></div>')
         return out
 
     def _is_verso(self, p):

@@ -95,6 +95,8 @@ def pdf_checks(pdf, bb):
         if p.mod.kind != 'text' or p.mod.mid in ('master-toc',):
             continue
         page = doc[p.index]
+        if any(im['bbox'][3] - im['bbox'][1] > 40 for im in page.get_image_info()):
+            continue                                         # a page carrying a figure of its own (appendix table image): no text baseline to compare
         ys = []
         for blk in page.get_text('dict')['blocks']:
             for l in blk.get('lines', []):

@@ -3,7 +3,7 @@ broken paragraphs, verse, note markers, Greek text."""
 import re
 import copy
 from .model import run, merge_runs, runs_text, BR, OBJ
-from . import extract
+from . import extract, style
 
 CN = '一二三四五六七八九十百零〇'
 GAP_CJK = '　'      # ideographic space: 1 em, never collapsed by CSS
@@ -419,7 +419,7 @@ def finish_headings(blocks):
             continue
         st = STYLES[b['style']]
         b['runs'] = regap_heading(b['runs'])
-        avail = 294 - (st['left'] + st['right']) * st['fs']
+        avail = style.TEXT_W - (st['left'] + st['right']) * st['fs']
         if st['align'] == 'c' or b['rank'] <= 2:
             b['runs'] = balance_title(b['runs'], st['fs'], avail)
     return blocks
@@ -463,7 +463,7 @@ def wrap_short_lines(blocks):
     for b in blocks:
         if b['k'] == 'p' and b['style'] in ('right', 'center', 'epi') and BR not in text_of(b) and len(text_of(b)) <= 90:
             st = STYLES[b['style']]
-            avail = 294 - (st['left'] + st['right']) * st['fs']
+            avail = style.TEXT_W - (st['left'] + st['right']) * st['fs']
             text = text_of(b)
             cap = avail * 0.9 / st['fs']
             if sum(_w(c) for c in text) <= cap:

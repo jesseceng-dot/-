@@ -1,4 +1,5 @@
 """Static pages: covers, half-title, title page, image plates, advertisement page."""
+import math
 import os
 import html as _html
 from PIL import Image
@@ -49,18 +50,18 @@ def _center(text, y, size, family='SongBody', weight=400, ls=0.0, color='#000', 
 
 
 def half_title_html(title):
-    return _center(_html.escape(title), 190, min(20.0, 300.0 / (len(title) * 1.1)), 'HeiTi', 700, 0.08)
+    return _center(_html.escape(title), 190 * style.SY, min(20.0, 300.0 / (len(title) * 1.1)), 'HeiTi', 700, 0.08)
 
 
 def title_html(meta):
     """Formal title page: author, title, translator, series, publisher."""
     out = ''
-    out += _center(_html.escape(meta['author']), 96, 13, 'KaiTi', 400, 0.12)
+    out += _center(_html.escape(meta['author']), 96 * style.SY, 13, 'KaiTi', 400, 0.12)
     fs = min(32.0, 300.0 / (len(meta['title']) * 1.1))
-    out += _center(_html.escape(meta['title']), 176, fs, 'HeiTi', 700, 0.1)
+    out += _center(_html.escape(meta['title']), 176 * style.SY, fs, 'HeiTi', 700, 0.1)
     if meta.get('sub'):
-        out += _center(_html.escape(meta['sub']), 224, 13, 'KaiTi', 400, 0.06)
-    y = 288
+        out += _center(_html.escape(meta['sub']), 224 * style.SY, 13, 'KaiTi', 400, 0.06)
+    y = 288 * style.SY
     for line in meta.get('credits', []):
         out += _center(_html.escape(line), y, 13, 'KaiTi', 400, 0.16)
         y += 26
@@ -71,8 +72,8 @@ def title_html(meta):
 
 
 def volume_title_html(title, vol):
-    return (_center(_html.escape(title), 200, 30, 'HeiTi', 700, 0.1) +
-            _center(_html.escape(vol), 260, 20, 'KaiTi', 700, 0.4))
+    return (_center(_html.escape(title), 200 * style.SY, 30, 'HeiTi', 700, 0.1) +
+            _center(_html.escape(vol), 260 * style.SY, 20, 'KaiTi', 700, 0.4))
 
 
 def ads_html(items, heading=''):
@@ -104,7 +105,7 @@ def plate_html(n, img, ref_anchor, caption, builder=None, page=None):
     from .style import LINK_BASE
     im = Image.open(os.path.join(IMG_DIR, img))
     w, h = im.size
-    box_w, box_h = style.TEXT_W, 388.0
+    box_w, box_h = style.TEXT_W, style.TEXT_H - 71.0
     s = min(box_w / w, box_h / h)
     iw, ih = w * s, h * s
     x = style.LEFT + (style.TEXT_W - iw) / 2
@@ -124,22 +125,23 @@ def plate_html(n, img, ref_anchor, caption, builder=None, page=None):
 
 
 def plate_divider_html(title, note):
-    return (_center(_html.escape(title), 180, 17, 'HeiTi', 700, 0.3) +
+    return (_center(_html.escape(title), 180 * style.SY, 17, 'HeiTi', 700, 0.3) +
             f'<div style="position:absolute;left:{style.LEFT + 30}pt;top:0;width:{style.TEXT_W - 60}pt;text-align:center;'
-            f'font-family:SongBody;font-size:9.5pt;line-height:17pt;color:#333;transform:translate(0pt,232pt)">{_html.escape(note)}</div>')
+            f'font-family:SongBody;font-size:9.5pt;line-height:17pt;color:#333;transform:translate(0pt,{232 * style.SY}pt)">{_html.escape(note)}</div>')
 
 
 # ------------------------------------------------------------------------------------------ Kant: dividers and packed plate pages
 PLATE_CAP, PLATE_LINK, PLATE_GAP = 18.0, 16.0, 14.0
 
 
-def plate_size(img):
-    """Scaled size (pt) of a plate image: as wide as the text block, at most 388 pt high, small figures magnified a little."""
+def plate_size(img, extra=0.0):
+    """Scaled size (pt) of a plate image: as wide as the text block, at most (text height - 71 pt) high, small figures magnified a little.
+    `extra` is the height taken by a long caption above the figure."""
     if img.startswith('table:'):
         from . import kant_tables
         return kant_tables.size(img)
     w, h = Image.open(os.path.join(IMG_DIR, img)).size
-    s = min(style.TEXT_W / w, 388.0 / h, 1.6 if w < 300 else 1.0)
+    s = min(style.TEXT_W / w, (style.TEXT_H - 71.0 - extra) / h, 1.6 if w < 300 else 1.0)
     return w * s, h * s
 
 
@@ -148,7 +150,7 @@ def divider_html(lines):
     smaller underneath.  Long titles get balanced line breaks."""
     from . import normalize
     from .model import run, runs_html
-    out, y = '', 176.0
+    out, y = '', 176.0 * style.SY
     first = True
     for lvl, text in lines:
         if not text.strip():
@@ -180,16 +182,32 @@ def divider_html(lines):
     return out
 
 
+def _caption_height(text, fs=9.5, width=None):
+    """Estimated height (pt) of a wrapped caption: CJK glyph = 1 em, Latin = 0.5 em."""
+    width = width or (style.TEXT_W - 30)
+    w = sum(fs if ord(c) > 0x2e80 else fs * 0.5 for c in text)
+    return max(1, math.ceil(w / width * 1.06)) * 14.0
+
+
 def plates_page_html(k, img, builder, page, caption=''):
     """One back-of-book plate per page (same page design as the Hegel plates): caption 'Plate N' at the top, the figure
     right below it, and the return link to the reference in the text at the foot of the text block.  The plate anchor
-    (plate-N) is registered here so that the link in the text lands on this page."""
+    (plate-N) is registered here so that the link in the text lands on this page.  A long caption is set as a wrapped
+    block under the 'Plate N' line and pushes the figure down."""
     from .style import LINK_BASE
-    iw, ih = plate_size(img)
+    long_cap = len(caption) > 24
+    extra = (_caption_height(caption) + 6.0) if long_cap else 0.0
+    iw, ih = plate_size(img, extra)
     x = style.LEFT + (style.TEXT_W - iw) / 2
-    y = style.TOP + 34
+    y = style.TOP + 34 + extra
     builder.anchors[f'plate-{k}'] = (page.index, style.TOP)
-    out = _center(_html.escape(f'插图 {k}' + (f'　{caption}' if caption else '')), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
+    if long_cap:
+        out = _center(_html.escape(f'插图 {k}'), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
+        out += (f'<div style="position:absolute;left:0;top:0;width:{style.TEXT_W - 30}pt;text-align:justify;'
+                f'font-family:KaiTi;font-size:9.5pt;line-height:14pt;transform:translate({style.LEFT + 15}pt,{style.TOP + 26}pt)">'
+                f'{_html.escape(caption)}</div>')
+    else:
+        out = _center(_html.escape(f'插图 {k}' + (f'　{caption}' if caption else '')), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
     if img.startswith('table:'):
         from . import kant_tables
         for a in kant_tables.anchors(img):

@@ -5,12 +5,25 @@ import pymupdf
 from . import style
 
 
+def fit_page_box(doc, page):
+    """Chromium rounds the printed page size to whole device units (16开: 481.92 x 679.92 pt instead of 481.89 x 680.31 pt).
+    The MediaBox is set to the exact size: the top edge stays where it is (every baseline keeps its distance from the top),
+    the difference is added at the bottom and cut at the right; the CropBox (same as the MediaBox) is dropped."""
+    mb = page.rect
+    if abs(mb.width - style.PAGE_W) < 0.005 and abs(mb.height - style.PAGE_H) < 0.005:
+        return
+    top = page.mediabox.y1                                # PDF coordinates: y grows upwards
+    page.set_mediabox(pymupdf.Rect(page.mediabox.x0, top - style.PAGE_H, page.mediabox.x0 + style.PAGE_W, top))
+    doc.xref_set_key(page.xref, 'CropBox', 'null')
+
+
 def finish_pdf(src, dst, anchors, outline, labels, meta):
     doc = pymupdf.open(src)
     missing = {}
     n_int = n_ext = 0
     for pno in range(len(doc)):
         page = doc[pno]
+        fit_page_box(doc, page)
         for l in page.get_links():
             uri = l.get('uri') or ''
             if not uri.startswith(style.LINK_BASE):

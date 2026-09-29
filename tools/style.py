@@ -2,16 +2,25 @@
 import os
 
 # ---- page (pt) -------------------------------------------------------------
-PAGE_W = 397.0          # ≈140 mm
-PAGE_H = 575.0          # ≈203 mm
-TEXT_W = 294.0          # 28 characters of 10.5 pt
-LEFT = (PAGE_W - TEXT_W) / 2   # left == right margin (51.5 pt = 18.2 mm)
+# BOOK_GEOM selects the page: 'd32' = 大32开 (140 × 203 mm; Hegel, Kant, Dewey), 'k16' = 16开 (170 × 240 mm, 481.89 × 680.31 pt).
+GEOM = os.environ.get('BOOK_GEOM', 'd32')
+_PROFILES = {
+    'd32': dict(PAGE_W=397.0, PAGE_H=575.0, CHARS=28, NLINES=27, TOP=62.0, SMALL_N=40),
+    'k16': dict(PAGE_W=481.89, PAGE_H=680.31, CHARS=34, NLINES=32, TOP=76.0, SMALL_N=47),
+}
+_P = _PROFILES[GEOM]
+PAGE_W = _P['PAGE_W']
+PAGE_H = _P['PAGE_H']
 FONT = 10.5             # body size (五号)
+TEXT_W = _P['CHARS'] * FONT    # 28 (d32) / 34 (k16) characters of 10.5 pt
+LEFT = (PAGE_W - TEXT_W) / 2   # left == right margin (51.5 pt = 18.2 mm on d32)
 LINE = 17.0             # grid pitch: every vertical dimension is a multiple of this
-NLINES = 27             # lines per page
-TOP = 62.0              # top of first grid line, from page top
-TEXT_H = NLINES * LINE  # 459 pt
-BOTTOM_MARGIN = PAGE_H - TOP - TEXT_H  # 54 pt
+NLINES = _P['NLINES']   # lines per page
+TOP = _P['TOP']         # top of first grid line, from page top
+TEXT_H = NLINES * LINE  # 459 pt (d32) / 544 pt (k16)
+BOTTOM_MARGIN = PAGE_H - TOP - TEXT_H  # 54 pt (d32)
+SMALL_N = _P['SMALL_N'] # lines of the small-print grid (notes, copyright, index) per page
+SY = PAGE_H / 575.0     # vertical scale of the fixed positions of title/divider pages, designed on the d32 page
 
 # ---- build directories -------------------------------------------------------
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -89,6 +98,10 @@ a{{color:inherit;text-decoration:none}}
 .msub{{font-size:.7em;position:relative;top:.28em;line-height:0}}
 .ov{{border-top:.5pt solid;padding:0 .06em 0 .1em}}
 .it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}
+/* table cells: inline boxes of fixed width (em of the line font) */
+.tw{{display:inline-block;vertical-align:baseline;white-space:nowrap}}
+.w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w10{{width:10em}} .w12{{width:12em}}
+.s-kaibody{{font-family:"KaiTi","GrkSerif","SongBody",serif}}
 .kai{{font-family:"KaiTi","GrkSerif","SongBody",serif;line-height:0}}
 .s-refhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .fx{{white-space:nowrap;font-family:"GrkSerif","SongBody","Noto Serif",serif}}

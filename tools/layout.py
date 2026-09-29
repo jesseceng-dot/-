@@ -17,9 +17,9 @@ N = style.NLINES
 # ---- grids ---------------------------------------------------------------------------------------
 GRIDS = {
     # n slots per (logical) page, pitch in pt, cols per physical page, column width, gutter
-    'body':   dict(n=27, pitch=17.0,   cols=1, W=294.0, gutter=0.0),
-    'small1': dict(n=40, pitch=11.475, cols=1, W=294.0, gutter=0.0),
-    'small2': dict(n=40, pitch=11.475, cols=2, W=139.0, gutter=16.0),
+    'body':   dict(n=style.NLINES, pitch=style.LINE, cols=1, W=style.TEXT_W, gutter=0.0),
+    'small1': dict(n=style.SMALL_N, pitch=style.TEXT_H / style.SMALL_N, cols=1, W=style.TEXT_W, gutter=0.0),
+    'small2': dict(n=style.SMALL_N, pitch=style.TEXT_H / style.SMALL_N, cols=2, W=(style.TEXT_W - 16.0) / 2, gutter=16.0),
 }
 
 # style table: em-based indents use the style's own font size (fs, pt).
@@ -29,9 +29,12 @@ STYLES = {
     'body':     dict(cls='s-body',    fs=10.5, first=2, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'noindent': dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'quote':    dict(cls='s-quote',   fs=10.0, first=2, left=2, right=2, align='j', slots=1, before=0, after=0, keep=0),
+    'kaibody':  dict(cls='s-kaibody', fs=10.5, first=2, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'trow':     dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'quotel':   dict(cls='s-quote',   fs=10.0, first=2, left=2, right=2, align='l', slots=1, before=0, after=0, keep=0),
     'verse':    dict(cls='s-quote',   fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'center':   dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
+    'orn':      dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=2),   # ornament under a heading: stays with the heading and the text after it
     'right':    dict(cls='s-body',    fs=10.5, first=0, left=0, right=2, align='r', slots=1, before=0, after=0, keep=0),
     'epi':      dict(cls='s-quote',   fs=10.0, first=0, left=2, right=2, align='c', slots=1, before=1, after=1, keep=0),
     'left':     dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
@@ -68,6 +71,7 @@ STYLES_SMALL = {
     'h1':      dict(cls='s-h1', fs=17.0, first=0, left=0, right=0, align='c', slots=3, before=4, after=3, keep=3, top_keep=1),
     'note':    dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'notec':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'notel':   dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'notev':   dict(cls='s-note', fs=8.5, first=0, left=6, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'noter':   dict(cls='s-note', fs=8.5, first=0, left=3, right=1, align='r', slots=1, before=0, after=0, keep=0),
     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
@@ -235,6 +239,8 @@ def bef_options(lb):
     """Allowed 'space before' values for a block with their cost: headings may take one blank slot more or less
     (never less than the block's own `minbefore`)."""
     opts = _bef_options(lb)
+    if lb.block.get('noshrink'):                                   # e.g. table-of-contents groups: never squeezed below their blank line
+        opts = [o for o in opts if o[0] >= lb.st['before']] or opts
     lo = lb.block.get('minbefore')
     if lo is not None:
         opts = [o for o in opts if o[0] >= lo] or [(lo, 0.0)]

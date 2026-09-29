@@ -169,3 +169,37 @@ python -m tools.dewey_docs                              # dispositions / inline-
 
 结构：`tools/dewey_extract.py` 解析 XHTML；`dewey_text.py` 文字修复与行内小图转写；`dewey.py` 每册的模块装配（部件表、标题层级、注释分组、书后插图、目录）；
 `dewey_build.py` / `dewey_collection.py` / `dewey_make_all.py` 构建；`dewey_report.py` / `dewey_docs.py` 验收与文档。排版引擎（`layout.py` / `measure.py` / `typeset.py` / `render.py` / `book.py`）与黑格尔、康德各册共用。
+
+---
+
+# 四本 16 开书：AZW3 → 出版级 PDF
+
+`source/` 里的四本电子书转成 170 × 240 mm（16 开）的 PDF，放在 `out/16k/`：
+
+| 文件 | 书 | 页数 |
+|---|---|---|
+| `01-巴菲特致股东的信.pdf` | 《巴菲特致股东的信·投资原则篇》（〔美〕杰里米·米勒 著，郝旭奇 译，中信出版集团） | 252 |
+| `02-财富、贫穷与政治.pdf` | 《财富、贫穷与政治》（〔美〕托马斯·索维尔 著，孙志杰 译，浙江教育出版社） | 186 |
+| `03-工作、消费主义和新穷人.pdf` | 《工作、消费主义和新穷人》（〔英〕齐格蒙特·鲍曼 著，郭楠 译，上海社会科学院出版社） | 114 |
+| `04-股票大作手回忆录.pdf` | 《股票大作手回忆录》（〔美〕埃德温·勒菲弗 著，丁圣元 译，凤凰出版社） | 280 |
+
+## 版式（以样张 PDF 为标准）
+
+- 页面 **481.89 × 680.31 pt**（与样张的页面框逐位相同）；正文思源宋体 **10.5 pt（五号）**（样张实测 10.46 pt）；每页 32 行 × 34 字，行距 17 pt，左右页边距相同；
+- 所有整页文字页（含小字号的注释页）末行基线相同（615.0 pt）；标题不落页底、标题后至少两行；没有孤立标点/角标行、没有只剩 1–2 字的末页；
+- 引文、多级标题、目录、页眉页脚、书签、链接与黑格尔、康德、杜威各册同一套排法；
+- **整页图不后置**：封面、书名页图、作为整个章节页的图（第 1 本附录的收益表图、第 4 本附录一的曲线图、第 3 本末页的二维码）留在原位；夹在正文中间的图表后置到书末，一页一图，页首“插图 N　图注”，页底“↩ 返回正文（第N页）”，正文原处是图题加蓝字黄框的“见书后插图N”（可点击）；
+- 全部改动列在 `docs/16k/dispositions.md`，验收数字（逐本实测）在 `docs/16k/QA-report.md`。
+
+## 复现
+
+```
+python -m tools.unpack source/<书>.azw3                  # 需 BOOK_SCRATCH=<该书的工作目录>
+BOOK_SCRATCH=<dir> BOOK_FONT_DIR=<dir>/fonts python tools/fonts.py    # 子集字体
+python -m tools.bk_make_all --scratch=<根目录> --dest=out/16k         # 四本（每本一个工作目录 q1…q4）
+python -m tools.bk_report <1-4>  ;  python -m tools.bk_report --write <根目录>
+python -m tools.bk_docs <1-4>    ;  python -m tools.bk_docs --write <根目录>
+```
+
+结构：`tools/bk_extract.py` 解析 XHTML；`bk_text.py` 文字修复；`bk.py` 每本的模块装配（部件表、标题层级、注释分组、书后插图、目录、末页二维码）；
+`bk_build.py` / `bk_make_all.py` 构建；`bk_report.py` / `bk_docs.py` 验收与文档。页面几何由环境变量 `BOOK_GEOM=k16` 选择（`d32` 是原来的大 32 开）。排版引擎与前几套书共用。
