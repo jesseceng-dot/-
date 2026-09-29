@@ -39,7 +39,7 @@
 ```
 apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra fonts-lxgw-wenkai fonts-noto-core   # 字体
 pip install playwright pymupdf pypdf fonttools lxml beautifulsoup4 pillow mobi pyphen rjieba
-python -m mobi ...                       # 见 tools/extract.py：AZW3 解包为 XHTML（KindleUnpack）
+python -m tools.unpack                   # AZW3 解包为 XHTML + 图片（KindleUnpack）
 python tools/fonts.py                    # 子集化并把 CFF 字体转成 TrueType（否则 Chromium 会把它们嵌成 Type3）
 python -m tools.make_all --dest=out      # 四本书 + 合集
 python -m tools.build book3              # 只重排一本（约 30 秒；四本书最长 2 分钟）
