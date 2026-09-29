@@ -45,7 +45,8 @@ class Mod:
 
 
 def title_text(runs):
-    t = runs_text(runs).replace(BR, '')
+    """Plain title: no forced breaks, no superscript note markers."""
+    t = ''.join(r['t'] for r in runs if not r.get('s')).replace(BR, '')
     return t
 
 

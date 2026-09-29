@@ -18,7 +18,7 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=40):
             lb.splittable = False
             lbs.append(lb)
             continue
-        vary = st['align'] == 'j' and runs_len(b['runs']) >= vary_min_chars and not b.get('novary')
+        vary = (st['align'] == 'j' or b['style'] == 'index') and runs_len(b['runs']) >= vary_min_chars and not b.get('novary')
         lb.splittable = st['slots'] == 1 and st['keep'] == 0 and not b.get('nosplit')
         vs = variants if vary else variants[:1]
         for vi, s in enumerate(build_specs(b, vs, grid)):

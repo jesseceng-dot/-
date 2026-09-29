@@ -372,3 +372,52 @@ def finish_headings(blocks):
         if st['align'] == 'c' or b['rank'] <= 2:
             b['runs'] = balance_title(b['runs'], st['fs'], avail)
     return blocks
+
+
+# ------------------------------------------------------------------------------------------ alignment passes
+def group_verse(blocks, max_chars=26):
+    """Short quote lines (poetry, dicta, schematic lists) become 'verse' lines: left-aligned, uniform indent, no justification."""
+    out = []
+    for b in blocks:
+        if b['k'] == 'p' and b['style'] == 'quote':
+            n = len(strip_markers(text_of(b)))
+            if n <= max_chars:
+                b = dict(b, style='verse')
+        out.append(b)
+    return out
+
+
+def keep_signatures(blocks):
+    """Consecutive right-aligned lines (name / place / date) stay together and never start a page on their own."""
+    i = 0
+    while i < len(blocks):
+        if blocks[i]['k'] == 'p' and blocks[i]['style'] == 'right':
+            j = i
+            while j + 1 < len(blocks) and blocks[j + 1]['k'] == 'p' and blocks[j + 1]['style'] == 'right':
+                j += 1
+            for k in range(i, j + 1):
+                blocks[k]['nostart'] = True
+                if k < j:
+                    blocks[k]['keep'] = 1
+            i = j + 1
+        else:
+            i += 1
+    return blocks
+
+
+def wrap_short_lines(blocks):
+    """Right/centre aligned single lines that are too long for one line get balanced manual line breaks."""
+    from .layout import STYLES
+    for b in blocks:
+        if b['k'] == 'p' and b['style'] in ('right', 'center') and BR not in text_of(b):
+            st = STYLES[b['style']]
+            avail = 294 - (st['left'] + st['right']) * st['fs']
+            b['runs'] = balance_title(b['runs'], st['fs'], avail, slack=0.9)
+    return blocks
+
+
+def postprocess(blocks):
+    blocks = group_verse(blocks)
+    blocks = wrap_short_lines(blocks)
+    blocks = keep_signatures(blocks)
+    return blocks

@@ -17,6 +17,7 @@ def first_title(blocks):
 def text_module(part, book_id, zone, title=None, fixes=(), grid='body', **kw):
     blocks = normalize.process_part(part, book_id, fixes)
     blocks = normalize.finish_headings(blocks)
+    blocks = normalize.postprocess(blocks)
     t = title or first_title(blocks)
     return Mod(mid=part, zone=zone, title=t, blocks=blocks, grid=grid, **kw)
 
@@ -38,13 +39,13 @@ def copyright_module(part, book_id, mid=None):
         has_img = any(r.get('i') for r in runs)
         if has_img:
             src = [r['i'] for r in runs if r.get('i')][0]
-            blocks.append(dict(k='img', style='center', runs=[], src=IMG(src), w=62, h=77, n=5))
+            blocks.append(dict(k='img', style='cipc', runs=[], src=IMG(src), w=58, h=72, n=7))
             continue
         if not runs:
-            blocks.append(dict(k='space', style='left', runs=[], n=1))
+            blocks.append(dict(k='space', style='cip', runs=[], n=1))
             continue
         txt = ''.join(r['t'] for r in runs)
-        st = 'noindent' if len(txt) > 34 else 'left'
+        st = 'cipj' if len(txt) > 40 else ('cipc' if re.match(r'(豆瓣|微信号|发邮件)', txt) else 'cip')
         blocks.append(dict(k='p', style=st, runs=runs, novary=True))
     # collapse runs of blank lines to at most two
     out = []
@@ -53,7 +54,7 @@ def copyright_module(part, book_id, mid=None):
             out[-1]['n'] = min(out[-1]['n'] + 1, 2)
         else:
             out.append(b)
-    return Mod(mid=mid or part, zone='front', title='版权页', blocks=out, toc=False, head=False, folio=False, single=True)
+    return Mod(mid=mid or part, zone='front', title='版权页', blocks=out, grid='small1', toc=False, head=False, folio=False, single=True)
 
 
 def index_module(part, book_id, zone, fixes=(), title=None):

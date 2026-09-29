@@ -22,7 +22,7 @@ CHROME = os.environ.get('BOOK_CHROME', '/opt/pw-browsers/chromium-1194/chrome-li
 LINK_BASE = 'https://book.local/#'     # every internal link is emitted as this URI, rewritten to GoTo later
 
 # ---- letter-spacing variants (em) used by the paginator to absorb line-count differences --
-VARIANTS = [0.0, -0.012, 0.012, -0.024, 0.024]
+VARIANTS = [0.0, -0.012, 0.012, -0.024, 0.024, -0.036, 0.036]
 
 FONTS_CSS = """
 @font-face{font-family:"SongBody";src:url("%(f)s/SerifSC-Regular.ttf");font-weight:400}
@@ -42,7 +42,7 @@ BODY_FAMILY = '"GrkSerif","SongBody","Noto Serif",serif'
 STYLE_CSS = f"""
 html{{-webkit-text-size-adjust:none}}
 body{{margin:0;padding:0;font-family:{BODY_FAMILY};font-size:{FONT}pt;color:#000;
-  line-break:strict;word-break:normal;overflow-wrap:normal;font-kerning:normal;
+  line-break:normal;word-break:normal;overflow-wrap:normal;font-kerning:normal;
   font-variant-ligatures:none;text-rendering:geometricPrecision}}
 .ln{{position:absolute;left:0;top:0;height:{LINE}pt;line-height:{LINE}pt;white-space:nowrap;
   transform-origin:0 0}}
@@ -70,6 +70,7 @@ a{{color:inherit;text-decoration:none}}
 .s-toc3{{font-size:10pt}}
 .s-note{{font-size:8.5pt}}
 .s-index{{font-size:8.5pt}}
+.s-cip{{font-size:9pt}}
 .s-idxhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .nn{{display:inline-block;width:3em;text-align:left}}
 .fig{{color:#1a44c8;border:.7pt solid #e2b400;padding:0 .35em;background:#fffbe6;border-radius:1pt;font-family:"HeiTi",sans-serif;font-size:9.5pt}}

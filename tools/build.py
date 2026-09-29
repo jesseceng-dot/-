@@ -75,6 +75,12 @@ def build(cfg, out_pdf):
     bb.typeset_all()
     m.close()
     print('typeset', round(time.time() - t0, 1), 's; pages', sum(mod.npages for mod in cfg['modules']), flush=True)
+    from . import check
+    for mod in cfg['modules']:
+        if mod.kind == 'text':
+            rep = check.module_report(mod)
+            hard = {k: len(v) for k, v in rep.items() if v and k not in ('loose',)}
+            print(f'  {mod.mid:9s} p{mod.npages:4d} cost {mod.plan["cost"]:7.1f} {hard}', flush=True)
     bb.sequence()
     B.fill_toc_labels(bb, cfg['toc'])
     htmls = bb.render_pages()

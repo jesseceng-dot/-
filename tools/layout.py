@@ -53,6 +53,9 @@ STYLES_SMALL = {
     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'idxhead': dict(cls='s-idxhead', fs=10.0, first=0, left=0, right=0, align='l', slots=1, before=1, after=0, keep=3),
     'idxnote': dict(cls='s-index', fs=8.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=1, keep=0),
+    'cip':     dict(cls='s-cip', fs=9.0, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'cipj':    dict(cls='s-cip', fs=9.0, first=0, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'cipc':    dict(cls='s-cip', fs=9.0, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
 }
 
 
@@ -129,13 +132,13 @@ def variant_penalty(block, st, starts, nat, vi):
         for j in range(n - 1):
             _, w = line_geom(st, j)
             slack = (w - nat[j]) / st['fs']
-            if slack > 1.2:
-                pen += (slack - 1.2) * 6
+            if slack > 1.5:
+                pen += (slack - 1.5) * 4
     return pen
 
 
 def gap_pen(g):
-    return 0.0 if g == 0 else 60.0 * g + 40.0 * (g - 1) ** 2
+    return 0.0 if g == 0 else 200.0 * g + 500.0 * (g - 1) ** 2
 
 
 def paginate(n, s, f0, g1, g2, splittable, N=N):
@@ -172,13 +175,29 @@ def paginate(n, s, f0, g1, g2, splittable, N=N):
         return None
     extra = 0.0
     if k1 < 2:
-        extra += 80.0
+        extra += 50.0
     if pieces[-1] == 1:
-        extra += 80.0
+        extra += 50.0
     if pieces[-1] == 2 and n > 6:
         extra += 6.0
     f1 = pieces[-1] if pieces[-1] < N else 0
     return pieces, gaps, f1, extra
+
+
+def bef_options(lb):
+    """Allowed 'space before' values for a block with their cost: headings may take one blank slot more or less."""
+    st = lb.st
+    base = st['before']
+    if lb.block.get('k') == 'h' and st.get('slots', 1) == 1 and not st.get('top_keep'):
+        opts = [(base, 0.0), (base + 1, 6.0)]
+        if base >= 2:
+            opts.append((base - 1, 4.0))
+        return opts
+    if lb.block.get('style') == 'secnum':
+        return [(base, 0.0), (base + 1, 10.0)]
+    if lb.block.get('style') == 'idxhead':
+        return [(base, 0.0), (base + 1, 5.0), (max(0, base - 1), 5.0)]
+    return [(base, 0.0)]
 
 
 def solve(lbs, N=N):
@@ -211,14 +230,18 @@ def solve(lbs, N=N):
         s = st['slots']
         prev_keep = lbs[i - 1].st['keep'] if i > 0 and not b.brk else 0
         top_bef = st['before'] if st.get('top_keep') else 0
+        bopts = bef_options(b)
         for f, (c0, _, _) in dp[i].items():
             opts = []                                   # (start slot, cost, gap before, broke)
-            if not b.brk and not prev_keep_forbids_break(prev_keep, f):
+            if not b.brk:
                 if f == 0:
-                    opts.append((top_bef, c0, 0, False))
-                elif f + st['before'] < N:
-                    opts.append((f + st['before'], c0, 0, False))
-            if (f > 0 or b.brk) and not (prev_keep and not b.brk):
+                    if not b.block.get('nostart') or i == 0:
+                        opts.append((top_bef, c0, 0, False))
+                else:
+                    for bef, bc in bopts:
+                        if f + bef < N:
+                            opts.append((f + bef, c0 + bc, 0, False))
+            if (f > 0 or b.brk) and not (prev_keep and not b.brk) and not (b.block.get('nostart') and i > 0):
                 g = (N - f) if f > 0 else 0
                 opts.append((top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True))
             for f0, c1, g0, broke in opts:
@@ -230,8 +253,8 @@ def solve(lbs, N=N):
                         continue
                     if st['keep'] and f0 + b.nl[vi] * s > N:
                         continue
-                    for g1 in ((0,) if not b.splittable else (0, 1, 2, 3)):
-                        for g2 in (0, 1, 2):
+                    for g1 in ((0,) if not b.splittable else (0, 1, 2)):
+                        for g2 in (0, 1):
                             res = paginate(n, s, f0, g1, g2, b.splittable, N)
                             if res is None:
                                 continue
