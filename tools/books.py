@@ -36,7 +36,7 @@ def copyright_module(part, book_id, mid=None):
     for el in body:
         if not isinstance(el.tag, str) or ln(el) != 'p':
             continue
-        runs = clean_runs(inline_runs(el, part))
+        runs = normalize.fix_typos(clean_runs(inline_runs(el, part)))
         has_img = any(r.get('i') for r in runs)
         if has_img:
             src = [r['i'] for r in runs if r.get('i')][0]
@@ -59,7 +59,11 @@ def copyright_module(part, book_id, mid=None):
     return Mod(mid=mid or part, zone='front', title='版权页', blocks=out, grid='small1', toc=False, head=False, folio=False, single=True)
 
 
-def index_module(part, book_id, zone, fixes=(), title=None):
+INDEX_NOTE = ('〔本 PDF 说明〕条目后的页码已由原书印刷页码换算为本书页码（点击页码可跳转）。换算方法：先在正文中查出条目词的位置，'
+              '再据此校准印刷页与正文位置的对应；个别在正文中查不到的条目，按前后页码内插，可能与原书页码相差一页。')
+
+
+def index_module(part, book_id, zone, fixes=(), title=None, idxmap=None):
     """Index: title, optional intro line, letter/stroke headings and hanging entries in the small grid."""
     raw = extract.parse_part(part)
     blocks = []
@@ -88,7 +92,10 @@ def index_module(part, book_id, zone, fixes=(), title=None):
     hn = 1
     if len(blocks) > 1 and blocks[1]['style'] == 'idxnote':
         hn = 2
-    return Mod(mid=part, zone=zone, title=t, blocks=blocks, grid='small2', header_n=hn)
+    if idxmap:
+        blocks.insert(hn, dict(k='p', style='idxnote', runs=[run(INDEX_NOTE)], id=f'{part}#pgnote'))
+        hn += 1
+    return Mod(mid=part, zone=zone, title=t, blocks=blocks, grid='small2', header_n=hn, idxmap=idxmap)
 
 
 def notes_module(part, book_id, zone, title='注　释', mid=None):
@@ -107,6 +114,18 @@ def notes_module(part, book_id, zone, title='注　释', mid=None):
             runs = [first] + runs[1:]
         blocks.append(dict(k='p', style='note', runs=normalize.replace_greek(runs)))
     return Mod(mid=mid or part, zone=zone, title=title.replace('　', ''), blocks=blocks, grid='small1')
+
+
+def finish_text(cfg):
+    """Book-wide text repairs applied to every text module (body, notes, indexes): dropped-letter words, Greek."""
+    digit = cfg['id'][-1]
+    for mod in cfg['modules']:
+        if mod.kind != 'text':
+            continue
+        for b in mod.blocks:
+            if b.get('runs'):
+                b['runs'] = normalize.repair_words(b['runs'], digit)
+    return cfg
 
 
 def toc_mod(mods, title='目　录'):
@@ -130,11 +149,13 @@ def book1():
     body_mods = []
     front_mods = [text_module(P(n), 'b1', 'front', **kw) for n, kw in front]
     body_mods = [text_module(P(n), 'b1', 'body') for n in body]
-    back = [index_module(P(16), 'b1', 'back'), index_module(P(17), 'b1', 'back'),
+    ser1 = {'': [P(n) for n in range(5, 16)]}
+    back = [index_module(P(16), 'b1', 'back', idxmap=dict(series=ser1)),
+            index_module(P(17), 'b1', 'back', idxmap=dict(series=ser1, head_only=True)),
             notes_module(P(18), 'b1', 'back')]
     toc = toc_mod(front_mods + body_mods + back)
     mods = mods + [toc] + front_mods + body_mods + back
-    return dict(id='b1', title='小逻辑', meta=meta, modules=mods, toc=toc)
+    return finish_text(dict(id='b1', title='小逻辑', meta=meta, modules=mods, toc=toc))
 
 
 # ------------------------------------------------------------------------------------------------ shared helpers
@@ -212,7 +233,7 @@ def book2():
     back += [colophon_module(P(30), 'back'), ads_module('b2ads', 'back', P(31))]
     allm = front + body + back
     toc = toc_mod(allm)
-    return dict(id='b2', title='黑格尔早期神学著作', meta=meta, modules=head + [toc] + allm, toc=toc)
+    return finish_text(dict(id='b2', title='黑格尔早期神学著作', meta=meta, modules=head + [toc] + allm, toc=toc))
 
 
 GAP = '　'
@@ -265,7 +286,9 @@ def book3():
     up_back = [text_module(P(42), 'b3', 'body'), text_module(P(43), 'b3', 'body')]
     dn_front = [text_module(P(44), 'b3', 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     dn_body = [text_module(P(n), 'b3', 'body') for n in (45, 46, 47)]
-    dn_back = [index_module(P(48), 'b3', 'body'), index_module(P(49), 'b3', 'body')]
+    ser3 = {'上': [P(n) for n in range(36, 44)], '下': [P(n) for n in (45, 46, 47)]}
+    dn_back = [index_module(P(48), 'b3', 'body', idxmap=dict(series=ser3)),
+               index_module(P(49), 'b3', 'body', idxmap=dict(series=ser3, head_only=True))]
     sec, plates = plate_modules(P(50), 'b3', 'body', [f'image{n:05d}.jpeg' for n in range(2011, 2020)])
     dn_back += [sec, text_module(P(51), 'b3', 'body'), notes_module(P(52), 'b3', 'body')]
     dn_back += plates
@@ -277,7 +300,7 @@ def book3():
         m.volume = '下卷'
     allm = [v1] + up_front + up_body + up_back + [v2] + dn_front + dn_body + dn_back
     toc = toc_mod(allm)
-    return dict(id='b3', title='精神现象学', meta=meta, modules=head + [toc] + allm, toc=toc)
+    return finish_text(dict(id='b3', title='精神现象学', meta=meta, modules=head + [toc] + allm, toc=toc))
 
 
 # ------------------------------------------------------------------------------------------------ Book 4
@@ -313,18 +336,18 @@ def book4():
     for lo, hi in ((143, 146), (148, 151), (198, 201), (221, 224), (330, 332)):
         v63 += [('style', (lo, hi), 'verse'), ('set', (lo, hi), {'left': 2})]
     b1 += chapter(P(63), B4, 'body', fixes=[('style', idxs(P(63), r'^\u3000+\d+'), 'quote'), ('lstrip', idxs(P(63), r'^\u3000+\d+'))] + v63)
-    k1 = [index_module(P(65), B4, 'body'), text_module(P(66), B4, 'body')]
+    k1 = [index_module(P(65), B4, 'body', idxmap=dict(series={'': [P(n) for n in range(59, 64)]})), text_module(P(66), B4, 'body')]
     # ---- volume 2
     f2 = [text_module(P(67), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b2 = (chapter(P(68), B4, 'body', fixes=[('style', (150, 151), 'verse'), ('set', (150, 151), {'left': 2})]) +
           chapter(P(69), B4, 'body', fixes=[('style', (8, 11), 'verse')]))
-    k2 = [index_module(P(70), B4, 'body'), text_module(P(71), B4, 'body')]
+    k2 = [index_module(P(70), B4, 'body', idxmap=dict(series={'': [P(68), P(69)]})), text_module(P(71), B4, 'body')]
     # ---- volume 3
     f3 = [text_module(P(72), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b3 = []
     for n in (73, 74, 75, 76, 77, 78):
         b3 += chapter(P(n), B4, 'body')
-    k3 = [index_module(P(79), B4, 'body'), text_module(P(80), B4, 'body')]
+    k3 = [index_module(P(79), B4, 'body', idxmap=dict(series={'': [P(n) for n in range(73, 79)]})), text_module(P(80), B4, 'body')]
     # ---- volume 4
     f4 = [text_module(P(81), B4, 'body', fixes=[('drop', 0), ('style', 2, 'epi')])]
     b4 = []
@@ -335,13 +358,15 @@ def book4():
     b4 += chapter(P(86), B4, 'body', fixes=[('style', (210, 212), 'center')])
     b4 += chapter(P(87), B4, 'body', ranks=LETTER_RANKS, styles=LETTER_STYLES,
                   fixes=[('style', 4, 'right'), ('style', 163, 'right')])
-    k4 = [index_module(P(88), B4, 'body'), index_module(P(89), B4, 'body'),
+    ser4 = {'': [P(n) for n in range(82, 87)]}
+    k4 = [index_module(P(88), B4, 'body', idxmap=dict(series=ser4)),
+          index_module(P(89), B4, 'body', idxmap=dict(series=ser4, head_only=True, skip_c=True)),
           text_module(P(90), B4, 'body', fixes=[('style', (7, 8), 'right')]),
           colophon_module(P(91), 'body'), ads_module('b4ads', 'body', P(92))]
     allm = (vol('第一卷', 'b4v1', f1, b1, k1) + vol('第二卷', 'b4v2', f2, b2, k2) +
             vol('第三卷', 'b4v3', f3, b3, k3) + vol('第四卷', 'b4v4', f4, b4, k4))
     toc = toc_mod(allm)
-    return dict(id='b4', title='哲学史讲演录', meta=meta, modules=head + [toc] + allm, toc=toc)
+    return finish_text(dict(id='b4', title='哲学史讲演录', meta=meta, modules=head + [toc] + allm, toc=toc))
 
 
 LETTER_RANKS = [(r'^\d+\.\s*致', 3), (r'^[A-Z]\.', 9)]

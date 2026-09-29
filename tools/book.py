@@ -42,6 +42,11 @@ class Mod:
     hlbs: list = None
     hpos: list = None
     reserve: int = 0
+    idxmap: dict = None           # index whose printed page numbers are converted to pages of this PDF
+    src_blocks: list = None
+    idx_refs: list = None
+    idx_resolved: list = None
+    idx_stats: dict = None
     # filled in by the builder
     lbs: list = None
     plan: dict = None
@@ -76,36 +81,62 @@ class BookBuilder:
     # ---------------------------------------------------------------- typeset
     def typeset_all(self, cache_dir=None, redo=()):
         """Measure + solve every text module.  Results are cached per module (keyed by content and layout code), so a
-        change in one chapter only re-typesets that chapter; `redo` forces modules to be re-typeset."""
+        change in one chapter only re-typesets that chapter; `redo` forces modules to be re-typeset.  Index modules that
+        carry an `idxmap` are then re-typeset with their page numbers converted to this PDF's pages (iterated, because
+        the size of an index shifts the pages that follow it)."""
         import hashlib
-        import pickle
         cache_dir = cache_dir or os.path.join(style.SCRATCH, 'cache')
         os.makedirs(cache_dir, exist_ok=True)
         code = b''.join(open(os.path.join(os.path.dirname(__file__), f), 'rb').read()
                         for f in ('layout.py', 'style.py', 'hyph.py', 'measure.py', 'typeset.py', 'model.py', 'book.py'))
-        code_key = hashlib.sha1(code).hexdigest()
+        self._cache = (cache_dir, hashlib.sha1(code).hexdigest(), tuple(redo))
         for mod in self.mods:
-            if mod.kind != 'text':
-                mod.npages = 1
-                continue
-            key = hashlib.sha1((code_key + json.dumps(mod.blocks, sort_keys=True, ensure_ascii=False, default=str)
-                                + mod.grid).encode('utf8')).hexdigest()
-            path = os.path.join(cache_dir, f'{mod.mid}-{key[:16]}.pkl')
-            if mod.mid not in redo and os.path.exists(path):
-                blocks, lbs, plan, hlbs, hpos, reserve = pickle.load(open(path, 'rb'))
-                mod.blocks = blocks
-                body = blocks[mod.header_n:]
-                for lb, blk in zip(lbs, body):
-                    lb.block = blk
-                for lb, blk in zip(hlbs or [], blocks[:mod.header_n]):
-                    lb.block = blk
-                mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve = lbs, plan, hlbs, hpos, reserve
-            else:
-                self._typeset_module(mod)
-                pickle.dump((mod.blocks, mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve), open(path, 'wb'))
-            g = GRIDS[mod.grid]
-            mod.npages = (len(mod.plan['pages']) + g['cols'] - 1) // g['cols']
+            if mod.idxmap and mod.src_blocks is None:
+                import copy
+                mod.src_blocks = copy.deepcopy(mod.blocks)
+            self._typeset_cached(mod)
+        idx = [m for m in self.mods if m.idxmap]
+        if idx:
+            from . import indexmap
+            self.sequence()
+            for _ in range(6):
+                changed = False
+                for m in idx:
+                    new = indexmap.remap_module(self, m)
+                    if new != getattr(m, '_remapped', None):
+                        m._remapped = new
+                        m.blocks = new
+                        self._typeset_cached(m)
+                        changed = True
+                if not changed:
+                    break
+                self.sequence()
         return self
+
+    def _typeset_cached(self, mod):
+        import hashlib
+        import pickle
+        cache_dir, code_key, redo = self._cache
+        if mod.kind != 'text':
+            mod.npages = 1
+            return
+        key = hashlib.sha1((code_key + json.dumps(mod.blocks, sort_keys=True, ensure_ascii=False, default=str)
+                            + mod.grid).encode('utf8')).hexdigest()
+        path = os.path.join(cache_dir, f'{mod.mid}-{key[:16]}.pkl')
+        if mod.mid not in redo and os.path.exists(path):
+            blocks, lbs, plan, hlbs, hpos, reserve = pickle.load(open(path, 'rb'))
+            mod.blocks = blocks
+            body = blocks[mod.header_n:]
+            for lb, blk in zip(lbs, body):
+                lb.block = blk
+            for lb, blk in zip(hlbs or [], blocks[:mod.header_n]):
+                lb.block = blk
+            mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve = lbs, plan, hlbs, hpos, reserve
+        else:
+            self._typeset_module(mod)
+            pickle.dump((mod.blocks, mod.lbs, mod.plan, mod.hlbs, mod.hpos, mod.reserve), open(path, 'wb'))
+        g = GRIDS[mod.grid]
+        mod.npages = (len(mod.plan['pages']) + g['cols'] - 1) // g['cols']
 
     def _typeset_module(self, mod):
         from . import hyph
@@ -156,6 +187,34 @@ class BookBuilder:
                 p.label = str(n_body)
         return self
 
+    def page_and_label(self, mid, bi, off):
+        """(physical page index, folio label) of the page holding character `off` of block `bi` of module `mid`."""
+        mod = next(m for m in self.mods if m.mid == mid)
+        cache = getattr(self, '_line_pages', None)
+        if cache is None or cache[0] is not id(self.pages):
+            cache = self._line_pages = (id(self.pages), {})
+        lines = cache[1].get(mid)
+        if lines is None:
+            lines = cache[1][mid] = {}
+            for lpi, lp in enumerate(mod.plan['pages']):
+                for (b, lo, hi, _slot) in lp['items']:
+                    lines.setdefault(b, []).append((lo, hi, lpi))
+        g = GRIDS[mod.grid]
+        base = next(p.index for p in self.pages if p.mod is mod)
+        if bi >= mod.header_n:
+            lbi = bi - mod.header_n
+            starts = mod.lbs[lbi].starts[mod.plan['variants'][lbi]]
+            k = max(0, __import__('bisect').bisect_right(starts, off) - 1)
+            for lo, hi, lpi in lines.get(lbi, []):
+                if lo <= k < hi:
+                    pi = base + lpi // g['cols']
+                    return pi, self.pages[pi].label
+            lpi = (lines.get(lbi) or [(0, 0, 0)])[0][2]
+        else:
+            lpi = 0
+        pi = base + lpi // g['cols']
+        return pi, self.pages[pi].label
+
     def pages_of(self, mod):
         return [p for p in self.pages if p.mod is mod]
 
@@ -167,6 +226,7 @@ class BookBuilder:
         htmls = []
         for p in self.pages:
             mod = p.mod
+            self.anchors.setdefault(f'pgp{p.index}', (p.index, style.TOP))
             if mod.kind == 'page':
                 inner = mod.html(self, p) if callable(mod.html) else mod.html
                 if p.first:

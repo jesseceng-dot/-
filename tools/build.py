@@ -89,6 +89,21 @@ def build(cfg, out_pdf, redo=()):
             rep = check.module_report(mod)
             hard = {k: len(v) for k, v in rep.items() if v and k not in ('loose',)}
             print(f'  {mod.mid:9s} p{mod.npages:4d} cost {mod.plan["cost"]:7.1f} {hard}', flush=True)
+    for mod in cfg['modules']:
+        if mod.idx_stats:
+            print('  index', mod.mid, mod.idx_stats, flush=True)
+    idx_rows = []
+    if any(m.idx_stats for m in cfg['modules']):
+        from . import indexmap
+        bb.sequence()
+        for mod in cfg['modules']:
+            if mod.idx_stats:
+                idx_rows += indexmap.mapping_rows(bb, mod)
+        import csv
+        with open(out_pdf[:-4] + '.index-map.csv', 'w', newline='', encoding='utf8') as f:
+            w = csv.writer(f)
+            w.writerow(['index', 'entry', 'original page', 'page in this PDF', 'method'])
+            w.writerows(idx_rows)
     bb.sequence()
     B.fill_toc_labels(bb, cfg['toc'])
     htmls = bb.render_pages()

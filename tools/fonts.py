@@ -22,6 +22,12 @@ FACES = {
     'SansSC-Medium':   ('/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc', 2),
     'SansSC-Bold':     ('/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', 2),
     'SansSC-Black':    ('/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc', 2),
+    # further heading families (TrueType already): every heading level gets its own family
+    'ZenHei-Regular':   ('/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', 0),          # 文泉驿正黑
+    'UKai-Regular':     ('/usr/share/fonts/truetype/arphic/ukai.ttc', 0),              # 文鼎楷体 (AR PL UKai CN)
+    'SungtiL-Regular':  ('/usr/share/fonts/truetype/arphic-gbsn00lp/gbsn00lp.ttf', None),   # 文鼎报宋 (AR PL SungtiL GB)
+    'MicroHei-Regular': ('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 0),          # 文泉驿微米黑
+    'UMing-Regular':    ('/usr/share/fonts/truetype/arphic/uming.ttc', 0),              # 文鼎明体 (AR PL UMing CN)
 }
 
 def otf_to_ttf(font, max_err=1.0):
@@ -73,12 +79,13 @@ def build(name):
     path, idx = FACES[name]
     out = os.path.join(FONT_DIR, name + '.ttf')
     if os.path.exists(out): return out
-    tc = TTCollection(path); font = tc.fonts[idx]
+    font = TTCollection(path).fonts[idx] if idx is not None else TTFont(path)
     opts = subset.Options(); opts.layout_features = ['kern', 'locl', 'ccmp', 'liga']
     opts.notdef_outline = True; opts.name_IDs = ['*']; opts.glyph_names = False
     opts.drop_tables += ['DSIG']
     sub = subset.Subsetter(opts); sub.populate(unicodes=corpus_codepoints()); sub.subset(font)
-    otf_to_ttf(font)
+    if 'CFF ' in font:
+        otf_to_ttf(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 
@@ -86,3 +93,56 @@ if __name__ == '__main__':
     os.makedirs(FONT_DIR, exist_ok=True)
     for n in (sys.argv[1:] or FACES):
         print(n, build(n), os.path.getsize(os.path.join(FONT_DIR, n + '.ttf')) // 1024, 'KB', flush=True)
+
+
+def embolden(src_name, dst_name, amount=0.022):
+    """Real bold for a family that only ships a regular face: every outline is thickened by `amount` em on each side
+    (stroke + union), so Chromium embeds true TrueType outlines instead of a synthetic-bold Type3 font."""
+    import pathops
+    from fontTools.pens.cu2quPen import Cu2QuPen
+    out = os.path.join(FONT_DIR, dst_name + '.ttf')
+    if os.path.exists(out):
+        return out
+    font = TTFont(os.path.join(FONT_DIR, src_name + '.ttf'))
+    gs = font.getGlyphSet()
+    upm = font['head'].unitsPerEm
+    d = upm * amount
+    glyf = font['glyf']
+    hmtx = font['hmtx']
+    failed = []
+    for name in font.getGlyphOrder():
+        g = gs[name]
+        path = pathops.Path()
+        g.draw(path.getPen(glyphSet=gs))
+        if not len(list(path.contours)):
+            continue
+        thick = pathops.Path(path)
+        thick.stroke(2 * d, pathops.LineCap.ROUND_CAP, pathops.LineJoin.ROUND_JOIN, 4)
+        thick.convertConicsToQuads()
+        try:
+            merged = pathops.op(path, thick, pathops.PathOp.UNION, fix_winding=True)
+        except Exception:
+            try:
+                path.simplify(fix_winding=True)
+                thick.simplify(fix_winding=True)
+                merged = pathops.op(path, thick, pathops.PathOp.UNION, fix_winding=True)
+            except Exception:
+                failed.append(name)
+                continue
+        pen = TTGlyphPen(gs)
+        merged.draw(Cu2QuPen(pen, 1.0, reverse_direction=False))
+        glyph = pen.glyph()
+        glyf[name] = glyph
+        glyph.recalcBounds(glyf)
+        hmtx[name] = (hmtx[name][0], glyph.xMin if hasattr(glyph, 'xMin') else hmtx[name][1])
+    if failed:
+        print(dst_name, 'glyphs left unemboldened:', len(failed))
+    font.save(out)
+    return out
+
+
+BOLD_FROM = {'UKai-Bold': 'UKai-Regular', 'SungtiL-Bold': 'SungtiL-Regular', 'MicroHei-Bold': 'MicroHei-Regular',
+             'UMing-Bold': 'UMing-Regular'}
+
+if __name__ == '__main__' and False:
+    pass

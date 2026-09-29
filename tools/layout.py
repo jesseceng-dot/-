@@ -44,7 +44,11 @@ STYLES = {
     'h6':       dict(cls='s-h6',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h7':       dict(cls='s-h7',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'toc0':     dict(cls='s-toc0',    fs=11.0, first=0, left=0, right=3, align='l', slots=1, before=2, after=0, keep=2),
-    'mtoc':     dict(cls='s-toc2',    fs=10.5, first=-1, left=1.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
+    'mtoc':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
+    'mbook':    dict(cls='s-mbook',   fs=12.0, first=0, left=0, right=6, align='l', slots=1, before=2, after=0, keep=3),
+    'mvol':     dict(cls='s-mvol',    fs=11.0, first=0, left=0.8, right=3, align='l', slots=1, before=1, after=0, keep=2),
+    'mtocnote': dict(cls='s-mtocnote', fs=9.0, first=0, left=0, right=0, align='c', slots=1, before=0, after=1, keep=0),
+    'mnote':    dict(cls='s-mnote',   fs=9.0, first=0, left=0, right=0, align='r', slots=1, before=0, after=0, keep=0),   # right-hand label of a book line (calibration only)
     'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
     'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
@@ -219,7 +223,16 @@ def _norm_end(res, after, N, reserve):
 
 
 def bef_options(lb):
-    """Allowed 'space before' values for a block with their cost: headings may take one blank slot more or less."""
+    """Allowed 'space before' values for a block with their cost: headings may take one blank slot more or less
+    (never less than the block's own `minbefore`)."""
+    opts = _bef_options(lb)
+    lo = lb.block.get('minbefore')
+    if lo is not None:
+        opts = [o for o in opts if o[0] >= lo] or [(lo, 0.0)]
+    return opts
+
+
+def _bef_options(lb):
     st = lb.st
     base = st['before']
     if lb.block.get('k') == 'h' and st.get('slots', 1) == 1 and not st.get('top_keep'):

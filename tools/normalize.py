@@ -376,7 +376,7 @@ def process_part(part, book_id, fixes=(), heading_default=True, merge=True, log=
     out = []
     for b in blocks:
         b = dict(b)
-        b['runs'] = fix_dates(replace_greek(b['runs']))
+        b['runs'] = fix_typos(fix_dates(replace_greek(b['runs'])))
         t = text_of(b)
         if b['k'] == 'p' and b['style'] in ('body', 'noindent', 'center') and len(t) <= 60:
             if SEP_RE.match(t):
@@ -586,6 +586,79 @@ PRINT_HYPHENS = {
     'Repro-duktion': 'Reproduktion', 'ein-fache': 'einfache',
 }
 PUA_MAP = {'\ue19c': '畠', '\ue54f': 'ö', '\ue837': '抽'}
+# plain misprints of the source (checked against the other volumes / the surrounding text)
+TYPOS = {
+    '上海上民出版社': '上海人民出版社',            # CIP line of 《小逻辑》 (the other three volumes read 上海人民出版社)
+    '1811年7月29日子纽伦堡': '1811年7月29日于纽伦堡',   # letter heading: 'in Nürnberg'
+}
+
+
+def fix_typos(runs):
+    out = []
+    for r in runs:
+        t = r['t']
+        for k, v in TYPOS.items():
+            t = t.replace(k, v)
+        out.append(dict(r, t=t) if t != r['t'] else r)
+    return out
+
+
+# Latin / German / French / Sanskrit words in which the ebook replaced the umlaut, ß, ç, ö ... by a full stop ('Bartholom.us')
+DROPOUTS = {
+    'Encyclop-die': 'Encyclopädie', 'Sadduc.ismus': 'Sadducäismus', 'Mus.us': 'Musäus', 'Tr.ster': 'Tröster',
+    'verkl.rt': 'verklärt', 'simpli.ed': 'simplified',
+    'Vers.hnung': 'Versöhnung', 'Ph.nix': 'Phönix', 'Vis.nu': 'Viṣṇu', 'Vi.nu': 'Viṣṇu', 'Māhe.vara': 'Māheśvara',
+    'Mahe.vara': 'Maheśvara', 'a.akti': 'aśakti', 'Ke.ava': 'Keśava', 'pratij.a': 'pratijñā', 'Vikram.ditya': 'Vikramāditya',
+    'Substantialit.t': 'Substantialität', 'La.rtius': 'Laërtius', 'Dic.archos': 'Dicäarchos', 'Eud.monismus': 'Eudämonismus',
+    'Dioch.tes': 'Diochätes', 'Po.sis': 'Poësis', 'Stob.us': 'Stobäus', 'Pal.stina': 'Palästina', 'Kr.sus': 'Krösus',
+    'Alkm.on': 'Alkmäon', 'Laced.mon': 'Lacedämon', 'Pharis.er': 'Pharisäer', 'Chald.en': 'Chaldäen', 'Chald.a': 'Chaldäa',
+    'Neupythagor.er': 'Neupythagoräer', 'Eub.a': 'Euböa', 'Wiedert.ufer': 'Wiedertäufer', 'Ptolem.er': 'Ptolemäer',
+    'Ptolem.us': 'Ptolemäus', 'Pir.us': 'Piräus', 'Potid.a': 'Potidäa', 'The.tet': 'Theätet', 'Qu.ker': 'Quäker',
+    'Ph.bus': 'Phöbus', 'Bartholom.us': 'Bartholomäus', 'Bollst.dt': 'Bollstädt', 'Gfr.rer': 'Gfrörer', 'Tim.us': 'Timäus',
+    'Helmst.dt': 'Helmstädt', 'Manich.ismus': 'Manichäismus', 'Seh.nborn': 'Schönborn', 'Fran.ois': 'François',
+    'Qualit.t': 'Qualität', 'Quallit.t': 'Quallität', 'Spontaneit.t': 'Spontaneität', 'Verm.gen': 'Vermögen',
+    'Passitivit.t': 'Passivität', 'Ver.nderlichkeit': 'Veränderlichkeit', 'Unver.nderlichkeit': 'Unveränderlichkeit',
+    'Ver.nderung': 'Veränderung', 'Ma.tab': 'Maßstab', 'Ma.stab': 'Maßstab',
+    'Nichtgefa .twerdenk.nnen': 'Nichtgefaßtwerdenkönnen', 'Unverst.ndichste': 'Unverständlichste',
+    'Unvest.ndlichkeit': 'Unverständlichkeit', 'Grunds.tze': 'Grundsätze', 'Grunds.tz': 'Grundsatz', 'Sch.pfung': 'Schöpfung',
+    'Sch.pfer': 'Schöpfer', 'Originalit.t': 'Originalität', 'h.chstes': 'höchstes', 'h.chste': 'höchste',
+    'Gegens.tzen': 'Gegensätzen', 'Duplizit.t': 'Duplizität', 'Immaterialit.t': 'Immaterialität', 'Negativit.t': 'Negativität',
+    'kompendi.s': 'kompendiös', 'Rezeptivit.t': 'Rezeptivität', 'Verh.ltnis': 'Verhältnis', 'pr.stabilierte': 'prästabilierte',
+    'Ged.chtnis': 'Gedächtnis', 'Aufl.ssung': 'Auflösung', 'm.gliche': 'mögliche', 'Idealit.t': 'Idealität',
+    'Kontinuit.t': 'Kontinuität', 'Zusammenh.ngende': 'Zusammenhängende', 'Sch.ne': 'Schöne', 't.tige': 'tätige',
+    'Erkenntnisverm.gen': 'Erkenntnisvermögen', 'Zuf.lligkeit': 'Zufälligkeit', 'Zuf.llige': 'Zufällige',
+    'Realit.t': 'Realität', 'Reatit.t': 'Realität', 'Aufkl.rung': 'Aufklärung', 'Pr.szienz': 'Präszienz',
+    'Totalit.t': 'Totalität', 'Tatalit.t': 'Totalität', 'Autorit.t': 'Autorität', 'Gewi.heit': 'Gewißheit',
+    'Pers.nlichkeit': 'Persönlichkeit', 'Wahrnehmungsverm.gen': 'Wahrnehmungsvermögen', 'Trinit.t': 'Trinität',
+    'Triplizit.t': 'Triplizität', 'Verkl.rung': 'Verklärung', 'Enlit.t': 'Entität', 'gegenst.ndlichen': 'gegenständlichen',
+    'Gegenw.rtige': 'Gegenwärtige', 'lntellektualit.t': 'Intellektualität', 'Partikularit.t': 'Partikularität',
+    'Identit.t': 'Identität', 'blo.e': 'bloße', '.u.erlichkeit': 'Äußerlichkeit', '.u.eres': 'Äußeres',
+    '.u.erliche': 'äußerliche', '.u.erlich': 'äußerlich', 'St.rke': 'Stärke', 'Ph.nomene': 'Phänomene', 'prim.re': 'primäre',
+    'sekund.re': 'sekundäre', 'Abh.ngigkeit': 'Abhängigkeit', 'Bewu.tsein': 'Bewußtsein', 'n.chste': 'nächste',
+    'Kausalit.t': 'Kausalität', 'Subjektivit.t': 'Subjektivität', 'Objektivit.t': 'Objektivität', 'Fr.mmigkeit': 'Frömmigkeit',
+    'religi.sen': 'religiösen',
+    'SchluΒder': 'Schluß der', 'SchluΒin': 'Schluß in',      # ß typed as Greek beta, a space lost
+}
+_DROP_RE = re.compile(r'(?<![A-Za-zÀ-ÿ])(' + '|'.join(re.escape(k) for k in sorted(DROPOUTS, key=len, reverse=True)) +
+                      r')(?![A-Za-zÀ-ÿ])')
+
+
+_SS_RE = re.compile(r'(?<=[A-Za-zÄÖÜäöü])[βΒ]')
+
+
+def repair_words(runs, book_digit):
+    """Typos, dropped-letter foreign words and Greek words of one run list (applied to every text module of a book)."""
+    from . import greekfix
+    out = []
+    for r in runs:
+        t = r['t']
+        for k, v in TYPOS.items():
+            t = t.replace(k, v)
+        t = _DROP_RE.sub(lambda m: DROPOUTS[m.group(1)], t)
+        t = _SS_RE.sub('ß', t)                                   # 'MaΒ', 'Gröβe': Greek beta typed for German ß
+        t = greekfix.restore(t, book_digit)
+        out.append(dict(r, t=t) if t != r['t'] else r)
+    return out
 
 
 def fix_dates(runs):

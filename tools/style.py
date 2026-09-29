@@ -33,6 +33,15 @@ FONTS_CSS = """
 @font-face{font-family:"HeiTi";src:url("%(f)s/SansSC-Black.ttf");font-weight:900}
 @font-face{font-family:"KaiTi";src:url("%(f)s/LXGWWenKai-Regular.ttf");font-weight:400}
 @font-face{font-family:"KaiTi";src:url("%(f)s/LXGWWenKai-Bold.ttf");font-weight:700}
+@font-face{font-family:"ZhengHei";src:url("%(f)s/ZenHei-Regular.ttf");font-weight:400}
+@font-face{font-family:"WenKai2";src:url("%(f)s/UKai-Regular.ttf");font-weight:400}
+@font-face{font-family:"WenKai2";src:url("%(f)s/UKai-Bold.ttf");font-weight:700}
+@font-face{font-family:"BaoSong";src:url("%(f)s/SungtiL-Regular.ttf");font-weight:400}
+@font-face{font-family:"BaoSong";src:url("%(f)s/SungtiL-Bold.ttf");font-weight:700}
+@font-face{font-family:"WeiMi";src:url("%(f)s/MicroHei-Regular.ttf");font-weight:400}
+@font-face{font-family:"WeiMi";src:url("%(f)s/MicroHei-Bold.ttf");font-weight:700}
+@font-face{font-family:"MingTi";src:url("%(f)s/UMing-Regular.ttf");font-weight:400}
+@font-face{font-family:"MingTi";src:url("%(f)s/UMing-Bold.ttf");font-weight:700}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
 """ % {'f': 'file://' + FONT_DIR}
@@ -43,7 +52,7 @@ STYLE_CSS = f"""
 html{{-webkit-text-size-adjust:none}}
 body{{margin:0;padding:0;font-family:{BODY_FAMILY};font-size:{FONT}pt;color:#000;
   line-break:normal;word-break:normal;overflow-wrap:normal;font-kerning:normal;
-  font-variant-ligatures:none;text-rendering:geometricPrecision}}
+  font-variant-ligatures:none;text-rendering:geometricPrecision;font-synthesis:none}}
 .ln{{position:absolute;left:0;top:0;height:{LINE}pt;line-height:{LINE}pt;white-space:nowrap;
   transform-origin:0 0}}
 .meas{{position:absolute;left:0;top:0;line-height:{LINE}pt;text-align:left;visibility:hidden}}
@@ -60,13 +69,17 @@ a{{color:inherit;text-decoration:none}}
 .s-secnum{{font-family:"GrkSerif","HeiTi","Noto Serif",serif;font-size:9.5pt;font-weight:500}}
 .s-h1{{font-family:"HeiTi",sans-serif;font-size:17pt;font-weight:700}}
 .s-h2{{font-family:"KaiTi",serif;font-size:14pt;font-weight:700}}
-.s-h3{{font-family:"HeiTi",sans-serif;font-size:12pt;font-weight:500}}
-.s-h4{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
-.s-h5{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:400}}
-.s-h6{{font-family:"KaiTi",serif;font-size:10.5pt;font-weight:700}}
-.s-h7{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:400}}
+.s-h3{{font-family:"ZhengHei","HeiTi",sans-serif;font-size:12pt;font-weight:400}}
+.s-h4{{font-family:"WenKai2","KaiTi",serif;font-size:11pt;font-weight:700}}
+.s-h5{{font-family:"BaoSong","SongBody",serif;font-size:10.5pt;font-weight:700}}
+.s-h6{{font-family:"WeiMi","HeiTi",sans-serif;font-size:10.5pt;font-weight:700}}
+.s-h7{{font-family:"MingTi","SongBody",serif;font-size:10pt;font-weight:700}}
 .s-toc0{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
 .s-toc1{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:500}}
+.s-mbook{{font-family:"HeiTi",sans-serif;font-size:12pt;font-weight:700}}
+.s-mvol{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
+.s-mtocnote{{font-family:"KaiTi",serif;font-size:9pt;color:#555}}
+.s-mnote{{font-family:"KaiTi",serif;font-size:9pt;color:#444}}
 .s-toc2{{font-size:10.5pt}}
 .s-toc3{{font-size:10pt}}
 .s-note{{font-size:8.5pt}}
@@ -74,5 +87,6 @@ a{{color:inherit;text-decoration:none}}
 .s-cip{{font-size:9pt}}
 .s-idxhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .nn{{display:inline-block;width:3em;text-align:left}}
+.pn{{color:#1f3a93}}
 .fig{{color:#1a44c8;border:.7pt solid #e2b400;padding:0 .35em;background:#fffbe6;border-radius:1pt;font-family:"HeiTi",sans-serif;font-size:9.5pt}}
 """

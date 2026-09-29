@@ -18,8 +18,10 @@
 
 - 大 32 开（397 × 575 pt ≈ 140 × 203 mm），左右页边距相同（51.5 pt）。
 - 正文思源宋体（Noto Serif CJK SC）五号 10.5 pt，行距 17 pt，每页 **27 行**，版心 28 字宽；希腊文用 Noto Serif（含多调字形）。
-- 标题各级用不同字体，且都不与正文相同：一级思源黑体粗、二级霞鹜文楷粗、三级思源黑体中、四级楷体粗、五至七级黑/楷体常规；
-  § 编号用思源黑体中。引文/诗行用楷体。
+- 七级标题各用**互不相同的字体族**，且都不与正文（思源宋体）相同：一级思源黑体粗（Noto Sans CJK SC）、二级霞鹜文楷粗（LXGW WenKai）、
+  三级文泉驿正黑（WenQuanYi Zen Hei）、四级文鼎楷体粗（AR PL UKai）、五级文鼎报宋粗（AR PL SungtiL）、六级文泉驿微米黑粗（WenQuanYi Micro Hei）、
+  七级文鼎明体粗（AR PL UMing）；§ 编号用思源黑体中，引文/诗行用楷体。文鼎、文泉驿字体原本只有常规字重，`tools/fonts.py` 用 skia-pathops 把轮廓加粗成真正的粗体
+  （不用浏览器的“伪粗体”，否则 PDF 里会变成 Type3 字体）。
 - 注释、索引、版权页用 8.5–9 pt 小字（40 行/页的密网格），最后一行基线与正文页的最后一行基线严格重合。
 - 页眉（单页书名 / 双页章名）、页脚页码（前置部分小写罗马数字，正文起阿拉伯数字），PDF 书签与页码标签齐全。
 
@@ -37,22 +39,28 @@
 ## 复现与局部重排
 
 ```
-apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra fonts-lxgw-wenkai fonts-noto-core   # 字体
-pip install playwright pymupdf pypdf fonttools lxml beautifulsoup4 pillow mobi pyphen rjieba
+apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra fonts-lxgw-wenkai fonts-noto-core fonts-wqy-zenhei fonts-wqy-microhei \
+    fonts-arphic-ukai fonts-arphic-uming fonts-arphic-gbsn00lp fonts-arphic-gkai00mp                                 # 字体
+pip install playwright pymupdf pypdf fonttools lxml beautifulsoup4 pillow mobi pyphen rjieba skia-pathops
 python -m tools.unpack                   # AZW3 解包为 XHTML + 图片（KindleUnpack）
-python tools/fonts.py                    # 子集化并把 CFF 字体转成 TrueType（否则 Chromium 会把它们嵌成 Type3）
+python tools/fonts.py                    # 子集化字体，并把 CFF 字体转成 TrueType（否则 Chromium 会把它们嵌成 Type3）
+python -c "from tools import fonts; [fonts.embolden(s, d) for d, s in fonts.BOLD_FROM.items()]"   # 生成文鼎/文泉驿的真粗体
 python -m tools.make_all --dest=out      # 四本书 + 合集
 python -m tools.build book3              # 只重排一本（约 30 秒；四本书最长 2 分钟）
 python -m tools.build book3 --redo=part0041   # 只重排某一章（其余章节读缓存）
 python -m tools.report                   # 生成 docs/QA-report.md
+python -m tools.index_report             # 生成 docs/index-pages.md（索引页码换算的方法与精度）
 ```
 
-结构：`tools/extract.py` 解析 XHTML；`normalize.py` 标题层级/间距、断段合并、诗行与署名对齐、尾注拆分；
+结构：`tools/extract.py` 解析 XHTML；`normalize.py` 标题层级/间距、断段合并、诗行与署名对齐、尾注拆分、错字与丢字外文词还原；
+`greekfix.py` 希腊文逐词还原表；`indexmap.py` 索引页码换算（印刷页 → PDF 页）；
 `books.py` 每本书的模块配置（前/正文/后、每章的修正规则）；`measure.py` + `layout.py` + `typeset.py` 量行与分页求解；
 `render.py` 逐行绝对定位输出 HTML；`book.py` 装配（目录、页码、页眉）；`post.py` 把占位链接改写为 PDF 内部链接、加书签；
-`collection.py` 合并；`check.py`/`qa.py`/`charcheck.py` 验收检查。
+`collection.py` 合并并生成总目录；`check.py`/`qa.py`/`charcheck.py` 验收检查。
 
 ## 需要你知道的
 
-- 索引条目里的页码（如“绝对理念381”“上254”）是**原书商务印书馆版页码**，与本 PDF 页码无关（原电子书里没有对应关系，无法自动换算）。
-- 全部改动与疑似原书错字见 `docs/dispositions.md`；希腊文小图的逐张核对见 `docs/greek-ocr.md`。
+- **索引页码**：原书索引里的页码是商务印书馆版的印刷页码，电子书里没有印刷页码标记，所以这里是**反推换算**的：先在正文里查条目词的位置来校准
+  “印刷页 ↔ 正文位置”，再把每个页码换成本 PDF 页码（可点击）。换算的方法、命中率和留一法检验精度见 `docs/index-pages.md`，逐条对照见 `docs/index-page-map/`；
+  索引开头有一段小字说明。条目词在正文里找不到的，按前后页码内插，可能与原书页码相差一页。
+- 全部改动与无法还原的地方见 `docs/dispositions.md`；希腊文小图的逐张核对见 `docs/greek-ocr.md`。

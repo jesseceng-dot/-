@@ -123,16 +123,25 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             y = style.TOP + slot * st['pitch'] * k
             h = runs_html(runs, starts[j], ends[j], final=True)
             parts.append(line_div(st, j, len(starts), h, x0 + x, y, w, ls))
+            if lb.block.get('rule') and j == 0 and slot0 > 0:
+                parts.append(f'<div class="rule" style="left:{x0:.2f}pt;width:{st["W"]:.2f}pt;top:{y - 9:.2f}pt"></div>')
             if lb.block.get('pg') is not None and j == len(starts) - 1:
-                parts.append(toc_tail(st, lb.nat[vi][j], x0 + x, x0 + st['W'], y, lb.block['pg'], lb.block.get('h', '')))
+                parts.append(toc_tail(st, lb.nat[vi][j], x0 + x, x0 + st['W'], y, lb.block['pg'], lb.block.get('h', ''),
+                                      plain=(lb.block.get('tail') == 'plain')))
             if anchors is not None:
                 _register_anchors(anchors, lb.block, runs, starts[j], ends[j], page_ref, y, j == 0)
     return ''.join(parts)
 
 
-def toc_tail(st, nat, x, right, y, label, href):
-    """Dot leader and right-aligned page number of a table-of-contents line."""
-    nw = 26.0
+def toc_tail(st, nat, x, right, y, label, href, plain=False):
+    """Dot leader and right-aligned page number of a table-of-contents line.  With `plain` the label is a small
+    right-aligned note (a book's page count) without leader."""
+    nw = 30.0
+    if plain:
+        st2 = dict(st, cls='s-mnote')
+        y2 = y + baseline_dy(st2)
+        num = f'<div class="ln s-mnote r" style="width:120pt;transform:translate({right - 120:.2f}pt,{y2:.2f}pt)">{label}</div>'
+        return f'<a href="{LINK_BASE}{href}">{num}</a>' if href else num
     y += baseline_dy(st)
     xs, xe = x + nat + 6, right - nw - 4
     base = BASE.get(f'{st["cls"]}@{st["pitch"]}', 12.0)

@@ -13,13 +13,22 @@ BOOKS = [('b1', 'book1', '小逻辑'), ('b2', 'book2', '黑格尔早期神学著
          ('b3', 'book3', '精神现象学'), ('b4', 'book4', '哲学史讲演录')]
 
 
+SKIP_IN_MASTER = ('《贺麟全集》出版说明', '题记', '题　记', '版本说明')       # boilerplate of every volume: kept in the books' own tables of contents
+
+
 def master_toc_blocks(cfgs, metas):
-    blocks = [dict(k='h', style='tochead', rank=1, runs=[run('总　目　录')], id='master-toc')]
+    """Collection-level contents: book title (with its length), volume titles, and the parts of each book with the
+    book's own folio (roman in the front matter)."""
+    blocks = [dict(k='h', style='tochead', rank=1, runs=[run('总　目　录')], id='master-toc'),
+              dict(k='p', style='mtocnote', runs=[run('页码依各书自身编号，前置部分用罗马数字；点击条目即可跳转')])]
+    first_book = True
     for (bid, name, title), cfg, meta in zip(BOOKS, cfgs, metas):
-        first = next(m for m in cfg['modules'] if m.zone != 'cover')
         labels = dict(meta['toc'])
-        blocks.append(dict(k='p', style='toc0', runs=[run(f'《{title}》', h=f'{bid}:{cfg["modules"][0].mid}')],
-                           h=f'{bid}:{cfg["modules"][0].mid}', pg=f'{meta["pages"]} 页', keep=1))
+        cover = f'{bid}:{cfg["modules"][0].mid}'
+        blocks.append(dict(k='p', style='mbook', runs=[run(f'《{title}》', h=cover)], h=cover,
+                           pg=f'全书 {meta["pages"]} 页', tail='plain', rule=not first_book,
+                           before=1 if first_book else 2, minbefore=1 if first_book else 2))
+        first_book = False
         last_vol = None
         for mod in cfg['modules']:
             if not mod.toc or mod.toc_level != 1 or mod.mid == 'toc':
@@ -28,13 +37,12 @@ def master_toc_blocks(cfgs, metas):
                 last_vol = mod.volume
                 first_of_vol = next((x for x in cfg['modules'] if x.volume == mod.volume and x.mid in labels), None)
                 if first_of_vol is not None:
-                    blocks.append(dict(k='p', style='toc0', runs=[run(mod.volume, h=f'{bid}:{first_of_vol.mid}')],
-                                       h=f'{bid}:{first_of_vol.mid}', pg=labels[first_of_vol.mid], keep=1))
+                    blocks.append(dict(k='p', style='mvol', runs=[run(mod.volume, h=f'{bid}:{first_of_vol.mid}')],
+                                       h=f'{bid}:{first_of_vol.mid}', pg=labels[first_of_vol.mid], keep=2, minbefore=1))
             label = mod.toc_title or mod.title
-            if not label or mod.mid not in labels:
+            if not label or mod.mid not in labels or label.strip() in SKIP_IN_MASTER:
                 continue
-            prefix = f'{mod.volume}　' if False else ''
-            blocks.append(dict(k='p', style='mtoc', runs=[run(prefix + label, h=f'{bid}:{mod.mid}')],
+            blocks.append(dict(k='p', style='mtoc', runs=[run(label, h=f'{bid}:{mod.mid}')],
                                h=f'{bid}:{mod.mid}', pg=labels[mod.mid]))
     return blocks
 
