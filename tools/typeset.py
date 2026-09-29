@@ -4,7 +4,7 @@ from .layout import LB, sty, build_specs, variant_penalty, solve, INF
 from .model import runs_len
 
 
-def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=40):
+def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=18):
     variants = variants if variants is not None else style.VARIANTS
     lbs = []
     specs, owner = [], []
@@ -18,7 +18,7 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=40):
             lb.splittable = False
             lbs.append(lb)
             continue
-        vary = (st['align'] == 'j' or b['style'] == 'index') and runs_len(b['runs']) >= vary_min_chars and not b.get('novary')
+        vary = (st['align'] == 'j' or b['style'] == 'index' or b['style'].startswith('toc')) and runs_len(b['runs']) >= (24 if b['style'].startswith('toc') else vary_min_chars) and not b.get('novary')
         lb.splittable = st['slots'] == 1 and st['keep'] == 0 and not b.get('nosplit')
         vs = variants if vary else variants[:1]
         for vi, s in enumerate(build_specs(b, vs, grid)):
@@ -40,6 +40,9 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=40):
         if lb.block['k'] in ('img', 'space'):
             continue
         lb.pen = [variant_penalty(lb.block, lb.st, lb.starts[vi], lb.nat[vi], vi) for vi in range(len(lb.nl))]
+        if all(p == INF for p in lb.pen):        # no acceptable variant: keep the layout going, the checker reports it
+            lb.pen = [5000.0 + p for p in range(len(lb.pen))]
+            lb.block['warn'] = lb.block.get('warn', []) + ['no variant avoids a lone marker/punctuation last line']
     return lbs
 
 

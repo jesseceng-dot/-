@@ -65,6 +65,7 @@ a{{color:inherit;text-decoration:none}}
 .s-h5{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:400}}
 .s-h6{{font-family:"KaiTi",serif;font-size:10.5pt;font-weight:700}}
 .s-h7{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:400}}
+.s-toc0{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
 .s-toc1{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:500}}
 .s-toc2{{font-size:10.5pt}}
 .s-toc3{{font-size:10pt}}

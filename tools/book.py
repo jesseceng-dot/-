@@ -124,7 +124,11 @@ class BookBuilder:
         for p in self.pages:
             mod = p.mod
             if mod.kind == 'page':
-                inner = mod.html
+                inner = mod.html(self, p) if callable(mod.html) else mod.html
+                if p.first:
+                    self.anchors.setdefault(mod.mid, (p.index, style.TOP))
+                    if mod.anchor:
+                        self.anchors.setdefault(mod.anchor, (p.index, style.TOP))
             else:
                 g = GRIDS[mod.grid]
                 base = next(q.index for q in self.pages if q.mod is mod)
@@ -189,7 +193,11 @@ class BookBuilder:
 def make_toc(mods, title='目　录', levels=(1, 2, 3)):
     blocks = [dict(k='h', style='tochead', rank=1, runs=[run(title)], id='toc')]
     refs = []
+    last_vol = None
     for mod in mods:
+        if mod.volume and mod.volume != last_vol:
+            last_vol = mod.volume
+            blocks.append(dict(k='p', style='toc0', runs=[run(mod.volume, h=mod.mid)], h=mod.mid, toc_ref=(mod.mid, None)))
         if not mod.toc or mod.kind != 'text' and not mod.title:
             continue
         if mod.kind == 'page' and not mod.toc_title:

@@ -18,7 +18,7 @@ def finish_pdf(src, dst, anchors, outline, labels, meta):
                 continue
             key = urllib.parse.unquote(uri[len(style.LINK_BASE):])
             page.delete_link(l)
-            tgt = anchors.get(key)
+            tgt = anchors.get(key) or anchors.get(key.split('#')[0])
             if tgt is None:
                 missing[key] = missing.get(key, 0) + 1
                 continue

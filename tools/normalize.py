@@ -50,6 +50,8 @@ BOOK_RANKS = {
         (r'^〔[引七分]', 3),
         (r'^[甲乙丙丁戊己][\s　]', 4),
         (r'^〔?[%s]+[\s　]' % CN, 5),
+        (r'^[一二三四五六七八九十]$', 5),
+        (r'^第[一二三四五六七八九十]+：〔', 6),
         (r'^\d+[.．]', 6),
     ],
 }
@@ -57,7 +59,7 @@ BOOK_RANKS = {
 # number patterns used to insert a robust visual gap between the ordinal and the heading text
 NUM_PATTERNS = [
     (re.compile(r'^(第[%s\d]+[部篇章节期阶段](?:分)?)[\s　]*(?=\S)' % CN), GAP_CJK),
-    (re.compile(r'^([甲乙丙丁戊己庚辛])[\s　]*(?=[^\s、.．])'), GAP_CJK),
+    (re.compile(r'^([甲乙丙丁戊己庚辛])[\s　]*(?=[^\s、.．（(])'), GAP_CJK),
     (re.compile(r'^([%s]+)[\s　]+(?=\S)' % CN), GAP_CJK),
     (re.compile(r'^(\d+[.．])[\s　]*(?=[^\d\s])'), GAP_EN),
     (re.compile(r'^([A-Z][.．])[\s　]*(?=\S)'), GAP_EN),
@@ -275,6 +277,7 @@ def _src_tag(b):
 
 def to_heading(b, rank):
     b = dict(b)
+    b['runs'] = [{k: v for k, v in r.items() if k != 'b'} for r in b['runs']]
     b['k'] = 'h'
     b['style'] = f'h{rank}'
     b['rank'] = rank
@@ -310,6 +313,16 @@ def apply_fixes(blocks, fixes):
         elif op == 'drop':
             for i in _rng(f[1]):
                 drop.add(i)
+        elif op == 'gap':                 # ('gap', idx): jammed ordinal like '七有关…' -> '七　有关…'
+            for i in _rng(f[1]):
+                r0 = blocks[i]['runs'][0]
+                m = re.match(r'^([%s]+)(?=[^%s\s、.．])' % (CN, CN), r0['t'])
+                if m:
+                    blocks[i]['runs'][0] = dict(r0, t=m.group(1) + GAP_CJK + r0['t'][m.end():])
+        elif op == 'lstrip':              # ('lstrip', idxs): drop leading ideographic spaces
+            for i in _rng(f[1]):
+                r0 = blocks[i]['runs'][0]
+                blocks[i]['runs'][0] = dict(r0, t=r0['t'].lstrip('\u3000 '))
         elif op == 'set':                 # ('set', idx_or_range, {key: value})
             for i in _rng(f[1]):
                 blocks[i].update(f[2])
@@ -331,15 +344,24 @@ def is_note_start(b):
         and bool(re.match(r'^[\[［]\d+[\]］]', b['runs'][0]['t']))
 
 
-def process_part(part, book_id, fixes=(), heading_default=True, merge=True, log=None):
+def process_part(part, book_id, fixes=(), heading_default=True, merge=True, log=None, ranks=(), gapnum=(), styles=()):
     """parse_part + fixes + heading ranks + spacing; returns list of blocks ready for typesetting."""
     blocks = apply_fixes(extract.parse_part(part), fixes)
     first_src = None
     out = []
     for b in blocks:
         b = dict(b)
-        b['runs'] = replace_greek(b['runs'])
+        b['runs'] = fix_dates(replace_greek(b['runs']))
         t = text_of(b)
+        if b['k'] == 'p' and b['style'] in ('body', 'noindent', 'center') and len(t) <= 60:
+            if SEP_RE.match(t):
+                b['style'] = 'sep'
+                b['nohead'] = True
+            for pat, st in styles:
+                if re.search(pat, t):
+                    b['style'] = st
+                    b['nohead'] = True
+                    break
         # headings coming from real <h*> tags
         if b['k'] == 'h' and 'rank' not in b:
             lvl = SRC_LEVEL[_src_tag(b)]
@@ -349,12 +371,14 @@ def process_part(part, book_id, fixes=(), heading_default=True, merge=True, log=
             b = to_heading(b, rank_for(t, book_id, rank))
         elif b['k'] == 'p' and b['style'] in ('body', 'noindent', 'center') and heading_default and len(t) <= SHORT \
                 and t and t[-1] not in '。！？；：，、' and not is_note_start(b):
-            for pat, rank in BOOK_RANKS.get(book_id, []):
+            for pat, rank in list(ranks) + BOOK_RANKS.get(book_id, []):
                 if re.match(pat, t) and not b.get('nohead'):
                     b = to_heading(b, rank)
                     break
         out.append(b)
     blocks = out
+    if blocks and blocks[0]['k'] == 'h' and blocks[0].get('rank', 1) > 1:
+        blocks[0] = to_heading(blocks[0], 1)          # the first heading of a module is its title
     if merge:
         blocks = merge_broken(blocks, log)
     return blocks
@@ -421,3 +445,89 @@ def postprocess(blocks):
     blocks = wrap_short_lines(blocks)
     blocks = keep_signatures(blocks)
     return blocks
+
+
+# ------------------------------------------------------------------------------------------ notes
+def mark_markers(blocks):
+    """Footnote/endnote markers that are plain bracketed links become superscripts (like the marker spans of Book 1)."""
+    for b in blocks:
+        if b['k'] not in ('p', 'h'):
+            continue
+        runs = []
+        for idx, r in enumerate(b['runs']):
+            if (r.get('h') or r.get('a')) and MARKER_RE.match(r['t'].strip()) and not r.get('s'):
+                if idx == 0 and is_note_start(b):
+                    runs.append(r)
+                    continue
+                r = dict(r, s=1, t='\u2060' + r['t'] if not r['t'].startswith('\u2060') else r['t'])
+                if r.get('h') and not r.get('a') and re.search(r'#b-\d+$', r['h']):
+                    r['a'] = r['h'].replace('#b-', '#a-')      # some markers lost their anchor id in the source
+            runs.append(r)
+        b['runs'] = runs
+    return blocks
+
+
+def split_notes(blocks):
+    """Split trailing note entries (paragraphs starting with a numbered back-link) off a chapter."""
+    starts = [i for i, b in enumerate(blocks) if b['k'] == 'p' and is_note_start(b)]
+    if not starts:
+        return blocks, []
+    n = len(blocks)
+    for s in starts:
+        after = blocks[s:]
+        share = sum(1 for b in after if is_note_start(b)) / len(after)
+        if share >= 0.6 and s >= 0.3 * n:
+            return blocks[:s], blocks[s:]
+    return blocks, []
+
+
+def repair_note_links(notes, part):
+    """A few note entries carry a placeholder href; point them at the marker `a-N` they belong to."""
+    for b in notes:
+        if not (b['runs'] and is_note_start(b)):
+            continue
+        r = b['runs'][0]
+        m = re.match(r'^[\[［](\d+)[\]］]', r['t'])
+        want = f'{part}#a-{m.group(1)}'
+        if not r.get('h') or r['h'] == part:
+            r['h'] = want
+    return notes
+
+
+def note_blocks(notes):
+    out = []
+    for b in notes:
+        b = dict(b)
+        if is_note_start(b):
+            r0 = dict(b['runs'][0], c='nn')
+            b['runs'] = [r0] + b['runs'][1:]
+            b['style'] = 'note'
+        elif b['style'] == 'right':
+            b['style'] = 'noter'
+        elif b['style'] in ('quote', 'verse'):
+            b['style'] = 'notev'
+        else:
+            b['style'] = 'notec'
+        out.append(b)
+    return out
+
+
+SEP_RE = re.compile(r'^\*(?:[\s\u3000]*\*)+$')
+
+
+# Kindle private-use glyphs that stand for real characters (read from their context)
+PUA_MAP = {'\ue19c': '畠', '\ue54f': 'ö', '\ue837': '抽'}
+
+
+def fix_dates(runs):
+    """'1816 年10 月28 日' -> '1816年10月28日' (stray spaces inside a date are a typesetting error of the source);
+    private-use glyphs of the ebook are replaced by the characters they stand for."""
+    out = []
+    for r in runs:
+        t = r['t']
+        for k, v in PUA_MAP.items():
+            t = t.replace(k, v)
+        t2 = re.sub(r'(?<=\d) (?=[年月日])', '', t)
+        t2 = re.sub(r'(?<=[年月]) (?=\d)', '', t2)
+        out.append(dict(r, t=t2) if t2 != r['t'] else r)
+    return out

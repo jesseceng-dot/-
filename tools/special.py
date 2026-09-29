@@ -18,23 +18,27 @@ def _avg(im, box):
 
 
 def cover_html(name, valign=0.5):
-    """Full-page cover: the image is fitted to the page width; the space above/below is filled with the image's own
-    edge colours so the cover looks seamless."""
+    """Full-page cover: the image is fitted inside the page; the remaining space is filled with the image's own edge
+    colours so the cover looks seamless."""
     im = Image.open(os.path.join(IMG_DIR, name))
     w, h = im.size
+    pw, ph = style.PAGE_W, style.PAGE_H
+    c = lambda t: f'rgb({t[0]},{t[1]},{t[2]})'
+    ih = pw * h / w
+    if ih > ph:                                   # taller than the page: fit height, fill left/right
+        iw = ph * w / h
+        x = (pw - iw) / 2
+        left = _avg(im, (0, 0, 3, h))
+        right = _avg(im, (w - 3, 0, w, h))
+        return (f'<div style="position:absolute;left:0;top:0;width:{x + 0.5}pt;height:{ph}pt;background:{c(left)}"></div>'
+                f'<div style="position:absolute;left:{x + iw - 0.5}pt;top:0;width:{pw - x - iw + 1}pt;height:{ph}pt;background:{c(right)}"></div>'
+                f'<img src="{img_url(name)}" style="position:absolute;left:{x}pt;top:0;width:{iw}pt;height:{ph}pt">')
     top = _avg(im, (0, 0, w, 3))
     bot = _avg(im, (0, h - 3, w, h))
-    pw, ph = style.PAGE_W, style.PAGE_H
-    ih = pw * h / w
-    if ih > ph:                                   # taller than the page: fit height instead
-        iw = ph * w / h
-        x, y, ww, hh = (pw - iw) / 2, 0, iw, ph
-    else:
-        x, y, ww, hh = 0, (ph - ih) * valign, pw, ih
-    c = lambda t: f'rgb({t[0]},{t[1]},{t[2]})'
+    y = (ph - ih) * valign
     return (f'<div style="position:absolute;left:0;top:0;width:{pw}pt;height:{y + 0.5}pt;background:{c(top)}"></div>'
-            f'<div style="position:absolute;left:0;top:{y + hh - 0.5}pt;width:{pw}pt;height:{ph - y - hh + 1}pt;background:{c(bot)}"></div>'
-            f'<img src="{img_url(name)}" style="position:absolute;left:{x}pt;top:{y}pt;width:{ww}pt;height:{hh}pt">')
+            f'<div style="position:absolute;left:0;top:{y + ih - 0.5}pt;width:{pw}pt;height:{ph - y - ih + 1}pt;background:{c(bot)}"></div>'
+            f'<img src="{img_url(name)}" style="position:absolute;left:0;top:{y}pt;width:{pw}pt;height:{ih}pt">')
 
 
 def _center(text, y, size, family='SongBody', weight=400, ls=0.0, color='#000', w=None, extra=''):
@@ -68,3 +72,57 @@ def title_html(meta):
 def volume_title_html(title, vol):
     return (_center(_html.escape(title), 200, 30, 'HeiTi', 700, 0.1) +
             _center(_html.escape(vol), 260, 20, 'KaiTi', 700, 0.4))
+
+
+def ads_html(items, heading=''):
+    """Back-matter page with book covers, captions and their (external) purchase links – kept from the original ebook."""
+    out = ''
+    cols, cw = 3, 96.0
+    gx = (style.TEXT_W - cols * cw) / (cols - 1)
+    y0 = 120
+    if heading:
+        out += _center(_html.escape(heading), 76, 12, 'HeiTi', 700, 0.2)
+    for k, (img, cap, url) in enumerate(items):
+        col, row = k % cols, k // cols
+        x = style.LEFT + col * (cw + gx)
+        y = y0 + row * 210
+        im = Image.open(os.path.join(IMG_DIR, img))
+        ih = cw * im.size[1] / im.size[0]
+        out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{cw}pt;height:{ih:.1f}pt;'
+                f'transform:translate({x:.1f}pt,{y}pt);box-shadow:0 0 2pt #999">')
+        out += (f'<div style="position:absolute;left:0;top:0;width:{cw}pt;text-align:center;font-family:SongBody;'
+                f'font-size:8.5pt;line-height:11pt;transform:translate({x:.1f}pt,{y + ih + 8:.1f}pt)">{_html.escape(cap)}</div>')
+        out += (f'<div style="position:absolute;left:0;top:0;width:{cw}pt;text-align:center;'
+                f'font-family:HeiTi;font-size:8pt;transform:translate({x:.1f}pt,{y + ih + 8 + 24:.1f}pt)">'
+                f'<a href="{_html.escape(url)}" style="color:#1a44c8;text-decoration:underline">纸书购买链接</a></div>')
+    return out
+
+
+def plate_html(n, img, ref_anchor, caption, builder=None, page=None):
+    """One back-of-book plate: caption, the image scaled to the text block, and a return link to the reference in the text."""
+    from .style import LINK_BASE
+    im = Image.open(os.path.join(IMG_DIR, img))
+    w, h = im.size
+    box_w, box_h = style.TEXT_W, 388.0
+    s = min(box_w / w, box_h / h)
+    iw, ih = w * s, h * s
+    x = style.LEFT + (style.TEXT_W - iw) / 2
+    y = style.TOP + 34
+    out = _center(_html.escape(caption), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
+    out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
+            f'transform:translate({x:.2f}pt,{y:.2f}pt);outline:.4pt solid #bbb">')
+    label = ''
+    if builder is not None and ref_anchor in builder.anchors:
+        pi = builder.anchors[ref_anchor][0]
+        lab = builder.pages[pi].label
+        label = f'（第{lab}页）'
+    out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:HeiTi;'
+            f'font-size:9.5pt;transform:translate(0pt,{style.TOP + style.TEXT_H - 4}pt)">'
+            f'<a href="{LINK_BASE}{ref_anchor}" style="color:#1a44c8">↩ 返回正文{label}</a></div>')
+    return out
+
+
+def plate_divider_html(title, note):
+    return (_center(_html.escape(title), 180, 17, 'HeiTi', 700, 0.3) +
+            f'<div style="position:absolute;left:{style.LEFT + 30}pt;top:0;width:{style.TEXT_W - 60}pt;text-align:center;'
+            f'font-family:SongBody;font-size:9.5pt;line-height:17pt;color:#333;transform:translate(0pt,232pt)">{_html.escape(note)}</div>')

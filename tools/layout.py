@@ -6,6 +6,7 @@ The solver chooses, per paragraph, one of a few imperceptible letter-spacing var
 number of lines each paragraph takes lets every page fill exactly, headings never end a page, and
 no page ends with a single stray line.  Only if that is impossible is one page stretched slightly.
 """
+import re
 from dataclasses import dataclass, field
 from . import style
 from .model import runs_html, runs_len, runs_text
@@ -41,6 +42,7 @@ STYLES = {
     'h5':       dict(cls='s-h5',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h6':       dict(cls='s-h6',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h7':       dict(cls='s-h7',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'toc0':     dict(cls='s-toc0',    fs=11.0, first=0, left=0, right=3, align='l', slots=1, before=2, after=0, keep=2),
     'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
     'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
@@ -50,7 +52,11 @@ STYLES = {
 STYLES_SMALL = {
     'h1':      dict(cls='s-h1', fs=17.0, first=0, left=0, right=0, align='c', slots=3, before=4, after=3, keep=3, top_keep=1),
     'note':    dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'notec':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'notev':   dict(cls='s-note', fs=8.5, first=0, left=6, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'noter':   dict(cls='s-note', fs=8.5, first=0, left=3, right=1, align='r', slots=1, before=0, after=0, keep=0),
     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'indexc':  dict(cls='s-index', fs=8.5, first=0, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'idxhead': dict(cls='s-idxhead', fs=10.0, first=0, left=0, right=0, align='l', slots=1, before=1, after=0, keep=3),
     'idxnote': dict(cls='s-index', fs=8.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=1, keep=0),
     'cip':     dict(cls='s-cip', fs=9.0, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
@@ -118,22 +124,27 @@ def variant_mag(vi):
 
 
 def variant_penalty(block, st, starts, nat, vi):
-    """Cost of using a variant: tiny deviation cost + looseness + forbidden endings."""
+    """Cost of using a variant: tiny deviation cost + looseness + forbidden / ugly endings."""
     pen = 2.5 * variant_mag(vi)
     text = runs_text(block['runs'])
     n = len(starts)
-    if n > 1 and st['align'] == 'j':
-        tail = text[starts[-1]:].strip()
+    if n > 1:
+        tail = text[starts[-1]:].strip('\u2060 \n')
         # never leave a lone punctuation mark / footnote marker as a last line
         if len(tail) <= 1 and (not tail or tail in LONE):
             return INF
-        if tail and len(tail) <= 6 and tail.strip('0123456789[]［］()（）') == '':
+        if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
             return INF
-        for j in range(n - 1):
-            _, w = line_geom(st, j)
-            slack = (w - nat[j]) / st['fs']
-            if slack > 1.5:
-                pen += (slack - 1.5) * 4
+        if len(tail) == 1:
+            pen += 10.0
+        elif len(tail) == 2 and st['align'] != 'j':
+            pen += 40.0
+        if st['align'] == 'j':
+            for j in range(n - 1):
+                _, w = line_geom(st, j)
+                slack = (w - nat[j]) / st['fs']
+                if slack > 1.5:
+                    pen += (slack - 1.5) * 4
     return pen
 
 
@@ -197,6 +208,8 @@ def bef_options(lb):
         return [(base, 0.0), (base + 1, 10.0)]
     if lb.block.get('style') == 'idxhead':
         return [(base, 0.0), (base + 1, 5.0), (max(0, base - 1), 5.0)]
+    if base >= 1 and not st.get('top_keep') and st.get('slots', 1) == 1:
+        return [(base, 0.0), (base + 1, 5.0), (base - 1, 5.0)]
     return [(base, 0.0)]
 
 

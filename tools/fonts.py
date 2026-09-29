@@ -59,6 +59,7 @@ def corpus_codepoints():
     cps |= set(range(0x2000, 0x2070)) | set(range(0x3000, 0x3040)) | set(range(0xff00, 0xfff0))
     cps |= set(range(0x2100, 0x2200)) | set(range(0x2460, 0x2500)) | set(range(0x25a0, 0x2600))
     cps |= set(range(0x0370, 0x0400)) | set(range(0x2150, 0x2190))
+    cps |= {0x7560}                       # 畠 (stands behind a private-use glyph of the ebook)
     for f in glob.glob('/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad/unpack/x/mobi8/OEBPS/Text/*.xhtml'):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
     # GB2312 level-1/2 hanzi for safety

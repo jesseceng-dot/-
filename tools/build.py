@@ -19,31 +19,39 @@ def calibrate_all():
 
 
 def outline_for(bb):
+    """Bookmarks: modules, and the rank-2/3 headings inside them; volumes become a parent level."""
     out = []
-    for p in bb.pages:
-        pass
-    seen = set()
+    has_vol = any(m.volume for m in bb.mods)
+    last_vol = None
     for mod in bb.mods:
+        pgs = bb.pages_of(mod)
+        first = pgs[0].index + 1
         if mod.zone == 'cover':
-            out.append([1, '封面', bb.pages_of(mod)[0].index + 1])
+            out.append([1, '封面', first])
             continue
-        if not mod.toc and mod.mid not in ('toc',):
-            if mod.mid in ('title', 'copyright') or mod.mid.endswith('0002'):
-                out.append([1, mod.title or mod.mid, bb.pages_of(mod)[0].index + 1])
+        vol_page_only = mod.kind == 'page' and mod.volume and not mod.toc and mod.mid.find('v') > 0
+        if mod.volume and mod.volume != last_vol:
+            last_vol = mod.volume
+            out.append([1, mod.volume, first])
+        base = 2 if (has_vol and mod.volume) else 1
+        if vol_page_only:
             continue
-        first = bb.pages_of(mod)[0].index + 1
+        if not mod.toc and mod.mid != 'toc' and not mod.title:
+            continue
+        if not mod.toc and mod.mid not in ('toc',) and mod.kind == 'page':
+            continue
         title = mod.toc_title or mod.title or mod.mid
-        out.append([1, title, first])
+        lv = base + (1 if mod.toc_level == 2 else 0)
+        out.append([lv, title, first])
         if mod.kind == 'text':
-            for bi, b in enumerate(mod.blocks):
-                if b['k'] == 'h' and b.get('rank', 9) in (2, 3) and not b.get('notoc'):
+            for bi, blk in enumerate(mod.blocks):
+                if blk['k'] == 'h' and blk.get('rank', 9) in (2, 3) and not blk.get('notoc'):
                     pg = bb.block_pages.get((mod.mid, bi))
                     if pg is not None:
-                        out.append([b['rank'], B.title_text(b['runs']), pg + 1])
-    # bookmark levels must not jump by more than one
+                        out.append([lv + blk['rank'] - 1, B.title_text(blk['runs']), pg + 1])
     fixed, last = [], 0
     for lv, t, p in out:
-        lv = min(lv, last + 1)
+        lv = max(1, min(lv, last + 1))
         fixed.append([lv, t, p])
         last = lv
     return fixed
@@ -91,6 +99,9 @@ def build(cfg, out_pdf):
     info = finish_pdf(raw, out_pdf, bb.anchors, outline_for(bb), labels_for(bb),
                       {'title': cfg['title'], 'author': cfg['meta']['author'], 'subject': '贺麟中译黑格尔经典著作'})
     os.remove(raw)
+    meta = dict(pages=len(bb.pages), anchors={k: [int(v[0]), float(v[1])] for k, v in bb.anchors.items()},
+                outline=outline_for(bb), labels=labels_for(bb), toc=[(p.mod.mid, p.label) for p in bb.pages if p.first])
+    json.dump(meta, open(out_pdf[:-4] + '.meta.json', 'w'), ensure_ascii=False)
     print('links', info['internal'], 'internal', info['external'], 'external; missing', len(info['missing']),
           list(info['missing'].items())[:8], flush=True)
     return bb, info
