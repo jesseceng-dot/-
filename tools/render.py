@@ -121,7 +121,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             x, w = line_geom(st, j)
             slot = slot0 + (j - lo) * st['slots']
             y = style.TOP + slot * st['pitch'] * k
-            h = runs_html(runs, starts[j], ends[j])
+            h = runs_html(runs, starts[j], ends[j], final=True)
             parts.append(line_div(st, j, len(starts), h, x0 + x, y, w, ls))
             if lb.block.get('pg') is not None and j == len(starts) - 1:
                 parts.append(toc_tail(st, lb.nat[vi][j], x0 + x, x0 + st['W'], y, lb.block['pg'], lb.block.get('h', '')))

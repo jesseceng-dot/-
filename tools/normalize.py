@@ -9,7 +9,8 @@ CN = '一二三四五六七八九十百零〇'
 GAP_CJK = '　'      # ideographic space: 1 em, never collapsed by CSS
 GAP_EN = ' '       # en space: 0.5 em, never collapsed by CSS
 
-END = set('。！？；：…”’）】〕」』.!?—》')
+END = set('。！？；：…”’）】〕」』.!?—》］]．')
+MERGES = []          # (part, 'merge', tail of first paragraph, head of second) for the disposition report
 MARKER_RE = re.compile(r'^[\[［]\d+[\]］]$')
 
 
@@ -124,7 +125,7 @@ def replace_greek(runs):
 # ------------------------------------------------------------------------------------------ paragraph merging
 def strip_markers(text):
     while True:
-        t2 = re.sub(r'[\[［]\d+[\]］]\s*$', '', text).rstrip()
+        t2 = re.sub(r'\u2060?[\[［](?:\d+|注[一二三四五六七八九十]+)[\]］]\s*$', '', text).rstrip('\u2060 ')
         if t2 == text:
             return text
         text = t2
@@ -187,6 +188,20 @@ def _breakable(text, i):
     return True
 
 
+def _word_boundaries(text, idx):
+    """Keep only cut positions that fall between words (Chinese word segmentation), when available."""
+    try:
+        import rjieba
+    except Exception:
+        return idx
+    bounds, pos = set(), 0
+    for tok in rjieba.cut(text):
+        pos += len(tok)
+        bounds.add(pos)
+    keep = [i for i in idx if i in bounds]
+    return keep if len(keep) >= 2 else idx
+
+
 def balance_title(runs, fs, avail_pt, slack=0.94):
     """Insert forced line breaks so that a long title breaks into balanced, sensible lines."""
     text = runs_text(runs)
@@ -209,6 +224,7 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
             d -= 1
     import itertools
     idx = [i for i in range(1, len(text)) if _breakable(text, i)]
+    idx = _word_boundaries(text, idx)
     best = None
     for k in range(n_lines, n_lines + 2):
         for cuts in itertools.combinations(idx, k - 1):
@@ -222,7 +238,11 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
                 a, b = text[c - 1], text[c]
                 if depth[c] > 0 and depth[c - 1] > 0:
                     score += 5.0 if ('《' in text[:c] and '》' in text[c:]) else 3.0
-                if a in '：；，、' or a == '\u3000':
+                if a == '）' and '（' in text[max(0, c - 5):c]:
+                    score += 5.0                    # keep a short ordinal like （a） with the words after it
+                if a in '：；':
+                    score -= 6.0
+                elif a in '，、）' or a == '\u3000':
                     score -= 3.0
                 elif b in '（〔《':
                     score -= 2.5
@@ -230,6 +250,10 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
                     score -= 0.0
                 elif ord(a) < 0x2000 and a != ' ':
                     score += 1.0
+                if a in '的与和及而或之在于对' and a != '\u3000':
+                    score -= 1.2
+                if b in '的之而':
+                    score += 2.5
                 if a == ' ' or b == ' ':
                     score += 1.5
                 # do not strand very short pieces
@@ -277,7 +301,7 @@ def _src_tag(b):
 
 def to_heading(b, rank):
     b = dict(b)
-    b['runs'] = [{k: v for k, v in r.items() if k != 'b'} for r in b['runs']]
+    b['runs'] = merge_runs([{k: v for k, v in r.items() if k != 'b'} for r in b['runs']])
     b['k'] = 'h'
     b['style'] = f'h{rank}'
     b['rank'] = rank
@@ -380,7 +404,9 @@ def process_part(part, book_id, fixes=(), heading_default=True, merge=True, log=
     if blocks and blocks[0]['k'] == 'h' and blocks[0].get('rank', 1) > 1:
         blocks[0] = to_heading(blocks[0], 1)          # the first heading of a module is its title
     if merge:
-        blocks = merge_broken(blocks, log)
+        lg = []
+        blocks = merge_broken(blocks, lg)
+        MERGES.extend((part,) + x for x in lg)
     return blocks
 
 
@@ -430,14 +456,45 @@ def keep_signatures(blocks):
 
 
 def wrap_short_lines(blocks):
-    """Right/centre aligned single lines that are too long for one line get balanced manual line breaks."""
+    """Right/centre aligned single lines that are too long for one line get sensible manual line breaks:
+    after a closing bracket (date | signature) when both parts fit, otherwise balanced."""
     from .layout import STYLES
     for b in blocks:
         if b['k'] == 'p' and b['style'] in ('right', 'center') and BR not in text_of(b):
             st = STYLES[b['style']]
             avail = 294 - (st['left'] + st['right']) * st['fs']
-            b['runs'] = balance_title(b['runs'], st['fs'], avail, slack=0.9)
+            text = text_of(b)
+            cap = avail * 0.9 / st['fs']
+            if sum(_w(c) for c in text) <= cap:
+                continue
+            cuts = [i + 1 for i, c in enumerate(text[:-1]) if c in '）)' and i + 1 >= 4]
+            done = False
+            for c in cuts:
+                if sum(_w(x) for x in text[:c]) <= cap and sum(_w(x) for x in text[c:]) <= cap:
+                    b['runs'] = _cut_runs(b['runs'], {c})
+                    done = True
+                    break
+            if not done:
+                b['runs'] = balance_title(b['runs'], st['fs'], avail, slack=0.9)
     return blocks
+
+
+def _cut_runs(runs, cuts):
+    out, pos = [], 0
+    for r in runs:
+        t = r['t']
+        seg = ''
+        for j, ch in enumerate(t):
+            if pos + j in cuts:
+                if seg:
+                    out.append(dict(r, t=seg))
+                out.append(run(BR))
+                seg = ''
+            seg += ch
+        if seg:
+            out.append(dict(r, t=seg))
+        pos += len(t)
+    return merge_runs(out)
 
 
 def postprocess(blocks):
@@ -516,6 +573,17 @@ SEP_RE = re.compile(r'^\*(?:[\s\u3000]*\*)+$')
 
 
 # Kindle private-use glyphs that stand for real characters (read from their context)
+# hyphens that only exist because the printed original broke the word at a line end (rejoin the word)
+PRINT_HYPHENS = {
+    'Vor-stellung': 'Vorstellung', 'Philosophisch-en': 'Philosophischen', 'gen-erosus': 'generosus',
+    'Philoso-phus': 'Philosophus', 'Nachden-ken': 'Nachdenken', 'intel-lectu': 'intellectu',
+    'Aus-sereinander': 'Aussereinander', 'Nebenein-ander': 'Nebeneinander', 'En-tzweiung': 'Entzweiung',
+    'Geschmack-surteil': 'Geschmacksurteil', 'me-dius': 'medius', 'Handels-spekula-tion': 'Handelsspekulation',
+    'Handels-spekulation': 'Handelsspekulation', 'Be-sonderheit': 'Besonderheit', 'Lu-cian': 'Lucian',
+    'Aristo-gitone': 'Aristogitone', 'Mari-vaux': 'Marivaux', 'pheno-menology': 'phenomenology',
+    'Ges-talten': 'Gestalten', 'Loe-wenberg': 'Loewenberg', 'Bewu-ßtsein': 'Bewußtsein',
+    'Repro-duktion': 'Reproduktion', 'ein-fache': 'einfache',
+}
 PUA_MAP = {'\ue19c': '畠', '\ue54f': 'ö', '\ue837': '抽'}
 
 
@@ -527,6 +595,9 @@ def fix_dates(runs):
         t = r['t']
         for k, v in PUA_MAP.items():
             t = t.replace(k, v)
+        for k, v in PRINT_HYPHENS.items():
+            if k in t:
+                t = t.replace(k, v)
         t2 = re.sub(r'(?<=\d) (?=[年月日])', '', t)
         t2 = re.sub(r'(?<=[年月]) (?=\d)', '', t2)
         out.append(dict(r, t=t2) if t2 != r['t'] else r)

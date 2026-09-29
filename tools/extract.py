@@ -76,7 +76,7 @@ def clean_runs(runs):
         runs.pop(0)
     if runs:
         runs[0] = dict(runs[0], t=runs[0]['t'].lstrip(' '))
-        runs[-1] = dict(runs[-1], t=runs[-1]['t'].rstrip(' '))
+        runs[-1] = dict(runs[-1], t=runs[-1]['t'].rstrip(' \u3000'))
     return merge_runs(runs)
 
 

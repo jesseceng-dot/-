@@ -44,7 +44,7 @@ def _wrap(r, inner):
     return inner
 
 
-def runs_html(runs, start=0, end=None, strip=True):
+def runs_html(runs, start=0, end=None, strip=True, final=False):
     """HTML for units [start, end) of a run list."""
     out = []
     pos = 0
@@ -69,6 +69,16 @@ def runs_html(runs, start=0, end=None, strip=True):
         r1, s1 = out[-1]
         s1 = s1.rstrip(' ')
         out[-1] = (r1, s1)
+    if final and out:
+        # soft hyphens: a visible hyphen where the line ends, invisible elsewhere (each line is set on its own)
+        fixed = []
+        for k, (r, seg) in enumerate(out):
+            last = k == len(out) - 1
+            if seg.endswith('\u00ad') and last:
+                seg = seg[:-1] + '-'
+            seg = seg.replace('\u00ad', '')
+            fixed.append((r, seg))
+        out = fixed
     parts = []
     for r, seg in out:
         if not seg:

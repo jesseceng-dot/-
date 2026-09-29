@@ -43,6 +43,7 @@ STYLES = {
     'h6':       dict(cls='s-h6',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'h7':       dict(cls='s-h7',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
     'toc0':     dict(cls='s-toc0',    fs=11.0, first=0, left=0, right=3, align='l', slots=1, before=2, after=0, keep=2),
+    'mtoc':     dict(cls='s-toc2',    fs=10.5, first=-1, left=1.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
     'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),

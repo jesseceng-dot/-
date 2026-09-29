@@ -306,11 +306,15 @@ def book4():
     b1 += chapter(P(60), B4, 'body', fixes=[('style', 73, 'body'), ('merge', 85, 86)])
     b1 += chapter(P(61), B4, 'body')
     b1 += chapter(P(62), B4, 'body')
-    b1 += chapter(P(63), B4, 'body', fixes=[('style', idxs(P(63), r'^　+\d+'), 'quote'), ('lstrip', idxs(P(63), r'^　+\d+'))])
+    v63 = []
+    for lo, hi in ((143, 146), (148, 151), (198, 201), (221, 224), (330, 332)):
+        v63 += [('style', (lo, hi), 'verse'), ('set', (lo, hi), {'left': 2})]
+    b1 += chapter(P(63), B4, 'body', fixes=[('style', idxs(P(63), r'^\u3000+\d+'), 'quote'), ('lstrip', idxs(P(63), r'^\u3000+\d+'))] + v63)
     k1 = [index_module(P(65), B4, 'body'), text_module(P(66), B4, 'body')]
     # ---- volume 2
     f2 = [text_module(P(67), B4, 'body', fixes=[('drop', 0)])]
-    b2 = chapter(P(68), B4, 'body') + chapter(P(69), B4, 'body')
+    b2 = (chapter(P(68), B4, 'body', fixes=[('style', (150, 151), 'verse'), ('set', (150, 151), {'left': 2})]) +
+          chapter(P(69), B4, 'body', fixes=[('style', (8, 11), 'verse')]))
     k2 = [index_module(P(70), B4, 'body'), text_module(P(71), B4, 'body')]
     # ---- volume 3
     f3 = [text_module(P(72), B4, 'body', fixes=[('drop', 0)])]
@@ -323,10 +327,11 @@ def book4():
     b4 = []
     b4 += chapter(P(82), B4, 'body')
     b4 += chapter(P(83), B4, 'body', fixes=[('style', [33, 36, 38], 'center')])
-    b4 += chapter(P(84), B4, 'body')
+    b4 += chapter(P(84), B4, 'body', fixes=[('style', (177, 178), 'verse'), ('merge', 189, 190)])
     b4 += chapter(P(85), B4, 'body')
     b4 += chapter(P(86), B4, 'body', fixes=[('style', (210, 212), 'center')])
-    b4 += chapter(P(87), B4, 'body', ranks=LETTER_RANKS, styles=LETTER_STYLES)
+    b4 += chapter(P(87), B4, 'body', ranks=LETTER_RANKS, styles=LETTER_STYLES,
+                  fixes=[('style', 4, 'right'), ('style', 163, 'right')])
     k4 = [index_module(P(88), B4, 'body'), index_module(P(89), B4, 'body'),
           text_module(P(90), B4, 'body', fixes=[('style', (7, 8), 'right')]),
           colophon_module(P(91), 'body'), ads_module('b4ads', 'body', P(92))]

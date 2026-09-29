@@ -92,7 +92,7 @@ def pdf_checks(pdf, bb):
     bottoms = Counter()
     per_page = {}
     for p in bb.pages:
-        if p.mod.kind != 'text' or p.mod.grid != 'body':
+        if p.mod.kind != 'text' or p.mod.mid in ('master-toc',):
             continue
         page = doc[p.index]
         ys = []

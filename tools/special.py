@@ -49,14 +49,15 @@ def _center(text, y, size, family='SongBody', weight=400, ls=0.0, color='#000', 
 
 
 def half_title_html(title):
-    return _center(_html.escape(title), 190, 20, 'HeiTi', 700, 0.08)
+    return _center(_html.escape(title), 190, min(20.0, 300.0 / (len(title) * 1.1)), 'HeiTi', 700, 0.08)
 
 
 def title_html(meta):
     """Formal title page: author, title, translator, series, publisher."""
     out = ''
     out += _center(_html.escape(meta['author']), 96, 13, 'KaiTi', 400, 0.12)
-    out += _center(_html.escape(meta['title']), 176, 32, 'HeiTi', 700, 0.1)
+    fs = min(32.0, 300.0 / (len(meta['title']) * 1.1))
+    out += _center(_html.escape(meta['title']), 176, fs, 'HeiTi', 700, 0.1)
     if meta.get('sub'):
         out += _center(_html.escape(meta['sub']), 224, 13, 'KaiTi', 400, 0.06)
     y = 288

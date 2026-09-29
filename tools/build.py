@@ -75,12 +75,12 @@ def labels_for(bb):
     return labels
 
 
-def build(cfg, out_pdf):
+def build(cfg, out_pdf, redo=()):
     t0 = time.time()
     calibrate_all()
     m = Measurer()
     bb = B.BookBuilder(cfg, m)
-    bb.typeset_all()
+    bb.typeset_all(redo=redo)
     m.close()
     print('typeset', round(time.time() - t0, 1), 's; pages', sum(mod.npages for mod in cfg['modules']), flush=True)
     from . import check
@@ -109,7 +109,9 @@ def build(cfg, out_pdf):
 
 if __name__ == '__main__':
     name = sys.argv[1]
+    redo = tuple(a[7:].split(',') for a in sys.argv[2:] if a.startswith('--redo='))
+    redo = redo[0] if redo else ()
     cfg = getattr(books, name)()
     out = os.path.join(style.SCRATCH, 'out')
     os.makedirs(out, exist_ok=True)
-    build(cfg, os.path.join(out, name + '.pdf'))
+    build(cfg, os.path.join(out, name + '.pdf'), redo)

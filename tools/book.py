@@ -67,19 +67,43 @@ class BookBuilder:
         self.pages = []
         self.anchors = {}
         self.block_pages = {}      # (mid, block idx) -> physical page index
+        self.hyph_log = []
 
     # ---------------------------------------------------------------- typeset
-    def typeset_all(self, cache_dir=None):
+    def typeset_all(self, cache_dir=None, redo=()):
+        """Measure + solve every text module.  Results are cached per module (keyed by content and layout code), so a
+        change in one chapter only re-typesets that chapter; `redo` forces modules to be re-typeset."""
+        import hashlib
+        import pickle
+        cache_dir = cache_dir or os.path.join(style.SCRATCH, 'cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        code = b''.join(open(os.path.join(os.path.dirname(__file__), f), 'rb').read()
+                        for f in ('layout.py', 'style.py', 'hyph.py', 'measure.py', 'typeset.py', 'model.py'))
+        code_key = hashlib.sha1(code).hexdigest()
         for mod in self.mods:
             if mod.kind != 'text':
                 mod.npages = 1
                 continue
-            if mod.blocks and mod.blocks[0]['k'] in ('h', 'p') and mod.blocks[0].get('brk') is None:
-                pass
-            lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
-            mod.lbs, mod.plan = lbs, plan
+            key = hashlib.sha1((code_key + json.dumps(mod.blocks, sort_keys=True, ensure_ascii=False, default=str)
+                                + mod.grid).encode('utf8')).hexdigest()
+            path = os.path.join(cache_dir, f'{mod.mid}-{key[:16]}.pkl')
+            if mod.mid not in redo and os.path.exists(path):
+                blocks, lbs, plan = pickle.load(open(path, 'rb'))
+                mod.blocks = blocks
+                # re-bind lb.block to the (restored) block objects
+                for lb, blk in zip(lbs, blocks):
+                    lb.block = blk
+                mod.lbs, mod.plan = lbs, plan
+            else:
+                lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+                mod.lbs, mod.plan = lbs, plan
+                from . import hyph
+                if hyph.hyphenate_blocks(mod, self.hyph_log):
+                    lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid)
+                    mod.lbs, mod.plan = lbs, plan
+                pickle.dump((mod.blocks, mod.lbs, mod.plan), open(path, 'wb'))
             g = GRIDS[mod.grid]
-            mod.npages = (len(plan['pages']) + g['cols'] - 1) // g['cols']
+            mod.npages = (len(mod.plan['pages']) + g['cols'] - 1) // g['cols']
         return self
 
     # ---------------------------------------------------------------- page sequence and labels
