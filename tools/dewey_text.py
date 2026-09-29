@@ -11,7 +11,7 @@ PUA = {'': 'æ', '': 'ä', '': 'ö'}
 # 行内小图（13 张）：着重…… 见 docs/dewey/inline-images.md
 #   文字 -> (文字, 类)；公式 -> 一组 run
 IMG_TEXT = {
-    'image01826.jpeg': [run('䳍')],                                  # 䳍（共+鸟）：海伦·凯勒所说的一种鸟的蛋
+    'image01826.jpeg': [run('\U0002EB65')],                              # 𮭥（简化的“䳍”，共+鸟）：䳍形目的鸟（tinamou），海伦·凯勒引文里的“……蛋”
     'image01835.jpeg': [run('√'), run('−1', c='ov')],                    # 负一的平方根
     'image01843.jpeg': [run('φιλία', c='it')],
     'image01844.jpeg': [run('ὁμόνοια', c='it')],

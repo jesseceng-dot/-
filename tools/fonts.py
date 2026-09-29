@@ -81,41 +81,19 @@ def corpus_codepoints():
             except Exception: pass
     return sorted(cps)
 
-def compose_hong(font, cp=0x2B689):
-    """Noto Serif CJK has no glyph for U+2B689 𫚉 (simplified 魟 hóng: 鱼 + 工); the ebook's NFDA2 placeholder stands for it.
-    Build it from the family's own strokes -- the 鱼 radical of 鲸 on the left, the 工 of 红 squeezed into the right half --
-    so the character keeps the serif style of the running text instead of falling back to a sans face."""
-    import pathops
+def _add_glyph(font, cp, res, name=None):
+    """Insert the outline `res` (a pathops.Path) into a TrueType-outline font as the glyph of code point `cp`."""
     from fontTools.pens.ttGlyphPen import TTGlyphPen
-    gs = font.getGlyphSet()
-    cm = font.getBestCmap()
     glyf, hmtx, cmap, maxp = font['glyf'], font['hmtx'], font['cmap'], font['maxp']   # decompile before the glyph order grows
     if 'vmtx' in font:
         font['vmtx']
-
-    def outline(ch):
-        p = pathops.Path()
-        gs[cm[ord(ch)]].draw(p.getPen(glyphSet=gs))
-        return p
-    left = pathops.Path()
-    for c in outline('鲸').contours:               # 鱼 is the left component (x <= 470); 京 lies to its right
-        if c.bounds[2] <= 470:
-            left.addPath(c)
-    gong = pathops.Path()
-    for c in outline('红').contours:               # 工 is the right component; 纟 ends at x = 453
-        if c.bounds[0] >= 300:
-            gong.addPath(c)
-    x0, _, x1, _ = gong.bounds
-    sx = 440.0 / (x1 - x0)
-    gong = gong.transform(sx, 0, 0, 1.0, 505 - x0 * sx, 0)
-    res = pathops.Path(left)
-    res.addPath(gong)
+    gs = font.getGlyphSet()
     res.simplify(fix_winding=True)
     res.convertConicsToQuads()
     pen = TTGlyphPen(gs)
     res.draw(pen)
     glyph = pen.glyph()
-    name = 'uni%X' % cp                     # a name that no CID-named glyph of the Noto fonts can collide with
+    name = name or 'uni%X' % cp                 # a name that no CID-named glyph of the Noto fonts can collide with
     order = list(font.getGlyphOrder()) + [name]
     glyph.recalcBounds(glyf)
     hmtx.metrics[name] = (1000, glyph.xMin)
@@ -134,6 +112,48 @@ def compose_hong(font, cp=0x2B689):
     return name
 
 
+def _outline(font, ch, keep=None):
+    import pathops
+    gs = font.getGlyphSet()
+    p = pathops.Path()
+    gs[font.getBestCmap()[ord(ch)]].draw(p.getPen(glyphSet=gs))
+    if keep is None:
+        return p
+    out = pathops.Path()
+    for c in p.contours:
+        if keep(c.bounds):
+            out.addPath(c)
+    return out
+
+
+def compose_hong(font, cp=0x2B689):
+    """Noto Serif CJK has no glyph for U+2B689 𫚉 (simplified 魟 hóng: 鱼 + 工); the ebook's NFDA2 placeholder stands for it.
+    Build it from the family's own strokes -- the 鱼 radical of 鲸 on the left, the 工 of 红 squeezed into the right half --
+    so the character keeps the serif style of the running text instead of falling back to a sans face."""
+    left = _outline(font, '鲸', lambda b: b[2] <= 470)          # 鱼 is the left component (x <= 470); 京 lies to its right
+    gong = _outline(font, '红', lambda b: b[0] >= 300)          # 工 is the right component; 纟 ends at x = 453
+    x0, _, x1, _ = gong.bounds
+    sx = 440.0 / (x1 - x0)
+    gong = gong.transform(sx, 0, 0, 1.0, 505 - x0 * sx, 0)
+    left.addPath(gong)
+    return _add_glyph(font, cp, left)
+
+
+def compose_tinamou(font, cp=0x2EB65):
+    """U+2EB65 𮭥 (simplified 䳍, the tinamou; 共 + 鸟) is missing from Noto Serif CJK as well: the 共 of 共 squeezed into the left
+    half, the 鸟 taken from the right half of 鸡."""
+    gong = _outline(font, '共')
+    x0, _, x1, _ = gong.bounds
+    sx = 410.0 / (x1 - x0)
+    gong = gong.transform(sx, 0, 0, 1.0, 30 - x0 * sx, 0)
+    niao = _outline(font, '鸡', lambda b: b[0] >= 390)
+    x0, _, x1, _ = niao.bounds
+    sx = 505.0 / (x1 - x0)
+    niao = niao.transform(sx, 0, 0, 1.0, 470 - x0 * sx, 0)
+    gong.addPath(niao)
+    return _add_glyph(font, cp, gong)
+
+
 def build(name):
     path, idx = FACES[name]
     out = os.path.join(FONT_DIR, name + '.ttf')
@@ -147,6 +167,7 @@ def build(name):
         otf_to_ttf(font)
     if name == 'SerifSC-Regular':
         compose_hong(font)
+        compose_tinamou(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 
