@@ -120,3 +120,52 @@ python -m tools.kant_docs                                # dispositions / greek 
 结构：`tools/kant_extract.py` 解析 XHTML；`kant_struct.py` 标题层级、短行样式、模块单元（分隔页/并合/拆分）；`kant_text.py` 文字修复、希腊文、公式转写；
 `kant_tables.py` 第 1 册的四象限表；`kant.py` 每册的模块装配（注释分组、书后插图、目录）；`kant_build.py` / `kant_collection.py` / `kant_make_all.py` 构建；
 `kant_report.py` / `kant_docs.py` 验收与文档。排版引擎（`layout.py` / `measure.py` / `typeset.py` / `render.py` / `book.py`）与黑格尔各册共用。
+
+
+---
+
+# 《杜威著作精选11种》：AZW3 → 出版级 PDF
+
+`source/dewey-selection.azw3` 是华东师范大学出版社《杜威著作精选》的 11 种合集（学校与社会、明天的学校、民主与教育、作为经验的艺术、哲学的改造、经验与自然、确定性的寻求、心理学、伦理学、我们如何思维、人性与行为），
+`out/dewey/` 是转换结果：每册各成一本，另有一个合集 PDF（封面 + 总目录 + 十一册，各册保留自己的页码与目录）。
+
+| 文件 | 内容 | 页数 | 大小 |
+|---|---|---|---|
+| `out/dewey/00-杜威著作精选11种（合集）.pdf` | 合集：封面 + 总目录 + 十一册（各册保留自己的页码、目录与书签） | 3473 | 26.5 MB |
+| `out/dewey/01-学校与社会.pdf` | 学校与社会 | 116 | 1.7 MB |
+| `out/dewey/02-明天的学校.pdf` | 明天的学校 | 211 | 4.1 MB |
+| `out/dewey/03-民主与教育.pdf` | 民主与教育 | 396 | 2.2 MB |
+| `out/dewey/04-作为经验的艺术.pdf` | 作为经验的艺术 | 407 | 3.2 MB |
+| `out/dewey/05-哲学的改造.pdf` | 哲学的改造 | 164 | 1.3 MB |
+| `out/dewey/06-经验与自然.pdf` | 经验与自然 | 451 | 2.3 MB |
+| `out/dewey/07-确定性的寻求.pdf` | 确定性的寻求 | 281 | 1.6 MB |
+| `out/dewey/08-心理学.pdf` | 心理学 | 386 | 2.3 MB |
+| `out/dewey/09-伦理学.pdf` | 伦理学 | 504 | 3.4 MB |
+| `out/dewey/10-我们如何思维.pdf` | 我们如何思维 | 273 | 2.3 MB |
+| `out/dewey/11-人性与行为.pdf` | 人性与行为 | 272 | 2.0 MB |
+
+## 版式（与黑格尔、康德各册同一套）
+
+- 大 32 开（397 × 575 pt），左右页边距相同；正文思源宋体五号 10.5 pt，每页 27 行、行距 17 pt，注释/版权页用 8.5–9 pt 小字，末行基线与正文页重合；标题最多四级，每级各用不同的字体族（一级思源黑体粗、二级霞鹜文楷粗、三级文泉驿正黑、四级文鼎楷体粗）。
+- 每册：封面 →（前折页）→ 书名页 → 版权页 → 目录（点线、页码、可点击）→ 主编序及各篇序跋 → 正文各章（“第N部分”为整页分隔页）→ 章末注释（小字号、编号列 + 回链）→ 译后记/附录/校后记 → 书后插图 →（后折页、封底）。
+- **整页图不后置**：封面、书名页（整页图，含杜威签名与译者）、折页与封底、章节页头图（《明天的学校》序页上的照片）都留在原位置；只有夹在正文中间的照片、儿童画和示意图后置，
+  **一页一图**，页首“插图 N　图注”，页底“↩ 返回正文（第N页）”，正文原处是图注加蓝字黄框的“见书后插图N”（可点击）。
+- 文字：原书斜体强调的楷体、拉丁文斜体、注释角标与回链、行内小图（着重的希腊文单词、一个生僻字、根号）全部转成文字；私用区字符还原、直撇号改为 ’；全部改动列在 `docs/dewey/dispositions.md`、`docs/dewey/inline-images.md`。
+
+## 验收（`docs/dewey/QA-report.md` 有逐册实测数字）
+
+五条验收标准与黑格尔、康德各册相同：整页文字页（含注释页）末行基线严格相同（516.0 pt）；标题不落页底、标题后至少两行；封面与链接保留；序号与标题之间的空隙不会被吞掉；没有孤立标点/角标行、没有只剩 1–2 字的末页；逐字符核对正文无出入（改动全部有说明）。
+
+## 复现
+
+```
+python -m tools.unpack source/dewey-selection.azw3      # 需 BOOK_SCRATCH=<工作目录>
+BOOK_FONT_DIR=<字体目录> python tools/fonts.py           # 子集字体 + 真粗体
+python -m tools.dewey_make_all --dest=out/dewey         # 十一册 + 合集
+python -m tools.dewey_build 3 --redo=part0041           # 只重排第 3 册的某个模块
+python -m tools.dewey_report                            # 验收数字 -> docs/dewey/QA-report.md
+python -m tools.dewey_docs                              # dispositions / inline-images
+```
+
+结构：`tools/dewey_extract.py` 解析 XHTML；`dewey_text.py` 文字修复与行内小图转写；`dewey.py` 每册的模块装配（部件表、标题层级、注释分组、书后插图、目录）；
+`dewey_build.py` / `dewey_collection.py` / `dewey_make_all.py` 构建；`dewey_report.py` / `dewey_docs.py` 验收与文档。排版引擎（`layout.py` / `measure.py` / `typeset.py` / `render.py` / `book.py`）与黑格尔、康德各册共用。
