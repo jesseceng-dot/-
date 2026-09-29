@@ -6,6 +6,7 @@
 import math
 import os
 import re
+import shutil
 from . import bk_extract as BE, bk_text as BT, kant_struct as KS, special, style
 from .book import Mod, title_text
 from .kant import finish_blocks, balance_headings, wrap_lines, repair_link
@@ -36,7 +37,7 @@ CFG = {
             back=[29, 30], tail=[], inplace={'image00219.jpeg', 'image00220.jpeg'}),
     # ---- books 5-10: two EPUBs (5, 6) and four AZW3 (7-10)
     5: dict(scratch='q5', file='叫魂', title='叫魂', sub='1768年中国妖术大恐慌', author='〔美〕孔飞力 著', credits=['陈兼　刘昶　译'],
-            publisher='上海三联书店', pdf_author='〔美〕孔飞力', cover='cover.jpg', title_img=None, copyright=None, marker='sq', renum=True,
+            publisher='上海三联书店', pdf_author='〔美〕孔飞力', cover='cover.jpg', cover_file='source/covers/05-叫魂.png', title_img=None, copyright=None, marker='sq', renum=True,
             head_clean=True, merge_dash_head=True, cls_cap=('caption',), cls_right=('year', 'year1', 'year2'), cls_quote=('call',),
             img_text={'char01.png': '饘'},
             front=[(2, 'text'), (3, 'text')],
@@ -44,7 +45,7 @@ CFG = {
                   [28, 29, 30, 31, 32, 33], [34, 35, 36, 37, 38, 39], [40, 41, 42, 43, 44, 45, 46, 47], [48, 49, 50, 51, 52]],
             back=[53, 54, 55, 56], tail=[], inplace=set()),
     6: dict(scratch='q6', file='狂热分子', title='狂热分子', sub='码头工人哲学家的沉思录', author='〔美〕埃里克·霍弗 著', credits=['梁永安　译'],
-            publisher='广西师范大学出版社', pdf_author='〔美〕埃里克·霍弗', cover='cover1.jpeg', title_img=None, copyright=50, marker='sq',
+            publisher='广西师范大学出版社', pdf_author='〔美〕埃里克·霍弗', cover='cover1.jpeg', cover_file='source/covers/06-狂热分子.png', title_img=None, copyright=50, marker='sq',
             head_clean=True, merge_dash_head=True, strip_indent=True, skip_text=('【注释】',), renum=True,
             head_cls={'prefacetitle': 1, 'h2sub': 1}, head_sub=[(r'^0*(\d{1,3})(?=\D)', '\\1　')],
             cls_quote=('editornote',), cls_right=('signature', 'author'),
@@ -74,7 +75,7 @@ CFG = {
             front=[(3, 'text'), (4, 'text'), (5, 'dedication'), (6, 'text')], body=list(range(7, 31)),
             back=[31, 32, 33, 34], tail=[], inplace={'image00441.jpeg'}),
     9: dict(scratch='q9', file='血酬定律', title='血酬定律', sub='中国历史中的生存游戏', author='吴思 著', credits=[],
-            publisher='', pdf_author='吴思', cover='cover00255.jpeg', title_img='image00191.jpeg', copyright_img='image00192.jpeg',
+            publisher='', pdf_author='吴思', cover='cover00255.jpeg', cover_file='source/covers/09-血酬定律.png', title_img='image00191.jpeg', copyright_img='image00192.jpeg',
             marker='sq', note_by_marker=True, head_clean=True, strip_indent=True, head_sub=[(r'^\[\s*', '【')],
             part_re=r'^【[正杂]编】', part_split=r'^【([正杂]编)】()$',
             front=[(3, 'text'), (4, 'text')], body=list(range(5, 24)), back=[24, 25], endnotes=[26], endnotes_title='脚注',
@@ -547,7 +548,14 @@ def part_divider(C, els):
 def book(b):
     C = CFG[b]
     m = meta(b)
-    mods = [page_module('cover', 'cover', special.cover_html(C['cover']), folio=False)]
+    cover = C['cover']
+    if C.get('cover_file'):                                          # a cover image supplied separately (source/covers/…) replaces the ebook's
+        src = os.path.join(style.ROOT, C['cover_file'])
+        cover = 'cover_custom' + os.path.splitext(src)[1]
+        dst = os.path.join(special.IMG_DIR, cover)
+        if not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
+            shutil.copy(src, dst)
+    mods = [page_module('cover', 'cover', special.cover_html(cover), folio=False)]
     if C['title_img']:
         mods.append(page_module('title', 'front', special.cover_html(C['title_img']), folio=False))
     else:
