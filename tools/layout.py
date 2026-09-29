@@ -13,31 +13,61 @@ from .model import runs_html, runs_len, runs_text
 INF = float('inf')
 N = style.NLINES
 
-# style table: em-based indents are converted with the style's own font size (fs, pt)
+# ---- grids ---------------------------------------------------------------------------------------
+GRIDS = {
+    # n slots per (logical) page, pitch in pt, cols per physical page, column width, gutter
+    'body':   dict(n=27, pitch=17.0,   cols=1, W=294.0, gutter=0.0),
+    'small1': dict(n=40, pitch=11.475, cols=1, W=294.0, gutter=0.0),
+    'small2': dict(n=40, pitch=11.475, cols=2, W=139.0, gutter=16.0),
+}
+
+# style table: em-based indents use the style's own font size (fs, pt).
+#   first = first-line indent (em), left/right = block indents (em), slots = grid lines per text line
 STYLES = {
     #            css class   fs    first left right align slots before after keep
     'body':     dict(cls='s-body',    fs=10.5, first=2, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'noindent': dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'quote':    dict(cls='s-quote',   fs=10.0, first=2, left=2, right=2, align='j', slots=1, before=0, after=0, keep=0),
+    'verse':    dict(cls='s-quote',   fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'center':   dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
     'right':    dict(cls='s-body',    fs=10.5, first=0, left=0, right=2, align='r', slots=1, before=0, after=0, keep=0),
+    'left':     dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'sep':      dict(cls='s-body',    fs=10.5, first=0, left=0, right=0, align='c', slots=1, before=1, after=1, keep=0),
     'secnum':   dict(cls='s-secnum',  fs=9.5,  first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=2),
     'h1':       dict(cls='s-h1',      fs=17.0, first=0, left=0, right=0, align='c', slots=2, before=3, after=2, keep=2, top_keep=1),
     'h2':       dict(cls='s-h2',      fs=14.0, first=0, left=0, right=0, align='c', slots=1, before=2, after=1, keep=2),
-    'h3':       dict(cls='s-h3',      fs=11.5, first=0, left=0, right=0, align='l', slots=1, before=1, after=0, keep=2),
-    'h4':       dict(cls='s-h4',      fs=11.0, first=0, left=2, right=0, align='l', slots=1, before=1, after=0, keep=2),
+    'h3':       dict(cls='s-h3',      fs=12.0, first=0, left=0, right=0, align='c', slots=1, before=1, after=0, keep=2),
+    'h4':       dict(cls='s-h4',      fs=11.0, first=0, left=0, right=0, align='c', slots=1, before=1, after=0, keep=2),
     'h5':       dict(cls='s-h5',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
-    'note':     dict(cls='s-note',    fs=9.0,  first=0, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
-    'index':    dict(cls='s-index',   fs=9.0,  first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'h6':       dict(cls='s-h6',      fs=10.5, first=0, left=2, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'h7':       dict(cls='s-h7',      fs=10.0, first=0, left=4, right=0, align='l', slots=1, before=0, after=0, keep=2),
+    'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
+    'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
+    'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
+    'tochead':  dict(cls='s-h1',      fs=17.0, first=0, left=0, right=0, align='c', slots=2, before=3, after=2, keep=2, top_keep=1),
+}
+# small-grid (notes / indexes) style overrides
+STYLES_SMALL = {
+    'h1':      dict(cls='s-h1', fs=17.0, first=0, left=0, right=0, align='c', slots=3, before=4, after=3, keep=3, top_keep=1),
+    'note':    dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'idxhead': dict(cls='s-idxhead', fs=10.0, first=0, left=0, right=0, align='l', slots=1, before=1, after=0, keep=3),
+    'idxnote': dict(cls='s-index', fs=8.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=1, keep=0),
 }
 
 
-def sty(block):
-    """Effective style dict of a block (style defaults overridden by per-block props)."""
-    s = dict(STYLES[block['style']])
+def sty(block, grid='body'):
+    """Effective style dict of a block: grid style table, overridden by per-block props."""
+    g = GRIDS[grid]
+    base = STYLES_SMALL.get(block['style']) if grid != 'body' and block['style'] in STYLES_SMALL else STYLES.get(block['style'])
+    if base is None:
+        base = STYLES_SMALL[block['style']]
+    s = dict(base)
     for k in ('first', 'left', 'right', 'align', 'before', 'after', 'keep', 'slots', 'fs'):
         if k in block:
             s[k] = block[k]
+    s['W'] = g['W']
+    s['pitch'] = g['pitch']
     return s
 
 
@@ -61,18 +91,18 @@ def line_geom(st, j):
     left = st['left'] * em
     right = st['right'] * em
     first = st['first'] * em if j == 0 else 0
-    return left + first, style.TEXT_W - left - right - first
+    return left + first, st['W'] - left - right - first
 
 
-def build_specs(block, variants):
-    st = sty(block)
+def build_specs(block, variants, grid='body'):
+    st = sty(block, grid)
     em = st['fs']
-    w = style.TEXT_W - (st['left'] + st['right']) * em
+    w = st['W'] - (st['left'] + st['right']) * em
     specs = []
     html = runs_html(block['runs'], strip=False)
     for v in variants:
         specs.append(dict(html=html, cls=st['cls'], width=w, indent=st['first'] * em, ls=v,
-                          lh=style.LINE * st['slots']))
+                          lh=st['pitch'] * st['slots']))
     return specs
 
 
@@ -108,7 +138,7 @@ def gap_pen(g):
     return 0.0 if g == 0 else 60.0 * g + 40.0 * (g - 1) ** 2
 
 
-def paginate(n, s, f0, g1, g2, splittable):
+def paginate(n, s, f0, g1, g2, splittable, N=N):
     """Place n lines of `s` slots each, starting at slot f0 of the current page.
 
     Returns (pieces, gaps, f1, extra_pen) or None.
@@ -151,7 +181,7 @@ def paginate(n, s, f0, g1, g2, splittable):
     return pieces, gaps, f1, extra
 
 
-def solve(lbs):
+def solve(lbs, N=N):
     """DP over blocks; state = slots used on the current page (0..N-1, 0 = fresh page).
 
     Returns dict(pages=[{items:[(block, lo, hi, slot0)], gap:int}], variants=[v per block], cost=float)
@@ -159,15 +189,18 @@ def solve(lbs):
     nb = len(lbs)
     # need[i]: slots (after the block's own before-space) that must be free on the page so that keep-chains stay together
     need = [0] * (nb + 1)
+    depth = [0] * (nb + 1)          # length of the keep chain starting at i (capped)
     for i in range(nb - 1, -1, -1):
         b = lbs[i]
         st = b.st
         own = b.nl[0] * st['slots'] + st['after']
+        depth[i] = 1
         if st['keep'] and i + 1 < nb and not lbs[i + 1].brk:
             nx = lbs[i + 1]
-            if nx.st['keep']:
+            if nx.st['keep'] and depth[i + 1] < 4:
                 own += nx.st['before'] + need[i + 1]
-            else:
+                depth[i] = depth[i + 1] + 1
+            elif not nx.st['keep']:
                 own += min(st['keep'], nx.nl[0]) * nx.st['slots']
         need[i] = own
 
@@ -199,7 +232,7 @@ def solve(lbs):
                         continue
                     for g1 in ((0,) if not b.splittable else (0, 1, 2, 3)):
                         for g2 in (0, 1, 2):
-                            res = paginate(n, s, f0, g1, g2, b.splittable)
+                            res = paginate(n, s, f0, g1, g2, b.splittable, N)
                             if res is None:
                                 continue
                             pieces, gaps, f1, extra = res
@@ -227,7 +260,7 @@ def solve(lbs):
         c, pf, ch = dp[i][f]
         choices[i - 1] = ch
         f = pf
-    return replay(lbs, choices, cost)
+    return replay(lbs, choices, cost, N)
 
 
 def prev_keep_forbids_break(prev_keep, f):
@@ -239,7 +272,7 @@ def _push(d, f, c, pf, ch):
         d[f] = (c, pf, ch)
 
 
-def replay(lbs, choices, cost):
+def replay(lbs, choices, cost, N=N):
     pages = [dict(items=[], gap=0)]
     used = 0
     variants = []
@@ -255,7 +288,7 @@ def replay(lbs, choices, cost):
                 pages.append(dict(items=[], gap=0))
         elif used == 0 and pages[-1]['items']:
             pages.append(dict(items=[], gap=0))
-        pieces, gaps, f1, _ = paginate(n, s, f0, g1, g2, b.splittable)
+        pieces, gaps, f1, _ = paginate(n, s, f0, g1, g2, b.splittable, N)
         pos = 0
         for pi, (cnt, gp) in enumerate(zip(pieces, gaps)):
             if pi > 0:

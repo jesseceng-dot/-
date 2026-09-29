@@ -58,11 +58,19 @@ a{{color:inherit;text-decoration:none}}
 .s-center{{font-size:{FONT}pt}}
 .s-right{{font-size:{FONT}pt}}
 .s-secnum{{font-family:"GrkSerif","HeiTi","Noto Serif",serif;font-size:9.5pt;font-weight:500}}
-.s-h1{{font-family:"HeiTi",sans-serif;font-size:17pt;font-weight:700;line-height:34pt}}
+.s-h1{{font-family:"HeiTi",sans-serif;font-size:17pt;font-weight:700}}
 .s-h2{{font-family:"KaiTi",serif;font-size:14pt;font-weight:700}}
-.s-h3{{font-family:"HeiTi",sans-serif;font-size:11.5pt;font-weight:500}}
-.s-h4{{font-family:"KaiTi",serif;font-size:11pt;font-weight:400}}
+.s-h3{{font-family:"HeiTi",sans-serif;font-size:12pt;font-weight:500}}
+.s-h4{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
 .s-h5{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:400}}
-.s-note{{font-size:9pt}}
-.s-index{{font-size:9pt}}
+.s-h6{{font-family:"KaiTi",serif;font-size:10.5pt;font-weight:700}}
+.s-h7{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:400}}
+.s-toc1{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:500}}
+.s-toc2{{font-size:10.5pt}}
+.s-toc3{{font-size:10pt}}
+.s-note{{font-size:8.5pt}}
+.s-index{{font-size:8.5pt}}
+.s-idxhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
+.nn{{display:inline-block;width:3em;text-align:left}}
+.fig{{color:#1a44c8;border:.7pt solid #e2b400;padding:0 .35em;background:#fffbe6;border-radius:1pt;font-family:"HeiTi",sans-serif;font-size:9.5pt}}
 """

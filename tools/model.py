@@ -13,13 +13,14 @@ BR = '\n'
 OBJ = '￼'
 
 
-def run(t, b=0, s=0, h='', a='', i=''):
+def run(t, b=0, s=0, h='', a='', i='', c=''):
     r = {'t': t}
     if b: r['b'] = 1
     if s: r['s'] = 1
     if h: r['h'] = h
     if a: r['a'] = a
     if i: r['i'] = i
+    if c: r['c'] = c
     return r
 
 
@@ -32,6 +33,8 @@ def runs_len(runs):
 
 
 def _wrap(r, inner):
+    if r.get('c'):
+        inner = f'<span class="{r["c"]}">{inner}</span>'
     if r.get('b'):
         inner = f'<b>{inner}</b>'
     if r.get('s'):
