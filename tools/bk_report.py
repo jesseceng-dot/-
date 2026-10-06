@@ -8,7 +8,7 @@ import sys
 import json
 import collections
 import pymupdf
-from . import style, build, check, book as B, qa, bk, bk_extract as BE
+from . import style, build, check, book as B, qa, bk, bk_extract as BE, bk_fixes as BF
 from .measure import Measurer
 from .model import runs_text
 
@@ -66,7 +66,9 @@ def raw_missing(b):
         body = etree.parse(path, etree.XMLParser(recover=True, huge_tree=True)).getroot().find('.//{http://www.w3.org/1999/xhtml}body')
         raw = ign.sub('', ''.join(body.itertext()))
         for f in BE._fixes(bk.P(n)):                               # (the corrections of bk_fixes are not losses)
-            if isinstance(f[1], str):
+            if f[1] in ('RELINK', 'SPLIT'):                         # a relabelled note mark
+                raw = raw.replace(f[3], f[4], 1)
+            elif isinstance(f[1], str) and f[1] not in BF.SPECIAL:
                 raw = raw.replace(ign.sub('', f[1]), ign.sub('', f[2]))
         got = ''
         for it in BE.items(bk.P(n)):

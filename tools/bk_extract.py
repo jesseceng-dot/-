@@ -15,6 +15,7 @@ import re
 from lxml import etree
 from .model import run, merge_runs, collapse_ws, BR, OBJ
 from .extract import ln, anchor_key, resolve_href, load_body, clean_runs
+from .bk_fixes import SPECIAL as BF_SPECIAL
 
 MARK_RE = re.compile(r'^[\[［(（〔]\s*\d+\s*[\]］)）〕]$|^\d{1,3}$|^[註注]\d{1,4}$')
 NOTE_CLS = ('fnote', 'note1')
@@ -27,14 +28,17 @@ SUP_CLS = ('math-super',)
 
 _FIX = None
 FIX_USED = {}
+_SPAN_ID = None
 
 
 def _fixes(part):
     """Corrections (bk_fixes) of this book that apply to `part`; the book is the scratch directory (q11 ...)."""
-    global _FIX
+    global _FIX, _SPAN_ID
     if _FIX is None:
         from . import bk_fixes
-        _FIX = bk_fixes.FIXES.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), [])
+        key = os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/'))
+        _FIX = bk_fixes.FIXES.get(key, [])
+        _SPAN_ID = bk_fixes.SPAN_ANCHORS.get(key)
     n = int(part[4:]) if part.startswith('part') and part[4:].isdigit() else None
     return [f for f in _FIX if f[0] == '*' or f[0] == n or isinstance(f[0], (tuple, range)) and n in f[0]]
 
@@ -91,6 +95,20 @@ def _mark_fix(f, out):
         (part, 'ADDMARK', paragraph prefix, text after which, new text, href, anchor)   a missing mark
         (part, 'NOTEBACK', note mark text, back-link href)   a note entry whose back-link is broken"""
     kind = f[1]
+    if kind in ('HREF', 'ANCHOR'):                            # (part, 'HREF', paragraph prefix, link text, new href) / (part, 'ANCHOR', paragraph prefix, anchor)
+        for it in out:
+            if it['k'] != 'note' and _txt(it).startswith(f[2]) and it.get('runs'):
+                if kind == 'ANCHOR':
+                    if not it['runs'][0].get('a'):
+                        it['runs'][0] = dict(it['runs'][0], a=f[3])
+                        FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    return
+                for k, r in enumerate(it['runs']):
+                    if r['t'] == f[3] and r.get('h'):
+                        it['runs'][k] = dict(r, h=f[4])
+                        FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                        return
+        return
     if kind == 'RENUM':                                         # (part, 'RENUM', delta, part of note n, note-anchor fmt, mark-anchor fmt)
         delta, where, nfmt, afmt = f[2], f[3], f[4], f[5]
         for it in out:
@@ -102,6 +120,37 @@ def _mark_fix(f, out):
                     n = int(m.group(1)) + delta
                     it['runs'][k] = dict(r, t=f'[{n}]', h=nfmt.format(part=where(n), n=n), a=afmt.format(n=n))
                     FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+        return
+    if kind == 'SHIFT':                                        # (part, 'SHIFT', from n, delta): renumber '(n)' marks and note labels from n on
+        for it in out:
+            for k, r in enumerate(it.get('runs', [])):
+                m = re.fullmatch(r'\((\d+)\)', r['t']) if r.get('h') else None
+                if m and int(m.group(1)) >= f[2]:
+                    it['runs'][k] = dict(r, t='(%d)' % (int(m.group(1)) + f[3]))
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+        return
+    if kind == 'SPLIT':                                        # (part, 'SPLIT', paragraph prefix, split text, label, back-link href, anchor): a note the ebook ran into the previous one
+        for i, it in enumerate(out):
+            if not _txt(it).startswith(f[2]):
+                continue
+            for k, r in enumerate(it['runs']):
+                j = r['t'].find(f[3])
+                if j >= 0:
+                    head = it['runs'][:k] + ([dict(r, t=r['t'][:j].rstrip())] if r['t'][:j].strip() else [])
+                    tail = [dict(t=f[4], h=f[5], a=f[6]), dict(r, t=r['t'][j + len(f[3]):])] + it['runs'][k + 1:]
+                    out[i:i + 1] = [dict(it, runs=head), dict(it, runs=[x for x in tail if x['t']])]
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    return
+        return
+    if kind == 'PGNO':                                         # (part, 'PGNO', text + page number): a printed page number the ebook ran into the text
+        for it in out:
+            for k, r in enumerate(it.get('runs', [])):
+                if r['t'].endswith(f[2]) and not r.get('c'):
+                    m = re.search(r'([ivxlc]+|\d+)$', f[2])
+                    head = dict(r, t=r['t'][:-len(m.group(1))])
+                    it['runs'][k:k + 1] = [head, dict(t='〔%s〕' % m.group(1), c='pgno')]
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    return
         return
     if kind == 'NOTEBACK':
         for it in out:
@@ -147,7 +196,7 @@ def _apply_fixes(part, out):
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
             else:
                 out.insert(src[0], it)
-    for f in [f for f in fx if f[1] in ('RENUM', 'RELINK', 'ADDMARK', 'NOTEBACK')]:
+    for f in [f for f in fx if f[1] in ('RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HREF', 'ANCHOR')]:
         _mark_fix(f, out)
     for f in [f for f in fx if f[1] == 'HEAD']:                 # (part, 'HEAD', paragraph prefix, level): a heading the ebook set as text
         for k, it in enumerate(out):
@@ -155,7 +204,7 @@ def _apply_fixes(part, out):
                 out[k] = dict(it, k='h', lvl=f[3], runs=[dict(r, b=0) for r in it['runs']])
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
                 break
-    fx = [f for f in fx if f[1] not in ('MOVE', 'RENUM', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD')]
+    fx = [f for f in fx if f[1] not in BF_SPECIAL]
     for it in out:
         if it.get('runs'):
             it['runs'] = fix_runs(it['runs'], fx)
@@ -238,6 +287,12 @@ def inline(el, part, mark_breaks=False):
                 rec(ch, b, _cls(c, 'kai'), h, a, s)
             elif set(cls) & set(BOLD_CLS):
                 rec(ch, 1, c, h, a, s)
+            elif ch.get('id') and _SPAN_ID and re.match(_SPAN_ID, ch.get('id')):
+                aid = anchor_key(part, ch.get('id'))                # (a book whose cross-references target <span id=…>)
+                if not ''.join(ch.itertext()).strip():
+                    pending[0] = aid
+                else:
+                    rec(ch, b, c, h, a or aid, s)
             elif ch.get('id') and not a and any(isinstance(x.tag, str) and ln(x) == 'a' and x.get('href') for x in ch.iter() if x is not ch):
                 rec(ch, b, c, h, anchor_key(part, ch.get('id')), s)     # <span id=…><a href=…>註9</a></span>: the id is the mark's anchor
             else:
@@ -257,6 +312,7 @@ def _imgs(el):
 
 
 def items(part):
+    _fixes(part)
     body = load_body(part)
     out = []
 

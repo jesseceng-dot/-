@@ -79,7 +79,7 @@ def corpus_codepoints():
     try:                                  # the replacement texts of the proof-reading corrections (bk_fixes)
         from . import bk_fixes
         for f in bk_fixes.FIXES.get(os.path.basename(scratch.rstrip('/')), []):
-            cps |= {ord(c) for c in f[2]}
+            cps |= {ord(c) for x in f[2:] if isinstance(x, str) for c in x}
     except ImportError:
         pass
     # GB2312 level-1/2 hanzi for safety (Big5 level 1/2 for a traditional-character book)
