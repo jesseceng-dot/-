@@ -16,8 +16,9 @@ from lxml import etree
 from .model import run, merge_runs, collapse_ws, BR, OBJ
 from .extract import ln, anchor_key, resolve_href, load_body, clean_runs
 
-MARK_RE = re.compile(r'^[\[［(（〔]\s*\d+\s*[\]］)）〕]$|^\d{1,3}$')
-NOTE_CLS = ('fnote', 'note1')                       # paragraph classes that are note entries
+MARK_RE = re.compile(r'^[\[［(（〔]\s*\d+\s*[\]］)）〕]$|^\d{1,3}$|^[註注]\d{1,4}$')
+NOTE_CLS = ('fnote', 'note1')
+BLOCK = ('p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'ul', 'ol', 'li', 'blockquote', 'section', 'aside', 'img')                       # paragraph classes that are note entries
 ITALIC_CLS = ('italic', 'kindle-cn-italic')
 KAI_CLS = ('kaiti', 'kindle-cn-kai')
 BOLD_CLS = ('kindle-cn-bold', 'bold')
@@ -160,6 +161,11 @@ def items(part):
                 walk(el, q=q, box=box, fig=fig, note=1)
             elif t in ('div', 'section', 'body'):
                 if any(c.startswith(('kindle-cn-toc', 'sgc-toc')) for c in cls):
+                    continue
+                if t == 'div' and plain(el) and not any(isinstance(x.tag, str) and ln(x) in BLOCK for x in el.iter() if x is not el):
+                    runs = clean_runs(inline(el, part))             # a div that holds text directly (a note entry: <a>[n]</a>text)
+                    if runs:
+                        add('note' if (note or 'fnote' in cls) else 'p', el, runs=runs, q=q, box=box)
                     continue
                 walk(el, q=q, box=1 if 'roundsolid' in cls else box, fig=1 if 'chatu' in cls else fig,
                      note=1 if ('fnote' in cls or 'annotation' in cls) else note)

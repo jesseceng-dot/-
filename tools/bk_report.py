@@ -49,6 +49,32 @@ def source_counter(b):
     return c
 
 
+def raw_missing(b):
+    """Independent of the extractor: characters of the raw XHTML <body> text of the book's parts that bk_extract does not yield."""
+    from lxml import etree
+    C = bk.CFG[b]
+    parts = [n for n, _ in C['front']]
+    for x in C['body']:
+        parts += list(x) if isinstance(x, (list, tuple)) else [x]
+    parts += [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes', ()))
+    if C.get('copyright') is not None:
+        parts.append(C['copyright'])
+    ign = re.compile(r'[\s\u3000\u2028\u00a0\u200b\u2060]')
+    miss = collections.Counter()
+    for n in parts:
+        path = os.path.join(style.SCRATCH, 'unpack/x/mobi8/OEBPS/Text', bk.P(n) + '.xhtml')
+        body = etree.parse(path, etree.XMLParser(recover=True, huge_tree=True)).getroot().find('.//{http://www.w3.org/1999/xhtml}body')
+        raw = ign.sub('', ''.join(body.itertext()))
+        got = ''
+        for it in BE.items(bk.P(n)):
+            got += ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
+            for row in it.get('rows', []) or []:
+                for cell in row:
+                    got += ''.join(r['t'] for r in cell if not r.get('i'))
+        miss += collections.Counter(raw) - collections.Counter(ign.sub('', got))
+    return sum(miss.values())
+
+
 def block_counter(cfg):
     c = collections.Counter()
     for m in cfg['modules']:
@@ -131,7 +157,7 @@ def book(b, m):
                 ref_bottom=pc['ref_bottom'], bad_bottom=len(pc['bad_bottom']), type3=len(pc['type3']),
                 rep=dict(rep_tot), loose=n_loose, lines=n_lines, kin=len(kin), nkin=nkin, fid=len(fid), fid_head=[str(x)[:120] for x in fid[:4]],
                 miss=dict(miss.most_common(12)), n_miss=sum(miss.values()), extra=dict(extra.most_common(12)), n_extra=sum(extra.values()),
-                body_size=fonts.most_common(1)[0][0])
+                body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b))
 
 
 DOC = os.path.join(style.ROOT, 'docs', '16k')
@@ -177,7 +203,7 @@ def main(b):
     rep = r['rep']
     print(f"book {b} {r['title']}: pages {r['pages']} sizes {r['sizes']} body {r['body_size']} bottom {r['ref_bottom']} bad_bottom {r['bad_bottom']} type3 {r['type3']} "
           f"gap {rep.get('gap')} head_bottom {rep.get('head_bottom')} head_short {rep.get('head_short')} lone {rep.get('lone')} last {rep.get('last_page')} "
-          f"widow/orphan {rep.get('widow', 0) + rep.get('orphan', 0)} loose {r['loose']}/{r['lines']} kinsoku {r['kin']}/{r['nkin']} fid {r['fid']} links {r['links']}")
+          f"widow/orphan {rep.get('widow', 0) + rep.get('orphan', 0)} loose {r['loose']}/{r['lines']} kinsoku {r['kin']}/{r['nkin']} fid {r['fid']} links {r['links']} raw_missing {r['raw_missing']}")
     print('    source-only chars:', r['miss'], r['n_miss'])
     print('    typeset-only chars:', r['extra'], r['n_extra'])
     for x in r['fid_head']:

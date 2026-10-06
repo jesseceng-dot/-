@@ -14,14 +14,15 @@ from fontTools.ttLib import newTable
 
 FONT_DIR = os.environ.get('BOOK_FONT_DIR', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad/fonts')
 
+CJK_INDEX = {'SC': 2, 'TC': 3, 'HK': 4}[os.environ.get('BOOK_CJK', 'SC')]      # face of the Noto CJK collections: SC (default) or TC glyph forms
 FACES = {
     # name: (path, ttc-index-or-None)
-    'SerifSC-Regular': ('/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc', 2),
-    'SerifSC-Bold':    ('/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc', 2),
-    'SansSC-Regular':  ('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', 2),
-    'SansSC-Medium':   ('/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc', 2),
-    'SansSC-Bold':     ('/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', 2),
-    'SansSC-Black':    ('/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc', 2),
+    'SerifSC-Regular': ('/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc', CJK_INDEX),
+    'SerifSC-Bold':    ('/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc', CJK_INDEX),
+    'SansSC-Regular':  ('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', CJK_INDEX),
+    'SansSC-Medium':   ('/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc', CJK_INDEX),
+    'SansSC-Bold':     ('/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', CJK_INDEX),
+    'SansSC-Black':    ('/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc', CJK_INDEX),
     # further heading families (TrueType already): every heading level gets its own family
     'ZenHei-Regular':   ('/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', 0),          # 文泉驿正黑
     'UKai-Regular':     ('/usr/share/fonts/truetype/arphic/ukai.ttc', 0),              # 文鼎楷体 (AR PL UKai CN)

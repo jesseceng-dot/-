@@ -50,7 +50,7 @@ def fix_edges(runs):
     return [r for r in runs if r['t'] != '']
 
 
-NUM = re.compile(r'^[\[［(（〔]?\s*(\d+)\s*[\]］)）〕]?$')
+NUM = re.compile(r'^(?:[註注])?[\[［(（〔]?\s*(\d+)\s*[\]］)）〕]?[．.]?$')
 
 
 def marker_text(t, fmt):
@@ -58,4 +58,6 @@ def marker_text(t, fmt):
     if not m:
         return None
     n = m.group(1)
+    if fmt == 'zhu':
+        return f'註{n}'
     return f'({n})' if fmt == 'paren' else f'[{n}]'
