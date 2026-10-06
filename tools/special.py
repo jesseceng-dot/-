@@ -153,6 +153,9 @@ def divider_html(lines):
     out, y = '', 176.0 * style.SY
     first = True
     for lvl, text in lines:
+        if lvl == 97:
+            y += 26.0                                     # (a space before an epigraph)
+            continue
         if not text.strip():
             continue
         if lvl <= 1.0:

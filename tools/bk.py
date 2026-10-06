@@ -88,6 +88,44 @@ CFG = {
                  [run('N', c='it'), run('v', c='it msub'), run(' = 1 / Σ'), run('V', c='it'), run('i', c='it msub'), run('2', c='msup')],
                  [run('N', c='it'), run('s', c='it msub'), run(' = 1 / Σ'), run('S', c='it'), run('i', c='it msub'), run('2', c='msup')]]},
              front=[(2, 'kaibody')], body=list(range(3, 17)), back=[17], tail=[], inplace=set()),
+    # ---- books 11-15: proof-read (corrections in bk_fixes.py), three AZW3 (11, 13, 14) and two EPUBs (12, 15)
+    11: dict(scratch='q11', exp_sup=True, file='大国政治的悲剧', title='大国政治的悲剧', sub='（修订版）', author='〔美〕约翰·米尔斯海默 著',
+             credits=['王义桅　唐小松　译'], publisher='上海人民出版社', pdf_author='〔美〕约翰·米尔斯海默', series='东方编译所译丛',
+             cover='cover00437.jpeg', title_img=None, copyright=0, marker='sqcirc', note_cls=('kindle-cn-footnote',), head_clean=True,
+             head_sub=[(r'^附[\s\u3000]*录[\s\u3000]*', '附录\u3000')], cls_cap=('kindle-cn-caption', 'kindle-cn-caption1'),
+             cap_mode='tabfig', cap_after_re=r'^(注[：:]|资料来源)', label_re=r'^([图表][^\s　]+)', cls_hang=('kindle-cn-para-hang',),
+             join_cont=r'（续表）', img_max_scale=0.3,
+             front=[(1, 'kaibody'), (2, 'kaibody'), (3, 'kaibody'), (4, 'kaibody'), (5, 'kaibody')], body=list(range(7, 17)), back=[17, 18],
+             tail=[], inplace={'image00403.jpeg'}),
+    12: dict(scratch='q12', exp_sup=True, file='法律的概念', title='法律的概念', sub='（增訂三版）', author='H. L. A. 哈特 著',
+             credits=['許家馨　李冠宜　譯'], publisher='商周出版', pdf_author='H. L. A. 哈特', cover='cover.jpg', title_img=None,
+             copyright=None, marker='zhu', tc=True, cjk='TC', notes_title='註　釋', notes_toc='註釋', pgno_cls=('ta_c',),
+             head_clean=True, head_demote={'李冠宜、許家馨': 'right'},
+             front=[(1, 'text'), (2, 'text'), (3, 'text'), (4, 'text'), (5, 'text'), (list(range(6, 13)), 'text')],
+             body=[list(range(13, 17)), list(range(17, 20)), list(range(20, 24)), list(range(24, 29)), list(range(29, 33)),
+                   list(range(33, 37)), list(range(37, 42)), list(range(42, 46)), list(range(46, 50)), list(range(50, 56)),
+                   list(range(56, 63))],
+             back=[63, 64, 65], tail=[], inplace=set()),
+    13: dict(scratch='q13', exp_sup=True, file='公正：该如何做是好？', title='公正', sub='该如何做是好？', author='〔美〕迈克尔·桑德尔 著',
+             credits=['朱慧玲　译'], publisher='中信出版社', pdf_author='〔美〕迈克尔·桑德尔', cover='cover00199.jpeg', title_img=None,
+             copyright=1, marker='keep', head_clean=True, head_split='／', front=[], body=list(range(3, 13)), back=[13], tail=[], inplace=set()),
+    14: dict(scratch='q14', exp_sup=True, file='牛津通识读本：气候', title='气候', sub='', series='牛津通识读本', author='〔英〕马克·马斯林 著',
+             credits=['朱邦芊　译'], publisher='译林出版社', pdf_author='〔英〕马克·马斯林', cover='cover00119.jpeg', title_img=None,
+             copyright=1, marker='sq', head_cls={'heiti': 2, 'xiaobiao': 3}, cls_cap=('tuzhu-center',), cls_right=('bodytext-right',),
+             front=[(3, 'text'), (4, 'text')], body=list(range(5, 15)), back=[], endnotes=[15], endnotes_title='注释',
+             tail=[], inplace=set()),
+    15: dict(scratch='q15', exp_sup=True, file='气候赌场', title='气候赌场', sub='全球变暖的风险、不确定性与经济学', author='〔美〕威廉·诺德豪斯 著',
+             credits=['梁小民　译'], publisher='东方出版中心', pdf_author='〔美〕威廉·诺德豪斯', series='威廉·诺德豪斯著作系列',
+             cover='image00246.jpeg', title_img=None, copyright=2, marker='paren', head_clean=True,
+             head_sub=[(r'^(第\d+章)[|｜]?[\s\u3000]*', '\\1\u3000')], note_cls=('fnContent-1', 'fnContent-2'),
+             cls_cap=('tuti', 'tuzhu', 'biaoti'), cap_mode='tabfig', label_re=r'^([图表][^\s　]+)',
+             cls_right=('signContent-1-kaiti',), cls_quote=('bodyContent-2-kaiti', 'bodyContent-2-kaiti-top'),
+             part_re=r'^PART', part_split=r'^(PART \d+) ([^A-Za-z]+?) ([A-Z].*)$',
+             part_epi_cls=('bodyContent-1-kaiti', 'signContent-1-kaiti', 'bodyContent-1'),
+             front=[(3, 'text'), (4, 'text'), (5, 'dedication'), (6, 'text'), (7, 'text'), (8, 'text')],
+             body=[[10, 11]] + list(range(12, 17)) + [[17, 18]] + list(range(19, 26)) + [[26, 27]] + list(range(28, 32)) + [[32, 33]]
+                  + list(range(34, 41)) + [[41, 42]] + list(range(43, 46)),
+             back=[], tail=[], inplace=set()),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -95,8 +133,8 @@ TITLES = {b: CFG[b]['file'] for b in CFG}
 
 def meta(b):
     C = CFG[b]
-    return dict(title=C['title'], sub=C['sub'], author=C['author'], credits=C['credits'], series='', publisher=C['publisher'],
-                subject=C['file'])
+    return dict(title=C['title'], sub=C['sub'], author=C['author'], credits=C['credits'], series=C.get('series', ''),
+                publisher=C['publisher'], subject=C['file'])
 
 
 # ---------------------------------------------------------------------------------------------- headings
@@ -177,6 +215,12 @@ def _img_text(C, runs):
     return [sub(r) if r.get('i') else r for r in runs if not r.get('i') or r['i'] in m]
 
 
+def exp_sup(runs):
+    """A superscript without a link is an exponent (m², 10⁶), not a note mark: black raised digits."""
+    return [dict({k: v for k, v in r.items() if k != 's'}, c=((r.get('c') or '') + ' msup').strip())
+            if r.get('s') and not r.get('h') and not r.get('a') and not r.get('i') else r for r in runs]
+
+
 def _head_runs(C, runs, keep=None):
     """Heading text of a source paragraph/heading: line breaks -> one space; `keep='middle'` keeps only the middle line of three."""
     if keep == 'middle':
@@ -188,12 +232,21 @@ def _head_runs(C, runs, keep=None):
                 lines[-1].append(r)
         if len(lines) >= 3:
             runs = lines[1]
+    merged = []
+    for r in runs:                                                 # plain runs of a heading are one text (a page anchor may split them)
+        if merged and not any(x.get(k) for x in (r, merged[-1]) for k in ('h', 's', 'i')) \
+                and (r.get('c'), r.get('b')) == (merged[-1].get('c'), merged[-1].get('b')):
+            merged[-1] = dict(merged[-1], t=merged[-1]['t'] + r['t'])
+        else:
+            merged.append(dict(r))
+    runs = merged
     out = []
     for r in runs:
         if r['t'] in ('\n',):
             out.append(dict(r, t=' '))
         else:
-            out.append(dict(r, t=r['t'].replace('\u2028', ' ').replace('\n', ' ')))
+            t = re.sub(r'(?<=[\u3400-\u9fff，：；、])\u2028(?=[\u3400-\u9fff“《（])', '', r['t'])   # a break inside a Chinese title
+            out.append(dict(r, t=t.replace('\u2028', ' ').replace('\n', ' ')))
     return BT.fix_edges(merge_runs(out))
 
 
@@ -202,8 +255,20 @@ def elements(C, items, kaitext=False):
     els, notes = [], []
     gap_before = False
     head_cls = C.get('head_cls', {})
+    pg_pend = []
+    in_box = False
     for it in items:
         k = it['k']
+        if k == 'p' and set(it['cls'].split()) & _cs(C, 'note_cls'):
+            it = dict(it, k='note')                         # footnote paragraphs marked by their class
+            k = 'note'
+        if k == 'p' and set(it['cls'].split()) & _cs(C, 'pgno_cls') and re.fullmatch(r'[ivxlcdm]{1,8}|\d{1,4}', plain(it['runs'])):
+            mk = run('〔%s〕' % plain(it['runs']), c='pgno')     # a page number of the original edition: small, at the end of its paragraph
+            if els and els[-1]['k'] == 'p' and els[-1].get('style') not in ('cap',):
+                els[-1]['runs'] = els[-1]['runs'] + [mk]
+            else:
+                pg_pend.append(mk)
+            continue
         if k == 'p' and C.get('note_by_marker') and it['runs'] and it['runs'][0].get('h') and BT.marker_text(it['runs'][0]['t'], 'sq') \
                 and len(it['runs']) > 1:
             it = dict(it, k='note')                         # a paragraph that starts with a linked note number is a note entry
@@ -230,15 +295,27 @@ def elements(C, items, kaitext=False):
                 gap_before = True                           # an empty paragraph = one blank line before the next paragraph
             continue
         runs = BT.fix_edges(BT.fix_runs(_img_text(C, it['runs'])))
+        if C.get('exp_sup'):
+            runs = exp_sup(runs)
         if not runs:
             continue
         cls = it['cls']
+        if it.get('box') and not in_box:
+            gap_before = True                                # a box (方框) starts: one blank line above it
+        elif in_box and not it.get('box'):
+            gap_before = True
+        in_box = bool(it.get('box'))
         if set(cls.split()) & _cs(C, 'cls_skip') or plain(runs) in C.get('skip_text', ()):
             continue
         if k == 'p' and set(cls.split()) & set(head_cls):          # headings that the ebook sets as paragraphs
             key = next(c for c in cls.split() if c in head_cls)
             spec = head_cls[key]
             lvl, hre = spec if isinstance(spec, tuple) else (spec, None)
+            if it.get('box'):                                # the title / sub-titles of a box: small bold lines, not in the contents
+                els.append(dict(k='p', style='refhead', runs=_head_runs(C, runs), id=it['id'], src=f'p.{cls}', nomerge=True,
+                                **({'before': 1} if gap_before else {})))
+                gap_before = False
+                continue
             if hre is None or re.match(hre, plain(runs)):
                 hr = _head_runs(C, runs, C.get('head_keep', {}).get(key))
                 if hr and C.get('merge_dash_head') and plain(hr).startswith('——') and els and els[-1]['k'] == 'h':
@@ -253,9 +330,12 @@ def elements(C, items, kaitext=False):
         if k == 'h' and C.get('head_sub'):
             for pat, repl in C['head_sub']:
                 runs = [dict(runs[0], t=re.sub(pat, repl, runs[0]['t']))] + runs[1:]
+        if k == 'h' and plain(runs) in C.get('head_demote', {}):
+            els.append(dict(k='p', style=C['head_demote'][plain(runs)], runs=runs, id=it['id'], src=f'h.{cls}', nomerge=True))
+            continue
         if k == 'h':
             t = plain(runs)
-            if t in ('注释', '注 释') or (els and els[-1]['k'] == 'h' and plain(els[-1]['runs']) == t):
+            if t in ('注释', '注 释', '註釋', '註 釋', '注釋') or (els and els[-1]['k'] == 'h' and plain(els[-1]['runs']) == t):
                 continue
             if C.get('merge_dash_head') and t.startswith('——') and els and els[-1]['k'] == 'h':
                 els[-1]['runs'] = merge_runs(els[-1]['runs'] + runs)          # 'Title' + '——sub-title' set as two headings
@@ -300,9 +380,16 @@ def elements(C, items, kaitext=False):
             b['style'] = 'kaibody'
         else:
             b['style'] = 'body'
+        if c & _cs(C, 'cls_hang'):                         # '● item' paragraphs: hanging indent under the bullet
+            r0 = b['runs'][0]
+            b['runs'] = [dict(r0, t=re.sub(r'^([●•■◆▲○◇□])[\s\u3000]*', '\\1\u3000', r0['t']))] + b['runs'][1:]
+            b.update(style='noindent', first=-2, left=2)
         if gap_before and b['style'] in ('body', 'noindent', 'quote', 'quotel', 'kaibody', 'center', 'right'):
             b['before'] = 1
         gap_before = False
+        if pg_pend and b['style'] not in ('cap',):
+            b['runs'] = pg_pend + b['runs']
+            pg_pend = []
         els.append(b)
     return els, notes
 
@@ -320,31 +407,57 @@ def unit_blocks(els):
 
 
 # ---------------------------------------------------------------------------------------------- tables, figures
+def _cell_lines(cell):
+    """A table cell -> its lines (the ebook breaks long cells with <br>)."""
+    lines = [[]]
+    for r in BT.fix_edges(BT.fix_runs(cell)) if cell else []:
+        if r['t'] == BR or r['t'] == '\n':
+            lines.append([])
+        else:
+            lines[-1].append(r)
+    return [BT.fix_edges(l) for l in lines if l] or [[]]
+
+
+def _w(runs):
+    return sum(2 if ord(ch) > 0x2e80 else 1 for ch in plain(runs)) / 2.0
+
+
 def table_blocks(rows, head=True):
-    """A small text table -> one paragraph per row, cells as fixed-width inline boxes (hanging indent for the last cell)."""
-    widths = []
+    """A small text table -> one paragraph per line of a row, cells as fixed-width inline boxes (hanging indent for the
+    last cell).  A row with one cell only (a source line under the table) becomes a small paragraph after the table."""
     ncol = max(len(r) for r in rows)
-    for j in range(ncol):
-        widths.append(max(sum(2 if ord(ch) > 0x2e80 else 1 for ch in plain(r[j])) / 2.0 for r in rows if j < len(r)) + 1.6)
-    cls_of = lambda w: f'tw w{min([x for x in (3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28) if x >= w], default=28)}'
+    tail = []
+    while rows and ncol > 1 and sum(1 for c in rows[-1] if plain(c)) == 1 and len(rows[-1]) < ncol:
+        tail.insert(0, next(c for c in rows[-1] if plain(c)))
+        rows = rows[:-1]
+    grid = [[_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)] for r in rows]
+    widths = [max(_w(l) for g in grid for l in g[j]) + 1.2 for j in range(ncol)]
+    sizes = (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28)
+    cls_of = lambda w: f'tw w{min([x for x in sizes if x >= w], default=28)}'
     used = [int(cls_of(w).split('w')[-1]) for w in widths]
     if head and len(rows) > 1 and ncol > 1 and plain(rows[0][-1]) == plain(rows[1][-1]):
         head = False                                       # the same last-column value in the first two rows: a list, not a header row
     out = []
-    for ri, r in enumerate(rows):
-        runs = []
-        for j in range(ncol):
-            cell = BT.fix_edges(BT.fix_runs(r[j])) if j < len(r) else []
-            last = j == ncol - 1
-            if last:
-                runs += [dict(x, b=1) if ri == 0 and head else x for x in cell]
-            else:
-                runs += [dict(x, c=(x.get('c', '') + ' ' + cls_of(widths[j])).strip(), **({'b': 1} if ri == 0 and head else {})) for x in cell]
-                if not cell:
-                    runs.append(run('⁠', c=cls_of(widths[j])))
-        indent = sum(used[:-1])
-        out.append(dict(k='p', style='trow', runs=runs, novary=True, nomerge=True, first=-indent, left=indent + 1,
-                        before=1 if ri == 0 else 0, after=1 if ri == len(rows) - 1 else 0))
+    indent = sum(used[:-1])
+    for ri, g in enumerate(grid):
+        nl = max(len(c) for c in g)
+        for li in range(nl):
+            runs = []
+            for j in range(ncol):
+                cell = g[j][li] if li < len(g[j]) else []
+                bold = ri == 0 and head
+                if j == ncol - 1:
+                    runs += [dict(x, b=1) if bold else x for x in cell]
+                else:
+                    runs += [dict(x, c=(x.get('c', '') + ' ' + cls_of(widths[j])).strip(), **({'b': 1} if bold else {})) for x in cell]
+                    if not cell:
+                        runs.append(run('\u2060', c=cls_of(widths[j])))
+            out.append(dict(k='p', style='trow', runs=runs, novary=True, nomerge=True, first=-indent, left=indent + 1,
+                            before=1 if ri == 0 and li == 0 else 0, after=1 if ri == len(grid) - 1 and li == nl - 1 and not tail else 0,
+                            **({'keep': 1} if li < nl - 1 else {})))
+    for k, cell in enumerate(tail):
+        out.append(dict(k='p', style='quotel', runs=BT.fix_edges(BT.fix_runs(cell)), first=0, left=0, right=0, nomerge=True,
+                        after=1 if k == len(tail) - 1 else 0))
     return out
 
 
@@ -353,8 +466,45 @@ def fig_label(text, pat=r'^(图[^\s　]+)'):
     return m.group(1) if m else ''
 
 
+def join_images(srcs):
+    """Two or more images of one table (the ebook splits it with a '(continued)' line) stacked into one image file."""
+    from PIL import Image
+    name = 'join_' + '_'.join(re.sub(r'\D', '', x)[-5:] for x in srcs) + '.jpeg'
+    dst = os.path.join(special.IMG_DIR, name)
+    if not os.path.exists(dst):
+        ims = [Image.open(os.path.join(special.IMG_DIR, x)).convert('RGB') for x in srcs]
+        W = max(im.width for im in ims)
+        gap = max(12, W // 40)
+        out = Image.new('RGB', (W, sum(im.height for im in ims) + gap * (len(ims) - 1)), 'white')
+        y = 0
+        for im in ims:
+            out.paste(im, ((W - im.width) // 2, y))
+            y += im.height + gap
+        out.save(dst, quality=93)
+    return name
+
+
+def join_continued(C, els):
+    """fig, '（续表）', fig -> one fig of the stacked images."""
+    jre = C.get('join_cont')
+    if not jre:
+        return els
+    out = []
+    for e in els:
+        if e['k'] == 'fig' and len(out) >= 2 and out[-1]['k'] == 'p' and re.fullmatch(jre, plain(out[-1]['runs'])) \
+                and out[-2]['k'] == 'fig':
+            out.pop()
+            prev = out.pop()
+            out.append(dict(prev, src=join_images(prev.get('parts', [prev['src']]) + [e['src']]),
+                            parts=prev.get('parts', [prev['src']]) + [e['src']]))
+            continue
+        out.append(e)
+    return out
+
+
 def fig_paragraphs(C, els, fig_no):
     """Figures inside chapters -> 'see plate N' paragraphs; figures of appendices (C['inplace']) stay in the text."""
+    els = join_continued(C, els)
     out = []
     i = 0
     while i < len(els):
@@ -437,6 +587,9 @@ def note_blocks(items, fmt):
             rest = runs[1:]
             if rest:
                 rest[0] = dict(rest[0], t=rest[0]['t'].lstrip(' \u3000'))
+                if fmt == 'zhu':
+                    rest[0] = dict(rest[0], t=re.sub(r'^[：:][\s\u3000]*', '', rest[0]['t']))     # '註9：text'
+                rest = [r for r in rest if r['t'] or r.get('i')]
             st = 'notel' if latin_ratio(rest) > 0.4 else 'note'
             out.append(dict(k='p', style=st, runs=merge_runs(marks + rest)))
         else:
@@ -537,11 +690,19 @@ def part_divider(C, els):
     if m.group(2):
         lines.append((2.0, m.group(2)))
         title += '　' + m.group(2)
+    if m.lastindex and m.lastindex >= 3 and m.group(3):
+        lines.append((3.0, m.group(3)))                          # an English sub-title line (page only, not in the contents)
     sub = _cs(C, 'part_sub_cls')
     while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & sub:
         lines.append((3.0, plain(rest[0]['runs'])))
         title += '　' + plain(rest[0]['runs'])
         rest = rest[1:]
+    epi = _cs(C, 'part_epi_cls')                                  # the epigraph of the part, set small under the title
+    if epi and rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
+        lines.append((97, ''))
+        while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
+            lines.append((99, plain(rest[0]['runs'])))
+            rest = rest[1:]
     return lines, title, rest
 
 
@@ -579,7 +740,8 @@ def book(b):
         nonlocal pend, pend_chars
         if pend:
             counter[0] += 1
-            zone_list.append(notes_module(f'notes{counter[0]}', pend, fmt, zone=zone))
+            zone_list.append(notes_module(f'notes{counter[0]}', pend, fmt, zone=zone, title=C.get('notes_title', '注　释'),
+                                          toc_title=C.get('notes_toc', '注释')))
             pend, pend_chars = [], 0
 
     def gather(ns, kaitext=False):
@@ -612,14 +774,31 @@ def book(b):
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(x['runs'], fmt)
+        title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
+        if C.get('head_split'):                                    # 'Title／Sub-title' chapter headings: the sub-title on a line of its own
+            for x in blocks:
+                if x['k'] == 'h' and x.get('style') == 'h1' and any(C['head_split'] in r['t'] for r in x['runs']):
+                    out = []
+                    for r in x['runs']:
+                        parts = r['t'].split(C['head_split'])
+                        for k, t in enumerate(parts):
+                            if k:
+                                out.append(run('\n'))
+                            if t:
+                                out.append(dict(r, t=t))
+                    x['runs'] = out
+                    x['nobalance'] = True
+        keep = [x for x in blocks if x.get('nobalance')]
+        saved = [x['runs'] for x in keep]
         blocks = balance_headings(blocks)
+        for x, r in zip(keep, saved):
+            x['runs'] = r
         for x in blocks:
             if x['k'] == 'h':
                 rs = x['runs']
                 for i in range(len(rs) - 1):
                     if rs[i]['t'] == '\n' and rs[i + 1].get('s'):
                         rs[i], rs[i + 1] = rs[i + 1], rs[i]
-        title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
         mod = Mod(mid=P(n), zone=zone, title=title, blocks=blocks, toc_level=1, toc=toc and any(x['k'] == 'h' for x in blocks))
         mod.src_part = n
         mod.src_parts = _parts(ns)
@@ -682,11 +861,11 @@ def book(b):
             back.append(nm)
     plates = plate_modules(fig_list)
     allm = front + body + back + plates
-    toc_bl = toc_blocks(allm)
+    toc_bl = toc_blocks(allm, '目　錄' if C.get('tc') else '目　录')
     for x in toc_bl:
         if x.get('style', '').startswith('toc'):
             x['noshrink'] = True
-    toc = Mod(mid='toc', zone='front', title='目录', blocks=toc_bl, toc=False, head=True)
+    toc = Mod(mid='toc', zone='front', title='目錄' if C.get('tc') else '目录', blocks=toc_bl, toc=False, head=True)
     toc.tail_min = 5
     tail = []
     if C['tail']:

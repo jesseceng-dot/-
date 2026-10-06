@@ -76,11 +76,22 @@ def corpus_codepoints():
     scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
     for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
-    # GB2312 level-1/2 hanzi for safety
+    try:                                  # the replacement texts of the proof-reading corrections (bk_fixes)
+        from . import bk_fixes
+        for f in bk_fixes.FIXES.get(os.path.basename(scratch.rstrip('/')), []):
+            cps |= {ord(c) for c in f[2]}
+    except ImportError:
+        pass
+    # GB2312 level-1/2 hanzi for safety (Big5 level 1/2 for a traditional-character book)
     for hi in range(0xb0, 0xf8):
         for lo in range(0xa1, 0xff):
             try: cps.add(ord(bytes([hi, lo]).decode('gb2312')))
             except Exception: pass
+    if CJK_INDEX != 2:
+        for hi in range(0xa4, 0xfa):
+            for lo in list(range(0x40, 0x7f)) + list(range(0xa1, 0xff)):
+                try: cps.add(ord(bytes([hi, lo]).decode('big5')))
+                except Exception: pass
     return sorted(cps)
 
 def _add_glyph(font, cp, res, name=None):

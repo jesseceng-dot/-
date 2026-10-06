@@ -10,7 +10,8 @@ def main(scratch, vols=None, dest=None):
     procs = []
     for b in vols or sorted(bk.CFG):
         sd = os.path.join(scratch, bk.CFG[b]['scratch'])
-        env = dict(os.environ, BOOK_SCRATCH=sd, BOOK_GEOM='k16', BOOK_FONT_DIR=os.path.join(sd, 'fonts'))
+        env = dict(os.environ, BOOK_SCRATCH=sd, BOOK_GEOM='k16', BOOK_FONT_DIR=os.path.join(sd, 'fonts'),
+                   BOOK_CJK=bk.CFG[b].get('cjk', 'SC'))
         procs.append((b, subprocess.Popen([sys.executable, '-m', 'tools.bk_build', str(b)], env=env)))
     for b, p in procs:
         if p.wait():

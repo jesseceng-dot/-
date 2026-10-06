@@ -60,4 +60,11 @@ def marker_text(t, fmt):
     n = m.group(1)
     if fmt == 'zhu':
         return f'註{n}'
+    if fmt == 'sqcirc':                                 # [n] author's notes; the ebook's bracketed / 0n marks are translator's notes: ①②③
+        tt = t.strip()
+        if tt.startswith(('[', '［')) or re.match(r'^0\d', tt):
+            return chr(0x2460 + int(n) - 1) if 0 < int(n) <= 20 else f'({n})'
+        return f'[{n}]'
+    if fmt == 'keep':                                   # the ebook's own brackets: [n] author's notes, (n) translator's notes
+        return f'({n})' if t.strip().startswith(('(', '（')) else f'[{n}]'
     return f'({n})' if fmt == 'paren' else f'[{n}]'

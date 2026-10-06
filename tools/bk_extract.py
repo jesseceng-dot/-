@@ -25,6 +25,145 @@ BOLD_CLS = ('kindle-cn-bold', 'bold')
 SUP_CLS = ('math-super',)
 
 
+_FIX = None
+FIX_USED = {}
+
+
+def _fixes(part):
+    """Corrections (bk_fixes) of this book that apply to `part`; the book is the scratch directory (q11 ...)."""
+    global _FIX
+    if _FIX is None:
+        from . import bk_fixes
+        _FIX = bk_fixes.FIXES.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), [])
+    n = int(part[4:]) if part.startswith('part') and part[4:].isdigit() else None
+    return [f for f in _FIX if f[0] == '*' or f[0] == n or isinstance(f[0], (tuple, range)) and n in f[0]]
+
+
+def fix_runs(runs, fixes):
+    """Apply text corrections to one paragraph; a literal may run across runs (the result keeps the first run's format)."""
+    for f in fixes:
+        old, new = f[1], f[2]
+        start = 0
+        while True:
+            text = ''.join('\0' if r.get('i') else r['t'] for r in runs)
+            if isinstance(old, str):
+                i = text.find(old, start)
+                if i < 0:
+                    break
+                j, rep = i + len(old), new
+            else:
+                m = old.search(text, start)
+                if not m or m.start() == m.end():
+                    break
+                i, j, rep = m.start(), m.end(), m.expand(new)
+            FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+            start = i + len(rep)
+            pos, out, done = 0, [], False
+            for r in runs:
+                L = 1 if r.get('i') else len(r['t'])
+                a, b = pos, pos + L
+                pos = b
+                if b <= i or a >= j:
+                    out.append(r)
+                    continue
+                if r.get('i'):
+                    continue                                     # an inline image inside the replaced text
+                head = r['t'][:max(0, i - a)]
+                tail = r['t'][j - a:] if b > j else ''
+                if not done:
+                    out.append(dict(r, t=head + rep + tail))
+                    done = True
+                elif tail:
+                    out.append(dict(r, t=tail))
+            if not done:                                         # (only images were replaced)
+                out.insert(next((k for k, r in enumerate(out) if sum(1 if x.get('i') else len(x['t']) for x in out[:k]) >= i), len(out)), run(rep))
+            runs = [r for r in out if r.get('i') or r['t'] != '']
+    return runs
+
+
+def _txt(it):
+    return ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
+
+
+def _mark_fix(f, out):
+    """Note marks the ebook got wrong:
+        (part, 'RELINK', paragraph prefix, mark text, new text, href, anchor)   a mark that links to the wrong note
+        (part, 'ADDMARK', paragraph prefix, text after which, new text, href, anchor)   a missing mark
+        (part, 'NOTEBACK', note mark text, back-link href)   a note entry whose back-link is broken"""
+    kind = f[1]
+    if kind == 'RENUM':                                         # (part, 'RENUM', delta, part of note n, note-anchor fmt, mark-anchor fmt)
+        delta, where, nfmt, afmt = f[2], f[3], f[4], f[5]
+        for it in out:
+            if it['k'] == 'note':
+                continue
+            for k, r in enumerate(it.get('runs', [])):
+                m = re.fullmatch(r'\[(\d+)\]', r['t']) if r.get('s') and r.get('h') else None
+                if m:
+                    n = int(m.group(1)) + delta
+                    it['runs'][k] = dict(r, t=f'[{n}]', h=nfmt.format(part=where(n), n=n), a=afmt.format(n=n))
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+        return
+    if kind == 'NOTEBACK':
+        for it in out:
+            if it['k'] == 'note' and it['runs'] and it['runs'][0]['t'] == f[2]:
+                it['runs'][0] = dict(it['runs'][0], h=f[3])
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                return
+        return
+    paras = [it for it in out if it['k'] != 'note' and _txt(it).startswith(f[2])]
+    if len(paras) != 1:
+        return
+    it = paras[0]
+    mark = dict(t=f[4], s=1, h=f[5], a=f[6])
+    if kind == 'RELINK':
+        for k, r in enumerate(it['runs']):
+            if r.get('s') and r['t'] == f[3]:
+                it['runs'][k] = dict(r, **mark)
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                return
+        return
+    pos = 0
+    for k, r in enumerate(it['runs']):                       # ADDMARK: split the run that holds the anchor text
+        j = r['t'].find(f[3]) if not r.get('i') else -1
+        if j >= 0:
+            j += len(f[3])
+            head, tail = dict(r, t=r['t'][:j]), dict(r, t=r['t'][j:])
+            it['runs'][k:k + 1] = [x for x in (head, mark, tail) if x is mark or x['t']]
+            FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+            return
+
+
+def _apply_fixes(part, out):
+    fx = _fixes(part)
+    if not fx:
+        return out
+    for f in [f for f in fx if f[1] == 'MOVE']:                 # (part, 'MOVE', text of the item, text of the item it goes before)
+        src = [k for k, it in enumerate(out) if _txt(it).startswith(f[2])]
+        if len(src) == 1:
+            it = out.pop(src[0])
+            dst = [k for k, x in enumerate(out) if _txt(x).startswith(f[3])]
+            if len(dst) == 1:
+                out.insert(dst[0], it)
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+            else:
+                out.insert(src[0], it)
+    for f in [f for f in fx if f[1] in ('RENUM', 'RELINK', 'ADDMARK', 'NOTEBACK')]:
+        _mark_fix(f, out)
+    for f in [f for f in fx if f[1] == 'HEAD']:                 # (part, 'HEAD', paragraph prefix, level): a heading the ebook set as text
+        for k, it in enumerate(out):
+            if it['k'] == 'p' and _txt(it).startswith(f[2]):
+                out[k] = dict(it, k='h', lvl=f[3], runs=[dict(r, b=0) for r in it['runs']])
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                break
+    fx = [f for f in fx if f[1] not in ('MOVE', 'RENUM', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD')]
+    for it in out:
+        if it.get('runs'):
+            it['runs'] = fix_runs(it['runs'], fx)
+        if it.get('rows'):
+            it['rows'] = [[fix_runs(c, fx) for c in row] for row in it['rows']]
+    return out
+
+
 def _cls(c, add):
     if not c:
         return add
@@ -99,6 +238,8 @@ def inline(el, part, mark_breaks=False):
                 rec(ch, b, _cls(c, 'kai'), h, a, s)
             elif set(cls) & set(BOLD_CLS):
                 rec(ch, 1, c, h, a, s)
+            elif ch.get('id') and not a and any(isinstance(x.tag, str) and ln(x) == 'a' and x.get('href') for x in ch.iter() if x is not ch):
+                rec(ch, b, c, h, anchor_key(part, ch.get('id')), s)     # <span id=…><a href=…>註9</a></span>: the id is the mark's anchor
             else:
                 rec(ch, b, c, h, a, s)
             emit(ch.tail, b, c, h, a, s)
@@ -167,8 +308,11 @@ def items(part):
                     if runs:
                         add('note' if (note or 'fnote' in cls) else 'p', el, runs=runs, q=q, box=box)
                     continue
-                walk(el, q=q, box=1 if 'roundsolid' in cls else box, fig=1 if 'chatu' in cls else fig,
-                     note=1 if ('fnote' in cls or 'annotation' in cls) else note)
+                start = len(out)
+                walk(el, q=q, box=1 if ('roundsolid' in cls or 'kx' in cls) else box, fig=1 if 'chatu' in cls else fig,
+                     note=1 if ('fnote' in cls or 'annotation' in cls or '_idFootnote' in cls) else note)
+                if '_idFootnote' in cls and el.get('id') and len(out) > start and out[start].get('runs') and not out[start]['runs'][0].get('a'):
+                    out[start]['runs'][0] = dict(out[start]['runs'][0], a=anchor_key(part, el.get('id')))   # the entry's id sits on its <div>
             elif t in ('ul', 'ol') and 'duokan-footnote-content' in cls:
                 for li in el:
                     if not (isinstance(li.tag, str) and ln(li) == 'li' and li.get('id')):
@@ -205,4 +349,4 @@ def items(part):
                     add('p', el, runs=runs, q=q, box=box)
 
     walk(body)
-    return out
+    return _apply_fixes(part, out)

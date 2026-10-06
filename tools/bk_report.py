@@ -65,6 +65,9 @@ def raw_missing(b):
         path = os.path.join(style.SCRATCH, 'unpack/x/mobi8/OEBPS/Text', bk.P(n) + '.xhtml')
         body = etree.parse(path, etree.XMLParser(recover=True, huge_tree=True)).getroot().find('.//{http://www.w3.org/1999/xhtml}body')
         raw = ign.sub('', ''.join(body.itertext()))
+        for f in BE._fixes(bk.P(n)):                               # (the corrections of bk_fixes are not losses)
+            if isinstance(f[1], str):
+                raw = raw.replace(ign.sub('', f[1]), ign.sub('', f[2]))
         got = ''
         for it in BE.items(bk.P(n)):
             got += ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
@@ -73,6 +76,12 @@ def raw_missing(b):
                     got += ''.join(r['t'] for r in cell if not r.get('i'))
         miss += collections.Counter(raw) - collections.Counter(ign.sub('', got))
     return sum(miss.values())
+
+
+def fix_unused():
+    """Corrections of bk_fixes for this book that matched nothing (after every part has been read at least once)."""
+    BE._fixes('part0000')
+    return [f'{f[0]}:{f[1] if isinstance(f[1], str) else f[1].pattern}' for f in (BE._FIX or []) if not BE.FIX_USED.get(id(f))]
 
 
 def block_counter(cfg):
@@ -157,7 +166,7 @@ def book(b, m):
                 ref_bottom=pc['ref_bottom'], bad_bottom=len(pc['bad_bottom']), type3=len(pc['type3']),
                 rep=dict(rep_tot), loose=n_loose, lines=n_lines, kin=len(kin), nkin=nkin, fid=len(fid), fid_head=[str(x)[:120] for x in fid[:4]],
                 miss=dict(miss.most_common(12)), n_miss=sum(miss.values()), extra=dict(extra.most_common(12)), n_extra=sum(extra.values()),
-                body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b))
+                body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b), fix_unused=fix_unused())
 
 
 DOC = os.path.join(style.ROOT, 'docs', '16k')
@@ -203,7 +212,8 @@ def main(b):
     rep = r['rep']
     print(f"book {b} {r['title']}: pages {r['pages']} sizes {r['sizes']} body {r['body_size']} bottom {r['ref_bottom']} bad_bottom {r['bad_bottom']} type3 {r['type3']} "
           f"gap {rep.get('gap')} head_bottom {rep.get('head_bottom')} head_short {rep.get('head_short')} lone {rep.get('lone')} last {rep.get('last_page')} "
-          f"widow/orphan {rep.get('widow', 0) + rep.get('orphan', 0)} loose {r['loose']}/{r['lines']} kinsoku {r['kin']}/{r['nkin']} fid {r['fid']} links {r['links']} raw_missing {r['raw_missing']}")
+          f"widow/orphan {rep.get('widow', 0) + rep.get('orphan', 0)} loose {r['loose']}/{r['lines']} kinsoku {r['kin']}/{r['nkin']} fid {r['fid']} links {r['links']} raw_missing {r['raw_missing']}"
+          + (f" fix_unused {r['fix_unused']}" if r.get('fix_unused') else ''))
     print('    source-only chars:', r['miss'], r['n_miss'])
     print('    typeset-only chars:', r['extra'], r['n_extra'])
     for x in r['fid_head']:
