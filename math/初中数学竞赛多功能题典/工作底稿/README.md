@@ -32,3 +32,5 @@
 3. `python3 tools/mkfonts.py`：生成 `tex/fonts/ST{Song,Heiti,Kaiti}Book.ttf`。这些字体是底本所嵌字体的子集，版权属原字体厂商，不随仓库分发。
 4. `python3 tools/final.py 修订版.pdf`：施加全部修改，同时写出修改日志 `修订版.pdf.log`。
 5. 可选：`python3 tools/run.py --selftest specs_e` 检验某一批规格的原文重现情况；`python3 tools/run.py specs_e outE.pdf` 单独施加某一批规格。
+
+已验证：在新建的排版目录中按以上步骤从底本重建，483 页的内容流与交付的修订版逐字节相同，渲染结果逐像素一致。
