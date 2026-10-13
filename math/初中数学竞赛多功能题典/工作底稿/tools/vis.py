@@ -127,6 +127,8 @@ def visible_glyphs(page):
                     al = acc.get(ak)
                     ib = pymupdf.Rect(al[min(used[k] - 0, len(al) - 1)]) if al else bb
                     cx, cy = (bb.x0 + bb.x1) / 2, (bb.y0 + bb.y1) / 2
+                    if bb.x1 - bb.x0 < 0.1:   # zero-width glyphs (negation/angle slash): use the ink box
+                        cx, cy = (ib.x0 + ib.x1) / 2, (ib.y0 + ib.y1) / 2
                     hidden = False
                     for w in whites:
                         if w['seq'] > seq and w['rect'].x0 - 0.2 <= cx <= w['rect'].x1 + 0.2 \
@@ -144,6 +146,27 @@ def visible_glyphs(page):
                     out.append(dict(c=c, x0=bb.x0, x1=bb.x1, y0=ib.y0, y1=ib.y1, ox=ox, oy=oy,
                                     ix0=ib.x0, ix1=ib.x1,
                                     font=font, size=size, color=sp['color'], seq=seq, name=name))
+    # zero-width negation/angle slashes are sometimes dropped by the clipped
+    # rawdict extraction: recover them from the text trace
+    have = [(g['ox'], g['oy']) for g in out if g['c'] == '̸']
+    tts = [(ch[2][0], ch[2][1], sp) for sp in page.get_texttrace() for ch in sp['chars'] if ch[0] == 0x338]
+    # texttrace and rawdict origins of these glyphs differ by a constant vertical offset
+    offs = sorted(b - ty for tx, ty, sp in tts for a, b in have if abs(tx - a) < 0.6 and abs(b - ty) < 4)
+    off = offs[len(offs) // 2] if offs else 1.88
+    for tx, ty, sp in tts:
+        if True:
+            ox, oy = tx, ty + off
+            if any(abs(ox - a) < 0.6 and abs(oy - b) < 1.0 for a, b in have):
+                continue
+            hidden = any(w['seq'] > sp['seqno'] and w['rect'].x0 - 0.2 <= ox + 2 <= w['rect'].x1 + 0.2
+                         and w['rect'].y0 - 0.2 <= oy - 2 <= w['rect'].y1 + 0.2 for w in whites)
+            if hidden:
+                continue
+            sz = sp['size']
+            out.append(dict(c='̸', x0=ox, x1=ox, y0=oy - 0.715 * sz, y1=oy + 0.215 * sz, ox=ox, oy=oy,
+                            ix0=ox + 0.15 * sz, ix1=ox + 0.55 * sz,
+                            font=sp['font'], size=sz, color=sp['color'], seq=sp['seqno'], name=None, extra=True))
+            have.append((ox, oy))
     # rules
     rules = []
     for dr in draws:
@@ -210,6 +233,104 @@ def tight_box(g):
     return g['x0'], g['x1'], g['y0'], g['y1']
 
 
+BIN = set('+−-±∓×÷·∗∘∪∩⊕⊗')
+REL = set('=<>≤≥≠≈∼≅∽≡∥∈∉⊂⊃⊆⊇→←⇒⇔:⩽⩾')   # ⊥ is set as \bot (no spacing) in this book
+PUNCT = set(',;')
+OPENS = {'(': ')', '[': ']', '{': '}'}
+
+
+def atom_class(it):
+    t = it.text
+    if it.kind != 'g':
+        return 'ord'      # fractions (amsmath: braced), radicals, accents
+    if t in BIN:
+        return 'bin'
+    if t in REL:
+        return 'rel'
+    if t in PUNCT:
+        return 'punct'
+    if t in '([{':
+        return 'open'
+    if t in ')]}':
+        return 'close'
+    return 'ord'
+
+
+NULLDELIM = 1.196   # \\nulldelimiterspace on both sides of a fraction
+DELIM = {'{': '\\{', '}': '\\}'}
+
+
+def left_right_pairs(items, msize):
+    """indices of parentheses/brackets typeset with \\left ... \\right in the
+    original: detected from the thin space TeX puts between an Inner atom and
+    an adjacent Ord/Close/Open/Punct atom (plain delimiters get none), or from
+    an enlarged (CMEX) delimiter glyph."""
+    stack = []; pairs = []
+    bar = None
+    for i, it in enumerate(items):
+        if it.kind != 'g' or it.size < msize - 0.6:
+            continue
+        if it.text == '|' and not it.font.startswith('CMEX'):
+            # absolute value bars pair up in order of appearance
+            if bar is None:
+                bar = i
+            else:
+                pairs.append((bar, i)); bar = None
+            continue
+        if it.text in OPENS:
+            stack.append(i)
+        elif it.text in (')', ']', '}') and stack and OPENS[items[stack[-1]].text] == it.text:
+            pairs.append((stack.pop(), i))
+    left, right = set(), set()
+    def big(it):
+        return it.size >= msize - 0.6
+    for a, b in pairs:
+        ev = items[a].font.startswith('CMEX') or items[b].font.startswith('CMEX')
+        # previous atom: skip back over its sub/superscripts to the nucleus;
+        # the gap is measured from the end of the scripts (which include
+        # \scriptspace, 0.5pt)
+        j = a - 1
+        end = None
+        while j >= 0 and not big(items[j]):
+            end = max(end or items[j].x1, items[j].x1); j -= 1
+        if j >= 0:
+            p = items[j]
+            end = max(end or p.x1, p.x1)
+            thr = NULLDELIM + 1.0 if (p.kind == 'frac' and end == p.x1) else 1.5
+            if atom_class(p) in ('ord', 'close') and items[a].x0 - end > thr:
+                ev = True
+        # next atom after the closing delimiter and its scripts
+        j = b + 1
+        end = items[b].x1
+        while j < len(items) and not big(items[j]):
+            end = max(end, items[j].x1); j += 1
+        if j < len(items):
+            n = items[j]
+            thr = NULLDELIM + 1.0 if n.kind == 'frac' else 1.5
+            if atom_class(n) in ('ord', 'open', 'punct') and n.x0 - end > thr:
+                ev = True
+        if ev:
+            left.add(a); right.add(b)
+    return left, right
+
+
+def open_bars(items, msize):
+    """absolute-value bars that the source set as opening delimiters: TeX puts
+    no space between such a bar and a following relation or binary sign (the
+    sign becomes unary), while an ordinary bar gets the normal thick/medium space."""
+    res = set()
+    for i, it in enumerate(items):
+        if it.kind != 'g' or it.text != '|' or it.size < msize - 0.6 or it.font.startswith('CMEX'):
+            continue
+        j = i + 1
+        end = it.x1
+        while j < len(items) and items[j].size < msize - 0.6:
+            end = max(end, items[j].x1); j += 1
+        if j < len(items) and atom_class(items[j]) in ('rel', 'bin') and items[j].x0 - end < 1.0:
+            res.add(i)
+    return res
+
+
 def linear(items, ctx_size=10.9):
     """linearize a list of Items forming one horizontal run (same main baseline)."""
     if not items:
@@ -238,7 +359,9 @@ def linear(items, ctx_size=10.9):
                 out.append(s)
         buf = []
 
-    for it in items:
+    lefts, rights = left_right_pairs(items, msize)
+    obars = open_bars(items, msize)
+    for idx, it in enumerate(items):
         d = mb - it.base   # positive: raised
         small = it.size < msize - 1.5
         if small and d > 1.2:
@@ -254,7 +377,14 @@ def linear(items, ctx_size=10.9):
         if prev is not None and it.x0 - prev.x1 > 2.2 and not (is_cjk(it.text[:1]) and is_cjk(prev.text[-1:])):
             if not (buf and buf[-1].endswith(' ')):
                 buf.append(' ')
-        buf.append(it.text)
+        if idx in lefts:
+            buf.append('\\left' + DELIM.get(it.text, it.text) + ' ')
+        elif idx in rights:
+            buf.append('\\right' + DELIM.get(it.text, it.text) + ' ')
+        elif idx in obars:
+            buf.append('\\lvert ')
+        else:
+            buf.append(DELIM.get(it.text, it.text) if it.font.startswith('CMSY') else it.text)
         prev = it
     flush()
     s = ''.join(out)
@@ -275,6 +405,41 @@ def build_items(glyphs, rules):
     return items
 
 
+def drop_orphan_slashes(items):
+    """slashes recovered from the text trace are kept only if they turned
+    into an angle sign or a negated relation (others are clipped copies)"""
+    return [it for it in items if not (it.kind == 'g' and it.text == '̸' and it.g is not None and it.g.get('extra'))]
+
+
+OPNAMES = {'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'lg', 'log', 'ln', 'max', 'min', 'exp', 'lim',
+           'sup', 'inf', 'det', 'gcd', 'deg', 'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'mod'}
+
+
+def merge_opnames(items):
+    """runs of upright Computer Modern letters in a formula are operator names
+    (\\sin, \\max, ...) or upright text (units): merge them into one item."""
+    cands = sorted([it for it in items if it.kind == 'g' and it.font.startswith('CMR') and len(it.text) == 1
+                    and it.text.isascii() and it.text.isalpha()], key=lambda it: (round(it.base, 1), it.x0))
+    groups = []
+    for it in cands:
+        if groups:
+            p = groups[-1][-1]
+            if abs(p.base - it.base) < 0.3 and abs(p.size - it.size) < 0.1 and -0.3 < it.x0 - p.x1 < 0.3:
+                groups[-1].append(it); continue
+        groups.append([it])
+    rm = set(); new = []
+    for g in groups:
+        name = ''.join(i.text for i in g)
+        if name in OPNAMES:
+            t = '\\' + name + ' '
+        else:
+            t = '\\mathrm{' + name + '}'
+        a, b = g[0], g[-1]
+        new.append(Item(a.x0, b.x1, min(i.y0 for i in g), max(i.y1 for i in g), a.base, a.size, t, 'g', a.font, a.g))
+        rm.update(id(i) for i in g)
+    return [it for it in items if id(it) not in rm] + new
+
+
 def collapse(items, rules):
     """Fold fractions / radicals / overlines into composite items."""
     rs = [r for r in rules if r['x1'] - r['x0'] < 470 and r['w'] < 1.5 and
@@ -285,7 +450,7 @@ def collapse(items, rules):
     for ri, r in enumerate(rs):
         for it in items:
             if it.kind == 'g' and it.text == '̸' and it.size < 9 and \
-                    it.x0 - 1.5 <= r['x0'] <= it.x1 and 0 <= r['y'] - it.base <= 2.5 and \
+                    it.x0 - 1.5 <= r['x0'] <= it.x1 + 3.0 and -0.5 <= r['y'] - it.base <= 2.5 and \
                     r['x1'] - r['x0'] < 9:
                 it.text = '∠'
                 it.kind = 'angle'
@@ -441,6 +606,7 @@ def page_lines(page):
     items = build_items(glyphs, rules)
     items = collapse(items, rules)
     items = fix_cong(items)
+    items = drop_orphan_slashes(items)
     out = []
     for c in lines_of(items):
         its = sorted(c['its'], key=lambda it: it.x0)
