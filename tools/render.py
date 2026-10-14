@@ -67,7 +67,10 @@ def baseline_dy(st):
         return 0.0
     if st['pitch'] == style.LINE:
         return BASE[f's-body@{style.LINE}'] - BASE[key]
-    n = [g['n'] for g in GRIDS.values() if g['pitch'] == st['pitch']][0]
+    ns = [g['n'] for g in GRIDS.values() if g['pitch'] == st['pitch']]
+    if not ns:                                  # off the grids (figure captions): set as measured
+        return 0.0
+    n = ns[0]
     body_last = (style.NLINES - 1) * style.LINE + BASE[f's-body@{style.LINE}']
     return body_last - ((n - 1) * st['pitch'] + BASE[key])
 
@@ -132,10 +135,24 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             b = lb.block
             y = style.TOP + slot0 * st['pitch'] * k + lone
             iw, ih = b['w'], b['h']
-            if b.get('cap_lines') is not None:          # an in-text figure: image and caption centred in its slots
-                from .typeset import CAP_PITCH
+            if b.get('cap_lines') is not None:          # an in-text figure: image and caption centred in its slots,
+                from .typeset import CAP_PITCH          # flush with the text block when it opens or closes the page
                 hc = sum(len(c['starts']) for c in b['cap_lines']) * CAP_PITCH
-                y += ((lb.nl[vi] + fig_air.get(ii, 0)) * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
+                slots = lb.nl[vi] + fig_air.get(ii, 0)
+                body_base = BASE.get(f's-body@{style.LINE}', 12.0)
+                alone = lone or len(page['items']) == 1
+                if not alone and ii == 0 and slot0 == 0:
+                    y = style.TOP + body_base - 0.88 * style.FONT          # its top level with the top of the first line of text
+                elif not alone and ii == len(page['items']) - 1 and slot0 + slots >= n:
+                    last = style.TOP + (n - 1) * style.LINE + body_base    # the last baseline of the page
+                    if hc:                                                 # the last caption line on it
+                        cls = b['cap'][-1][0]
+                        cb = BASE.get(f'{cls}@{CAP_PITCH}', 9.75)                 # (build.calibrate_all measures it)
+                        y = last - (ih + 5.0 + hc - CAP_PITCH + cb)
+                    else:
+                        y = last + 0.25 * style.FONT - ih                  # the image down to the descenders of a last line
+                else:
+                    y += (slots * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
             if anchors is not None and b.get('id') and b['id'] not in anchors:
                 anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'

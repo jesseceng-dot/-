@@ -202,7 +202,7 @@ def _caption_height(text, fs=9.5, width=None):
     return max(1, math.ceil(w / width * 1.06)) * 14.0
 
 
-def plates_page_html(k, img, builder, page, caption=''):
+def plates_page_html(k, img, builder, page, caption='', ids=()):
     """One back-of-book plate per page (same page design as the Hegel plates): caption 'Plate N' at the top, the figure
     right below it, and the return link to the reference in the text at the foot of the text block.  The plate anchor
     (plate-N) is registered here so that the link in the text lands on this page.  A long caption is set as a wrapped
@@ -230,6 +230,8 @@ def plates_page_html(k, img, builder, page, caption=''):
     else:
         out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
                 f'transform:translate({x:.2f}pt,{y:.2f}pt);outline:.4pt solid #bbb">')
+    for a in ids:                                       # the figure's own anchors (links to it from the list of figures, the text)
+        builder.anchors[a] = (page.index, style.TOP)
     ref = f'figref-{k}'
     label = ''
     if ref in builder.anchors:

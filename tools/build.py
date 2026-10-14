@@ -10,11 +10,13 @@ from .post import finish_pdf
 
 
 def calibrate_all():
+    from .typeset import CAP_PITCH
     pairs = set()
     for name, g in GRIDS.items():
         for st in list(STYLES.values()) + list(STYLES_SMALL.values()):
             if st['slots'] == 1 or True:
                 pairs.add((st['cls'], g['pitch']))
+    pairs |= {('s-figcap', CAP_PITCH), ('s-figsub', CAP_PITCH)}       # captions of in-text figures (off the grids)
     render.calibrate(sorted(pairs))
 
 

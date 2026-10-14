@@ -782,7 +782,8 @@ def fig_block(C, e, fmt):
     sc = min(sc, style.TEXT_W / w, max_h / h)
     iw, ih = round(w * sc, 2), round(h * sc, 2)
     flt = bool(caps) and plain(caps[0][1]).startswith('图') or ih > 6 * style.LINE   # numbered figures and tall pictures may float
-    b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw)
+    b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw,
+             fig_src=e['src'])
     if caps:
         b['cap'] = caps
     else:
@@ -803,16 +804,43 @@ def image_blocks(src, max_h, width=None, max_scale=None):
             dict(k='space', style='center', runs=[], n=1)]
 
 
-def plate_modules(figs):
+def plate_figs(C):
+    """(fig_inline books) Figures that go to the back of the book after all, one per page: the configured ones
+    (C['plate_figs']) and those that tools/bk_build.py found leaving the foot of a page blank (<scratch>/plate_figs.json)."""
+    import json
+    out = set(C.get('plate_figs', ()))
+    try:
+        out |= set(json.load(open(os.path.join(style.SCRATCH, 'plate_figs.json'), encoding='utf8')))
+    except (OSError, ValueError):
+        pass
+    return out
+
+
+def fig_plate_ref(e, fig_no):
+    """(fig_inline books) A figure set at the back: in the text its title and the link 'see plate N'; the plate links back
+    here and takes over the figure's anchor (the list of figures and the text's 'Figure N' links lead to the plate)."""
+    caps = [(c, re.sub(r'\s+', ' ', runs_text(BT.fix_edges(BT.fix_runs(c['runs'])))).strip()) for c in e.get('caps', [])]
+    caps = [(c, t) for c, t in caps if t]
+    ids = [c['id'] for c, _ in caps if c.get('id')]
+    n = fig_no(e['src'], '　'.join(t for _, t in caps), ids)
+    runs = ([run(caps[0][1] + '　')] if caps else []) + [run(f'见书后插图{n}', h=f'plate-{n}', a=f'figref-{n}', c='fig')]
+    return [dict(k='p', style='center', runs=runs, novary=True, nosplit=True, nomerge=True, before=1, after=1, plate_ref=1)]
+
+
+PLATES_NOTE = '正文中的图表集中排在此处，每页一图；正文中以蓝色“见书后插图N”标示，点击可跳转，每页底部附返回链接。'
+PLATES_NOTE_INLINE = ('插图都排在正文中引用它的地方；只有放在正文里会让页面底部留下空白的图移到这里，每页一图。'
+                      '正文原处是图题和蓝色的“见书后插图N”，点击可跳转，每页底部附返回链接。')
+
+
+def plate_modules(figs, note=PLATES_NOTE):
     if not figs:
         return []
-    divider = page_module('plates', 'back', special.plate_divider_html(
-        '书后插图', '正文中的图表集中排在此处，每页一图；正文中以蓝色“见书后插图N”标示，点击可跳转，每页底部附返回链接。'),
-        toc=True, toc_title='书后插图', toc_level=0, title='书后插图', folio=True)
+    divider = page_module('plates', 'back', special.plate_divider_html('书后插图', note),
+                          toc=True, toc_title='书后插图', toc_level=0, title='书后插图', folio=True)
     mods = [divider]
-    for k, (img, cap) in enumerate(figs, 1):
-        def html(bb, page, k=k, img=img, cap=cap):
-            return special.plates_page_html(k, img, bb, page, cap)
+    for k, (img, cap, *ids) in enumerate(figs, 1):
+        def html(bb, page, k=k, img=img, cap=cap, ids=tuple(ids[0]) if ids else ()):
+            return special.plates_page_html(k, img, bb, page, cap, ids)
         m = page_module(f'plate-page{k}', 'back', html, toc=False, title=f'书后插图 {k}', folio=True, head=True)
         m.anchor = f'plate-{k}'
         m.lines = [cap]                                         # (for the text-fidelity report)
@@ -985,9 +1013,10 @@ def book(b):
     elif C.get('copyright') is not None:
         mods.append(copyright_module(C['copyright'], C.get('copyright_skip', 0)))
     fig_list = []
+    plate_set = plate_figs(C) if C.get('fig_inline') else set()
 
-    def fig_no(src, cap):
-        fig_list.append((src, cap))
+    def fig_no(src, cap, ids=()):
+        fig_list.append((src, cap, tuple(ids)))
         return len(fig_list)
 
     front, body, back = [], [], []
@@ -1021,7 +1050,7 @@ def book(b):
         osz = C.get('orn_size', (70.0, 9.9))
         for e in unit_blocks(els):
             if e['k'] == 'fig' and C.get('fig_inline'):
-                blocks += fig_block(C, e, fmt)
+                blocks += fig_plate_ref(e, fig_no) if e['src'] in plate_set else fig_block(C, e, fmt)
             elif e['k'] == 'fig':
                 blocks += image_blocks(e['src'], style.TEXT_H - 11 * style.LINE, max_scale=C.get('img_max_scale'))      # leaves room for the heading above and a source line below
             elif e['k'] == 'orn':
@@ -1033,6 +1062,8 @@ def book(b):
                 blocks += table_blocks(e['rows'], C.get('table_head', True))
             else:
                 blocks.append(e)
+        if len(blocks) > 1 and blocks[0].get('plate_ref') and blocks[1]['k'] == 'h':
+            blocks[:2] = blocks[1::-1]                             # (a plate reference does not open a chapter: it goes under the title)
         blocks = wrap_lines(finish_blocks(blocks))
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
@@ -1122,7 +1153,7 @@ def book(b):
             nm.top = True
             nm.unnest = True
             back.append(nm)
-    plates = plate_modules(fig_list)
+    plates = plate_modules(fig_list, PLATES_NOTE_INLINE if C.get('fig_inline') else PLATES_NOTE)
     allm = front + body + back + plates
     toc_bl = toc_blocks(allm, '目　錄' if C.get('tc') else '目　录', sections=C.get('toc_sections', True))
     for x in toc_bl:
