@@ -65,6 +65,11 @@ STYLES = {
     'toc2':     dict(cls='s-toc2',    fs=10.5, first=-1, left=2.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'toc3':     dict(cls='s-toc3',    fs=10.0, first=-1, left=4.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
     'tochead':  dict(cls='s-h1',      fs=17.0, first=0, left=0, right=0, align='c', slots=2, before=3, after=2, keep=2, top_keep=1),
+    # small print inside the text (book 16: verse in other languages, stage directions, notes on the bibliography)
+    'small':    dict(cls='s-small',   fs=9.0,  first=2, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
+    'smalll':   dict(cls='s-small',   fs=9.0,  first=0, left=0, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'smallc':   dict(cls='s-small',   fs=9.0,  first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),
+    'smallkai': dict(cls='s-smallkai', fs=9.5, first=0, left=0, right=0, align='j', slots=1, before=0, after=0, keep=0),
 }
 # small-grid (notes / indexes) style overrides
 STYLES_SMALL = {
@@ -176,9 +181,10 @@ def _top(pg, reserve):
     return reserve if pg < 2 else 0
 
 
-def paginate(n, s, f0, g1, g2, splittable, N=N, pg=2, reserve=0):
+def paginate(n, s, f0, g1, g2, splittable, N=N, pg=2, reserve=0, ftop=0):
     """Place n lines of `s` slots each, starting at slot f0 of logical page `pg` (capped at 2).
 
+    `ftop` slots at the top of the next page are taken by a deferred figure that lands there (see `solve`).
     Returns dict(pieces, gaps, f_end, pg_end, extra) or None.
       pieces: line counts, first entry = lines on the current page; gaps: unused slots at the end of each page
       f_end: absolute slots used on the last page (== capacity when exactly full); pg_end: its page index (capped)
@@ -191,12 +197,14 @@ def paginate(n, s, f0, g1, g2, splittable, N=N, pg=2, reserve=0):
     k1 = room - g1
     if k1 < 1 or k1 >= n:
         return None
+    if ftop and N - ftop < 2:
+        return None
     pieces, gaps = [k1], [g1]
     r = n - k1
     used_g2 = False
     idx = 0
     while True:
-        cap = N - _top(min(pg + 1 + idx, 2), reserve)
+        cap = N - _top(min(pg + 1 + idx, 2), reserve) - (ftop if idx == 0 else 0)
         capn = N - _top(min(pg + 2 + idx, 2), reserve)
         if r <= cap:
             pieces.append(r); gaps.append(0)
@@ -220,7 +228,8 @@ def paginate(n, s, f0, g1, g2, splittable, N=N, pg=2, reserve=0):
     if pieces[-1] == 2 and n > 6:
         extra += 6.0
     pg_end = min(pg + len(pieces) - 1, 2)
-    return dict(pieces=pieces, gaps=gaps, f_end=_top(pg_end, reserve) + pieces[-1], pg_end=pg_end, extra=extra)
+    f_end = _top(pg_end, reserve) + pieces[-1] + (ftop if len(pieces) == 2 else 0)
+    return dict(pieces=pieces, gaps=gaps, f_end=f_end, pg_end=pg_end, extra=extra)
 
 
 def _norm_end(res, after, N, reserve):
@@ -264,11 +273,17 @@ def _bef_options(lb):
     return [(base, 0.0)]
 
 
+FLOAT_PEN = 20.0          # cost of moving a figure that does not fit at the bottom of a page to the top of the next one
+
+
 def solve(lbs, N=N, reserve=0, tail_min=2):
-    """DP over blocks; state = (slots used on the current page, logical page index capped at 2).
+    """DP over blocks; state = (slots used on the current page, logical page index capped at 2, deferred figure).
 
     reserve > 0 keeps `reserve` slots free at the top of logical pages 0 and 1 (the two columns of the first physical
     page of a two-column module carry a spanning heading there).  With reserve == 0 the page index is irrelevant.
+
+    Figures (img blocks with `float`) that do not fit into the rest of a page may float: the text after them fills the
+    page and the figure opens the next page (one figure at a time, so figures keep their order).
 
     Returns dict(pages=[{items:[(block, lo, hi, slot0)], gap:int}], variants=[v per block], cost=float)
     """
@@ -289,17 +304,24 @@ def solve(lbs, N=N, reserve=0, tail_min=2):
             elif not nx.st['keep']:
                 own += min(st['keep'], nx.nl[0]) * nx.st['slots']
         need[i] = own
+    floats = reserve == 0 and any(lb.block.get('float') for lb in lbs)
 
     pg_init = 0 if reserve else 2
     dp = [dict() for _ in range(nb + 1)]
-    dp[0][(top(pg_init), pg_init)] = (0.0, None, None)
+    dp[0][(top(pg_init), pg_init, -1)] = (0.0, None, None)
     for i, b in enumerate(lbs):
         st = b.st
         s = st['slots']
         prev_keep = lbs[i - 1].st['keep'] if i > 0 and not b.brk else 0
         top_bef = st['before'] if st.get('top_keep') else 0
         bopts = bef_options(b)
-        for (f, pg), (c0, _, _) in dp[i].items():
+        isfloat = floats and b.block.get('float')
+        for (f, pg, fl), (c0, _, _) in dp[i].items():
+            hf = lbs[fl].nl[0] if fl >= 0 else 0
+            if fl >= 0 and (isfloat or b.brk):
+                continue                                # one deferred figure at a time; never across a forced break
+            if isfloat and f > top(pg) and f + b.nl[0] * s > N:
+                _push(dp[i + 1], (f, pg, i), c0 + FLOAT_PEN, (f, pg, fl), ('defer',))
             opts = []                                   # (start slot, cost, gap before, broke, page of the start)
             if not b.brk:
                 if f == top(pg):
@@ -312,19 +334,24 @@ def solve(lbs, N=N, reserve=0, tail_min=2):
             if (f > top(pg) or b.brk) and not (prev_keep and not b.brk) and not (b.block.get('nostart') and i > 0):
                 g = (N - f) if f > top(pg) else 0
                 pg2 = min(pg + 1, 2)
-                opts.append((top(pg2) + top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True, pg2))
+                if hf:                                  # the deferred figure opens the new page, the block follows it
+                    for bef, bc in bopts:
+                        if top(pg2) + hf + bef < N:
+                            opts.append((top(pg2) + hf + bef, c0 + bc + gap_pen(g), g, True, pg2))
+                else:
+                    opts.append((top(pg2) + top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True, pg2))
             for f0, c1, g0, broke, pgs in opts:
                 for vi, n in enumerate(b.nl):
                     vp = b.pen[vi]
                     if vp == INF:
                         continue
-                    if st['keep'] and f0 + need[i] > N and f0 > top(pgs) + top_bef:
+                    if st['keep'] and f0 + need[i] > N and f0 > top(pgs) + top_bef + (hf if broke else 0):
                         continue
                     if st['keep'] and f0 + b.nl[vi] * s > N:
                         continue
                     for g1 in ((0,) if not b.splittable else (0, 1, 2)):
                         for g2 in (0, 1):
-                            res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve)
+                            res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve, hf if not broke else 0)
                             if res is None:
                                 continue
                             pieces = res['pieces']
@@ -333,24 +360,37 @@ def solve(lbs, N=N, reserve=0, tail_min=2):
                             if prev_keep and len(pieces) > 1 and pieces[0] < prev_keep:
                                 continue
                             cost = c1 + vp + res['extra'] + sum(gap_pen(g) for g in res['gaps'])
-                            _push(dp[i + 1], _norm_end(res, st['after'], N, reserve), cost, (f, pg),
-                                  (vi, f0, broke, g0, g1, g2, pgs))
+                            land = None
+                            if fl >= 0:
+                                land = 'broke' if broke else ('split' if len(pieces) > 1 else None)
+                            f2, pg3 = _norm_end(res, st['after'], N, reserve)
+                            nfl = fl if land is None else -1
+                            if nfl >= 0 and res['f_end'] >= N:      # the block filled its page: the figure opens the next one
+                                f2, nfl, land = f2 + hf, -1, 'end'
+                            _push(dp[i + 1], (f2, pg3, nfl), cost, (f, pg, fl), (vi, f0, broke, g0, g1, g2, pgs, fl, land))
         if not dp[i + 1]:
             raise RuntimeError(f'no feasible layout at block {i}: {runs_text(b.block["runs"])[:30]!r}')
 
     best = None
-    for (f, pg), (c, _, _) in dp[nb].items():
+    for k, (c, _, _) in dp[nb].items():
+        f, pg, fl = k
+        tail = None
+        if fl >= 0:                                     # a figure still waiting at the end: under the last text, or on a page of its own
+            hf = lbs[fl].nl[0]
+            tail = ('bottom', f) if f + hf <= N else ('page',)
+            f = f + hf if tail[0] == 'bottom' else top(min(pg + 1, 2)) + hf
+            c += 0.0 if tail[0] == 'bottom' else 40.0
         used = f - top(pg)
         cc = c + (300.0 if 0 < used <= tail_min else 0.0)
         if best is None or cc < best[0]:
-            best = (cc, (f, pg))
-    cost, key = best
+            best = (cc, k, tail)
+    cost, key, tail = best
     choices = [None] * nb
     for i in range(nb, 0, -1):
         c, pk, ch = dp[i][key]
         choices[i - 1] = ch
         key = pk
-    return replay(lbs, choices, cost, N, reserve)
+    return replay(lbs, choices, cost, N, reserve, tail)
 
 
 def prev_keep_forbids_break(prev_keep, f):
@@ -362,34 +402,56 @@ def _push(d, key, c, pk, ch):
         d[key] = (c, pk, ch)
 
 
-def replay(lbs, choices, cost, N=N, reserve=0):
+def replay(lbs, choices, cost, N=N, reserve=0, tail=None):
     pages = [dict(items=[], gap=0)]
     variants = []
     fresh = False                      # the previous block filled its page: the next block opens a new one
+    pending = -1                       # a deferred figure (block index) waiting for the next page
     for i, b in enumerate(lbs):
-        vi, f0, broke, g0, g1, g2, pgs = choices[i]
+        if choices[i][0] == 'defer':
+            pending = i
+            variants.append(0)
+            continue
+        vi, f0, broke, g0, g1, g2, pgs, fl, land = choices[i]
         st = b.st
         s = st['slots']
         n = b.nl[vi]
+        hf = lbs[fl].nl[0] if fl >= 0 else 0
         variants.append(vi)
         if broke:
             if pages[-1]['items']:
                 pages[-1]['gap'] = g0 if not b.brk else 0
                 pages.append(dict(items=[], gap=0))
+            if land == 'broke':
+                pages[-1]['items'].append((pending, 0, hf, _top(len(pages) - 1, reserve)))
+                pending = -1
         elif fresh and pages[-1]['items']:
             pages.append(dict(items=[], gap=0))
         fresh = False
-        res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve)
+        res = paginate(n, s, f0, g1, g2, b.splittable, N, pgs, reserve, hf if not broke else 0)
         pos = 0
         for pi, (cnt, gp) in enumerate(zip(res['pieces'], res['gaps'])):
+            slot0 = f0
             if pi > 0:
                 pages.append(dict(items=[], gap=0))
-            slot0 = f0 if pi == 0 else _top(len(pages) - 1, reserve)
+                slot0 = _top(len(pages) - 1, reserve)
+                if pi == 1 and land == 'split':
+                    pages[-1]['items'].append((pending, 0, hf, slot0))
+                    pending = -1
+                    slot0 += hf
             pages[-1]['items'].append((i, pos, pos + cnt, slot0))
             pages[-1]['gap'] = gp
             pos += cnt
-        f_end, pg_end = res['f_end'], res['pg_end']
-        single = len(res['pieces']) == 1
-        if f_end >= N:
+        if res['f_end'] >= N:
             fresh = True
+        if land == 'end':
+            pages.append(dict(items=[(pending, 0, hf, _top(len(pages), reserve))], gap=0))
+            pending = -1
+            fresh = False
+    if pending >= 0 and tail:
+        hf = lbs[pending].nl[0]
+        if tail[0] == 'bottom' and not fresh:
+            pages[-1]['items'].append((pending, 0, hf, tail[1]))
+        else:
+            pages.append(dict(items=[(pending, 0, hf, _top(len(pages), reserve))], gap=0))
     return dict(pages=pages, variants=variants, cost=cost)

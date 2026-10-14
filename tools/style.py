@@ -61,10 +61,13 @@ FONTS_CSS = """
 @font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
+@font-face{font-family:"GebRare";src:url("%(f)s/GebRare.ttf");unicode-range:U+AA9E-AAAF,U+E047}
+@font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
+@font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
 """ % {'f': 'file://' + FONT_DIR}
 
 # Paragraph / line styles.  size in pt, family stack, weight; used for BOTH measuring and rendering.
-BODY_FAMILY = '"GrkSerif","SongBody","HanExt","Noto Serif",serif'
+BODY_FAMILY = '"GrkSerif","GebRare","SongBody","HanExt","Noto Serif",serif'
 STYLE_CSS = f"""
 html{{-webkit-text-size-adjust:none}}
 body{{margin:0;padding:0;font-family:{BODY_FAMILY};font-size:{FONT}pt;color:#000;
@@ -120,5 +123,22 @@ a{{color:inherit;text-decoration:none}}
 .s-idxhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .nn{{display:inline-block;width:3em;text-align:left}}
 .pn{{color:#1f3a93}}
+.spk{{font-family:"GebRare","HeiTi",sans-serif;font-weight:400}}
+.hei{{font-family:"GrkSerif","GebRare","HeiTi",sans-serif;font-weight:500}}
+.hei.nohei,.nohei{{font-family:inherit;font-weight:inherit}}
+.sm{{font-size:.86em}}
+.ul{{text-decoration:underline;text-underline-offset:.15em}}
+.gbox{{background:#e4e4e4;border-radius:1.5pt;padding:.08em 0}}
+.lat{{font-family:"LatSerif","GrkSerif","SongBody","HanExt",serif}}
+.it.lat{{font-family:"LatIt","GrkSerif","SongBody","HanExt",serif;font-style:italic}}
+.lnk{{color:#1f3a93}}
+.s-small{{font-size:9pt}}
+.s-smallkai{{font-family:"KaiTi","GebRare","GrkSerif","SongBody",serif;font-size:9.5pt}}
+.s-figcap{{font-family:"GrkSerif","GebRare","HeiTi",sans-serif;font-size:9pt;font-weight:500}}
+.s-figsub{{font-family:"KaiTi","GebRare","GrkSerif","SongBody",serif;font-size:9pt;color:#222}}
 .fig{{color:#1a44c8;border:.7pt solid #e2b400;padding:0 .35em;background:#fffbe6;border-radius:1pt;font-family:"HeiTi",sans-serif;font-size:9.5pt}}
 """
+
+import re as _re
+# The coined characters of 《哥德尔、艾舍尔、巴赫》 (U+AA9E–AAAF, the inverted G at U+E047) come from the ebook's own font in every face.
+STYLE_CSS = _re.sub(r'font-family:(?!"GebRare"|inherit)', 'font-family:"GebRare",', STYLE_CSS)

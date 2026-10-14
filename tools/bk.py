@@ -17,6 +17,38 @@ from .books import page_module
 P = lambda n: f'part{n:04d}'
 NOTE_MIN = 2400          # notes of consecutive short chapters are gathered until they fill about two small-print pages
 
+# 《哥德尔、艾舍尔、巴赫》: paragraph classes of the ebook -> (style, first, left, run classes); indents in em as in its CSS
+GEB_STYLE = {
+    'calibre6': ('body', 2, 0, ''), 'calibre21': ('body', 2, 0, ''), 'text_indent': ('noindent', 0, 0, ''),
+    'text_indent5': ('noindent', 0, 0, ''), 'hanging_indent': ('noindent', -2, 2, ''), 'dialog_h-indent': ('noindent', -2, 2, ''),
+    'hanging_indent_1': ('noindent', -2, 4, ''), 'hanging_indent2': ('noindent', -4, 4, ''), 'hanging_indent_2': ('noindent', -3, 5, ''),
+    'hanging_indent_3': ('noindent', -4, 6, ''), 'hanging_indent_4': ('noindent', -1, 2, ''), 'hanging_indent_5': ('noindent', -1, 3, ''),
+    'hanging_indent_6': ('noindent', -1, 4, ''), 'hanging_indent_7': ('noindent', -1, 5, ''), 'hanging_indent_8': ('noindent', -1, 6, ''),
+    'duiweicangtou': ('noindent', -6, 6, ''), 'question': ('noindent', -3, 3, ''), 'speculation': ('noindent', -2, 3, ''),
+    'text_indent1': ('body', 2, 2, ''), 'text_indent2': ('body', 2, 2, ''), 'text_indent3': ('body', 2, 4, ''),
+    'text_indent6': ('body', 2, 4, ''), 'text_indent4': ('body', 2, 6, ''), 'text_indent-left': ('noindent', 0, 2, ''),
+    'd_indent_': ('noindent', 0, 2, ''), 'd_indent_1': ('noindent', 0, 2, ''), 'd_indent_2': ('noindent', 0, 4, ''),
+    'd_indent_4': ('noindent', 0, 6, ''), 'reference': ('noindent', -2, 2, ''), 'reference1': ('noindent', -2, 4, ''),
+    'reference-note': ('small', 2, 2, ''), 'preface_quote': ('small', 0, 2, ''), 'd_indent_3': ('smalll', 0, 0, ''),
+    'hanging_2_2-small': ('small', -2, 4, ''), 'text_indent-small': ('small', 2, 2, ''), 'centersmalltext': ('smallc', 0, 0, ''),
+    'dialog_kaiti': ('smallkai', 0, 2, ''), 'center': ('center', 0, 0, ''), 'right1': ('right', 0, 0, ''),
+    'quote_text': ('quote', 2, 2, ''), 'quote_text1': ('quote', 2, 2, ''), 'view_text': ('quote', 2, 2, ''),
+    'dialog_guided': ('quote', 2, 2, ''), 'quote_text-indent': ('quote', 0, 2, ''), 'quote_text-hanging': ('quote', -2, 4, ''),
+    'quote_text_hanging_1': ('quote', -3, 5, ''), 'quote_text_hanging_': ('quote', -4, 6, ''), 'quote_text_': ('quote', -2, 6, ''),
+    'hanging_indent_': ('quote', -4, 5, ''), 'zen_koan': ('quote', 0, 2, ''), 'zen_koan1': ('quote', 0, 3, ''),
+    'quote_text_kaiti': ('quote', 0, 2, ''), 't_indent_0-5-kaiti': ('quote', 0, 5, ''),
+    'zen_koan-poem': ('ck', 0, 0, ''), 'dialog_poem_title': ('ck', 0, 0, ''),
+    'dialog_poem': ('verse', 0, 2, ''), 'dialog_poem1': ('verse', 0, 3, ''), 'dialog_poem2': ('verse', 0, 4, ''),
+    'hanging_indent_rule': ('noindent', -5, 5, 'hei'), 'h_indent_3_rule': ('noindent', -3, 3, 'hei'),
+    'hanging_indent-2_rule': ('noindent', -2, 2, 'hei'), 'h_indent_4_rule': ('noindent', -4, 4, 'hei'),
+    'hanging_indent_rule_': ('noindent', -3, 5, 'hei'), 'hanging_indent_rule_1': ('noindent', -2, 6, 'hei'),
+    'hanging_indent1': ('noindent', -6, 6, 'hei'), 'rule_hanging_5_p': ('noindent', 2, 3, 'hei'),
+    'text_indent-bold': ('noindent', 0, 0, 'hei'), 'heiti1': ('body', 2, 0, 'hei'),
+    'signature': ('right', 0, 0, 'kai'), 'quote_text_signature1': ('right', 0, 0, 'kai'), 'quote_text_honorific': ('right', 0, 0, 'kai'),
+    'dedicate_sub': ('right', 0, 0, 'kai'), 'geb-byline': ('right', 0, 0, 'kai'),
+    'dialog_sub_or': ('center', 0, 0, ''), 'dialog_sub': ('center', 0, 0, 'kai'), 'geb-multilingual-byline': ('noindent', 0, 0, ''),
+}
+
 CFG = {
     1: dict(scratch='q1', file='巴菲特致股东的信', title='巴菲特致股东的信', sub='投资原则篇', author='〔美〕杰里米·米勒 著',
             credits=['郝旭奇　译'], publisher='中信出版集团', pdf_author='〔美〕杰里米·米勒', cover='cover00196.jpeg', title_img=None,
@@ -126,6 +158,19 @@ CFG = {
              body=[[10, 11]] + list(range(12, 17)) + [[17, 18]] + list(range(19, 26)) + [[26, 27]] + list(range(28, 32)) + [[32, 33]]
                   + list(range(34, 41)) + [[41, 42]] + list(range(43, 46)),
              back=[], tail=[], inplace=set()),
+    16: dict(scratch='q16', exp_sup=True, file='哥德尔、艾舍尔、巴赫', title='哥德尔、艾舍尔、巴赫', sub='集异璧之大成',
+             author='〔美〕侯世达 著', credits=['本书翻译组　译'], publisher='商务印书馆', pdf_author='〔美〕侯世达（Douglas R. Hofstadter）',
+             cover='cover.jpeg', title_img=None, copyright=2, marker='sq', head_clean=True, backcover='01Back.jpg', toc_sections=False,
+             head_num_cls=('chapter_number', 'part_number'), head_as_p={'view_title': 'refhead'},
+             head_lvl={'title': 2, 'preface_title': 2, 'preface_title_zhcn': 2, 'view_title_part': 2, 'geb-index-heading': 2},
+             part_re=r'^[上下]篇', part_split=r'^([上下]篇)[\s\u3000]+(.+)()$', part_img=True,
+             cls_cap=('duokan-image-maintitle', 'duokan-image-maintitle1', 'duokan-image-subtitle', 'duokan-image-subtitle1',
+                      'duokan-image-subtitle3'),
+             fig_inline=True, q_left=2, div_left={'dialog_indent': 2, 'dialog_indent1': 1}, div_small=('smalltext3',), table2=True,
+             formula_img=r'^(Formula\d|Gene-[1-578]\.|img_Chapter10_1)',
+             cls_style=GEB_STYLE, front=[(3, 'dedication'), (5, 'text'), (6, 'text'), ([7, 8], 'text'), (9, 'text'), (10, 'text')],
+             body=[11] + list(range(12, 27)) + [[27, 28]] + list(range(29, 47)) + [[47, 48]] + list(range(49, 57)),
+             back=[57, 58], tail=[], inplace=set()),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -181,11 +226,36 @@ def mark_runs(runs, fmt):
     """Note markers (linked runs whose text is a bare note number) -> superscript '[n]' / '(n)', never at the start of a line."""
     out = []
     for r in runs:
-        if (r.get('h') or r.get('a')) and not r.get('i'):
+        if (r.get('h') or r.get('a')) and not r.get('i') and 'nomark' not in (r.get('c') or ''):
             mt = BT.marker_text(r['t'], fmt)
             if mt:
                 r = repair_link(dict(r, t='⁠' + mt, s=1))
         out.append(r)
+    return out
+
+
+LAT_APOS = re.compile(r"(?<=[A-Za-z\u00c0-\u024f])[’'](?=[A-Za-z\u00c0-\u024f])|(?:(?<=[\s(“\"])|^)[’‘'](?=[A-Za-z])")
+
+
+def latin_runs(runs):
+    """(book 16) Latin text in a Latin face: whole paragraphs that are mostly Latin (the French and German Jabberwocky,
+    English quotations), and apostrophes inside Latin words elsewhere (the CJK faces set ’ full width: “l’ oiseau”)."""
+    add = lambda r: dict(r, c=((r.get('c') or '') + ' lat').strip())
+    if latin_ratio(runs) > 0.5:
+        return [add(r) if not r.get('i') else r for r in runs]
+    out = []
+    for r in runs:
+        if r.get('i') or not LAT_APOS.search(r['t']):
+            out.append(r)
+            continue
+        pos = 0
+        for m in LAT_APOS.finditer(r['t']):
+            if m.start() > pos:
+                out.append(dict(r, t=r['t'][pos:m.start()]))
+            out.append(add(dict(r, t=m.group(0))))
+            pos = m.end()
+        if pos < len(r['t']):
+            out.append(dict(r, t=r['t'][pos:]))
     return out
 
 
@@ -257,8 +327,20 @@ def elements(C, items, kaitext=False):
     head_cls = C.get('head_cls', {})
     pg_pend = []
     in_box = False
+    num_pend = None
     for it in items:
         k = it['k']
+        if k == 'p' and set(it['cls'].split()) & _cs(C, 'head_num_cls'):
+            num_pend = plain(it['runs'])                    # '第一章' set above the chapter title: prefixed to the heading
+            continue
+        if k == 'h' and num_pend:
+            it = dict(it, runs=[run(num_pend + '\u3000')] + it['runs'])
+            num_pend = None
+        if k == 'h' and set(it['cls'].split()) & set(C.get('head_as_p', {})):
+            key = next(c for c in it['cls'].split() if c in C['head_as_p'])
+            els.append(dict(k='p', style=C['head_as_p'][key], runs=BT.fix_edges(BT.fix_runs(it['runs'])), id=it['id'],
+                            src=f'h.{it["cls"]}', nomerge=True))
+            continue
         if k == 'p' and set(it['cls'].split()) & _cs(C, 'note_cls'):
             it = dict(it, k='note')                         # footnote paragraphs marked by their class
             k = 'note'
@@ -285,10 +367,11 @@ def elements(C, items, kaitext=False):
         if k == 'img':
             if it['src'] in C['tail']:
                 continue                                    # the publisher's QR codes: kept as the last page of the book instead
-            els.append(dict(k='orn' if (it.get('orn') or it['src'] in C.get('orn', ())) else 'fig', src=it['src']))
+            els.append(dict(k='orn' if (it.get('orn') or it['src'] in C.get('orn', ())) else 'fig', src=it['src'],
+                            grp=it.get('grp'), snap=it.get('snap'), id=it.get('id', '')))
             continue
         if k == 'table':
-            els.append(dict(k='table', rows=it['rows']))
+            els.append(dict(k='table', rows=it['rows'], spans=it.get('spans'), heads=it.get('heads')))
             continue
         if k == 'p' and it.get('blank'):
             if els:
@@ -343,6 +426,12 @@ def elements(C, items, kaitext=False):
             els.append(dict(k='h', lvl=float(it['lvl']), runs=runs, id=it['id'], src=f'h{it["lvl"]}.{cls}', cls=cls))
             continue
         if k == 'li':
+            if C.get('cls_style') is not None:            # (book 16) nested lists: one hanging level per depth, the list's own bullet
+                d = it.get('depth', 0)
+                bul = {'square': '▪', 'square1': '▪', 'circle': '◦', 'disc': '•'}.get(it.get('bullet'), '•')
+                els.append(dict(k='p', style='noindent', runs=[run(bul + '\u3000')] + runs, id=it['id'], src='li',
+                                first=-2, left=2 * (d + 2)))
+                continue
             els.append(dict(k='p', style='noindent', runs=[run('•　')] + runs, id=it['id'], src='li'))
             continue
         if C.get('strip_indent') and runs and not runs[0].get('i'):
@@ -356,6 +445,31 @@ def elements(C, items, kaitext=False):
         t = plain(runs)
         if re.fullmatch(r'[—－-]{6,}', t):
             continue                                        # the dashed rule before the notes of book 4
+        gs = C.get('cls_style')
+        if gs is not None and not (c & _cs(C, 'cls_cap')):
+            spec = next((gs[x] for x in cls.split() if x in gs), None) or ('body', 2, 0, '')
+            stl, first, left, rc = spec
+            dc = (it.get('dcls') or '').split()
+            left += sum(C.get('div_left', {}).get(x, 0) for x in dc) + (C.get('q_left', 0) if it.get('q') else 0)
+            if set(dc) & set(C.get('div_small', ())) and stl in ('body', 'noindent'):
+                stl = 'small'
+            if rc:
+                runs = [dict(r, c=((r.get('c') or '') + ' ' + rc).strip()) if not r.get('i') and 'nohei' not in (r.get('c') or '') else r
+                        for r in runs]
+            runs = latin_runs(runs)
+            b.update(runs=runs, style=stl, first=first, left=left)
+            if stl in ('center', 'right', 'ck'):
+                b['nomerge'] = True
+            if stl in ('quote', 'smallkai', 'verse'):
+                b['right'] = 0
+            if gap_before and stl not in ('cap',):
+                b['before'] = 1
+            gap_before = False
+            if pg_pend:
+                b['runs'] = pg_pend + b['runs']
+                pg_pend = []
+            els.append(b)
+            continue
         if c & ({'tushuo', 'kindle-cn-picture-txt-withmanycharactors', 'kindle-cn-picture-txt-withfewcharactors'} | _cs(C, 'cls_cap')):
             b['style'] = 'cap'
         elif c & ({'right', 'Right', 'kindle-cn-para-right', 'Inscribe'} | _cs(C, 'cls_right')):
@@ -461,6 +575,49 @@ def table_blocks(rows, head=True):
     return out
 
 
+def table_blocks2(rows, spans, heads, center=True):
+    """(book 16) A text table centred in the text width: cells as fixed-width inline boxes as in `table_blocks`; a row
+    whose only cell spans the whole table ('*　*　*') is a centred line; only header cells (<th>) are bold."""
+    ncol = max(sum(sp) for sp in spans) if spans else max(len(r) for r in rows)
+    full = [len(r) == 1 and (sp[0] if sp else 1) >= max(2, ncol) for r, sp in zip(rows, spans)]
+    grid = [[_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)] for r, f in zip(rows, full) if not f]
+    widths = [max([_w(l) for g in grid for l in g[j]] or [0]) + 1.2 for j in range(ncol)]
+    while ncol > 1 and widths[-1] <= 1.2:                         # (an empty last column)
+        ncol -= 1
+        widths.pop()
+    sizes = (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28)
+    cls_of = lambda w: f'tw w{min([x for x in sizes if x >= w], default=28)}'
+    used = [int(cls_of(w).split('w')[-1]) for w in widths]
+    indent = sum(used[:-1])
+    total = indent + widths[-1]
+    off = max(0.0, (style.TEXT_W / style.FONT - total) / 2) if center else 0.0
+    out = []
+    n = len(rows)
+    for ri, (r, f) in enumerate(zip(rows, full)):
+        first, last = ri == 0, ri == n - 1
+        if f:
+            out.append(dict(k='p', style='center', runs=BT.fix_edges(BT.fix_runs(r[0])), novary=True, nomerge=True,
+                            before=1 if first else 0, after=1 if last else 0))
+            continue
+        g = [_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)]
+        bold = bool(heads and heads[ri])
+        nl = max(len(c) for c in g)
+        for li in range(nl):
+            runs = []
+            for j in range(ncol):
+                cell = g[j][li] if li < len(g[j]) else []
+                if j == ncol - 1:
+                    runs += [dict(x, b=1) if bold else x for x in cell]
+                else:
+                    runs += [dict(x, c=(x.get('c', '') + ' ' + cls_of(widths[j])).strip(), **({'b': 1} if bold else {})) for x in cell]
+                    if not cell:
+                        runs.append(run('\u2060', c=cls_of(widths[j])))
+            out.append(dict(k='p', style='trow', runs=runs, novary=True, nomerge=True, first=-indent, left=round(off + indent + 1, 2),
+                            before=1 if first and li == 0 else 0, after=1 if last and li == nl - 1 else 0,
+                            **({'keep': 1} if li < nl - 1 else {})))
+    return out
+
+
 def fig_label(text, pat=r'^(图[^\s　]+)'):
     m = re.match(pat, text)
     return m.group(1) if m else ''
@@ -472,7 +629,12 @@ def join_images(srcs):
     name = 'join_' + '_'.join(re.sub(r'\D', '', x)[-5:] for x in srcs) + '.jpeg'
     dst = os.path.join(special.IMG_DIR, name)
     if not os.path.exists(dst):
-        ims = [Image.open(os.path.join(special.IMG_DIR, x)).convert('RGB') for x in srcs]
+        ims = []
+        for x in srcs:
+            im = Image.open(os.path.join(special.IMG_DIR, x)).convert('RGBA')
+            bg = Image.new('RGBA', im.size, (255, 255, 255, 255))
+            bg.alpha_composite(im)                               # (transparent PNGs: on white, not on black)
+            ims.append(bg.convert('RGB'))
         W = max(im.width for im in ims)
         gap = max(12, W // 40)
         out = Image.new('RGB', (W, sum(im.height for im in ims) + gap * (len(ims) - 1)), 'white')
@@ -542,6 +704,91 @@ def fig_paragraphs(C, els, fig_no):
         runs.append(run(f'见书后插图{n}', h=f'plate-{n}', a=f'figref-{n}', c='fig'))
         out.append(dict(k='p', style='center', runs=runs, novary=True, nosplit=True, nomerge=True, before=1, after=1, plate_ref=1))
     return out
+
+
+def fig_inline(C, els):
+    """(book 16) Figures stay in the text: consecutive images of one figure are stacked, the caption paragraphs under
+    them (title, sub-title) go with them; the result is one 'fig' element with 'caps'."""
+    out = []
+    i = 0
+    while i < len(els):
+        e = els[i]
+        if e['k'] != 'fig':
+            out.append(e)
+            i += 1
+            continue
+        srcs = [e['src']]
+        i += 1
+        while i < len(els) and els[i]['k'] == 'fig' and els[i].get('grp') == e.get('grp') and not e.get('snap'):
+            srcs.append(els[i]['src'])
+            i += 1
+        caps = []
+        while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
+            caps.append(els[i])
+            i += 1
+        out.append(dict(k='fig', src=srcs[0] if len(srcs) == 1 else join_images(srcs), caps=caps, snap=e.get('snap')))
+    return out
+
+
+FIG_MAX_H = 420.0          # pt; an in-text figure (image) is at most this high
+SNAP_SCALE = 0.25          # pt per pixel of the table pictures of tools/snap.py (rendered at 4 px per pt)
+
+
+def formula_scale(src, letter=8.0):
+    """pt per pixel for a formula set as an image: its smallest line of letters (a band of rows with ink, at least 10 px
+    high) becomes `letter` pt high; never larger than the full-width scale of the figures."""
+    from PIL import Image
+    import numpy as np
+    im = Image.open(os.path.join(special.IMG_DIR, src)).convert('RGBA')
+    bg = Image.new('RGBA', im.size, (255, 255, 255, 255))
+    bg.alpha_composite(im)
+    ink = (np.array(bg.convert('L')) < 140).sum(1) > 0
+    bands, run_ = [], 0
+    for x in list(ink) + [False]:
+        if x:
+            run_ += 1
+        elif run_:
+            bands.append(run_)
+            run_ = 0
+    text = [b for b in bands if b >= 10]
+    return min(style.TEXT_W / 566.0, letter / min(text)) if text else style.TEXT_W / 566.0
+FIG_SCALE = None           # pt per pixel of the ebook's full-width images (set on first use: text width / 566 px)
+
+
+def fig_block(C, e, fmt):
+    """An in-text figure: image scaled into the text width, caption lines under it; it may float to the next page."""
+    from PIL import Image
+    global FIG_SCALE
+    if FIG_SCALE is None:
+        FIG_SCALE = style.TEXT_W / 566.0
+    w, h = Image.open(os.path.join(special.IMG_DIR, e['src'])).size
+    capw = style.TEXT_W - 2 * style.FONT
+    caps, fid = [], ''
+    for c in e.get('caps', []):
+        runs = BT.fix_edges(BT.fix_runs(c['runs']))
+        if not runs:
+            continue
+        title = 'maintitle' in c.get('src', '')
+        fid = fid or (c.get('id') if title else '')
+        caps.append(('s-figcap' if title else 's-figsub', mark_runs(runs, fmt)))
+    est = sum(math.ceil(len(plain(r)) * 9.0 / capw + 0.01) for _, r in caps)
+    max_h = min(FIG_MAX_H, (style.NLINES - 3) * style.LINE - 15.0 - 13.0 * est)
+    if e.get('snap'):
+        sc = SNAP_SCALE                                         # a picture of a table: its own size (made at SNAP_SCALE)
+    elif re.match(C.get('formula_img', r'$^'), e['src']):
+        sc = formula_scale(e['src'])                            # a formula set as an image: its letters about the size of the text
+    else:
+        sc = FIG_SCALE
+    sc = min(sc, style.TEXT_W / w, max_h / h)
+    iw, ih = round(w * sc, 2), round(h * sc, 2)
+    flt = bool(caps) and plain(caps[0][1]).startswith('图') or ih > 6 * style.LINE   # numbered figures and tall pictures may float
+    b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw)
+    if caps:
+        b['cap'] = caps
+    else:
+        b['cap_lines'] = []
+        b['n'] = int(math.ceil((ih + 10.0) / style.LINE))
+    return [b]
 
 
 def image_blocks(src, max_h, width=None, max_scale=None):
@@ -631,7 +878,16 @@ def renumber(els, notes):
 # ---------------------------------------------------------------------------------------------- pages
 def copyright_module(n, skip=0):
     blocks = [dict(k='space', style='cip', runs=[], n=4)]
+    items = []
     for it in BE.items(P(n))[skip:]:
+        if it['k'] == 'table':                                  # (book 16: the publisher's lines are a table) one line per row
+            for row in it['rows']:
+                cells = [plain(c) for c in row if plain(c)]
+                if cells:
+                    items.append(dict(k='p', runs=[run('　'.join(cells))]))
+        else:
+            items.append(it)
+    for it in items:
         if it['k'] != 'p':
             continue
         runs = BT.fix_edges(BT.fix_runs(it['runs']))
@@ -697,6 +953,9 @@ def part_divider(C, els):
         lines.append((3.0, plain(rest[0]['runs'])))
         title += '　' + plain(rest[0]['runs'])
         rest = rest[1:]
+    if C.get('part_img') and rest and rest[0]['k'] == 'fig':      # the picture of the part page (book 16)
+        lines.append((98, rest[0]['src']))
+        rest = rest[1:]
     epi = _cs(C, 'part_epi_cls')                                  # the epigraph of the part, set small under the title
     if epi and rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
         lines.append((97, ''))
@@ -757,15 +1016,19 @@ def book(b):
         n = _parts(ns)[0]
         if C.get('renum') and notes:
             els, notes = renumber(els, notes)
-        els = fig_paragraphs(C, els, fig_no)
+        els = fig_inline(C, els) if C.get('fig_inline') else fig_paragraphs(C, els, fig_no)
         blocks = []
         osz = C.get('orn_size', (70.0, 9.9))
         for e in unit_blocks(els):
-            if e['k'] == 'fig':
+            if e['k'] == 'fig' and C.get('fig_inline'):
+                blocks += fig_block(C, e, fmt)
+            elif e['k'] == 'fig':
                 blocks += image_blocks(e['src'], style.TEXT_H - 11 * style.LINE, max_scale=C.get('img_max_scale'))      # leaves room for the heading above and a source line below
             elif e['k'] == 'orn':
                 blocks += [dict(k='img', style='orn', runs=[], src=special.img_url(e['src']), w=osz[0], h=osz[1],
                                 n=math.ceil(osz[1] / style.LINE))]
+            elif e['k'] == 'table' and C.get('table2'):
+                blocks += table_blocks2(e['rows'], e.get('spans') or [[1] * len(r) for r in e['rows']], e.get('heads'))
             elif e['k'] == 'table':
                 blocks += table_blocks(e['rows'], C.get('table_head', True))
             else:
@@ -832,7 +1095,7 @@ def book(b):
             div = page_module(f'div{n0}', 'body', special.divider_html(lines), toc=True, toc_title=title_s,
                               toc_level=0, title=title_s, folio=False, head=False)
             div.part = True
-            div.lines = [t for _, t in lines]
+            div.lines = [t for lv, t in lines if lv != 98]
             div.src_parts = _parts(n)
             flush(body, 'body')
             body.append(div)
@@ -861,7 +1124,7 @@ def book(b):
             back.append(nm)
     plates = plate_modules(fig_list)
     allm = front + body + back + plates
-    toc_bl = toc_blocks(allm, '目　錄' if C.get('tc') else '目　录')
+    toc_bl = toc_blocks(allm, '目　錄' if C.get('tc') else '目　录', sections=C.get('toc_sections', True))
     for x in toc_bl:
         if x.get('style', '').startswith('toc'):
             x['noshrink'] = True

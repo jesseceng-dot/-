@@ -30,6 +30,35 @@ _FIX = None
 FIX_USED = {}
 _SPAN_ID = None
 
+# Span classes of one book -> (bold: 1 / 0 = inherit, run classes added); key = the book's scratch directory.
+RUN_CLS = {
+    'q16': {                                                    # 哥德尔、艾舍尔、巴赫
+        'dialog_name': (0, 'spk'), 'dialog_name1': (0, 'spk'),          # speakers of the dialogues (细黑)
+        'emphasis': (0, 'hei'), 'emphasis1': (0, 'hei'), 'heiti': (0, 'hei'),   # 黑体: the book's own emphasis ("黑体字的定理")
+        'kaiti_bold': (1, 'kai'), 'quote_text2': (0, 'kai'),
+        'zw': (0, 'sm'), 'zw-c': (0, 'sm'), 'zw-c1': (0, 'sm'), 'zw1': (0, 'sm'), 'code_notes2': (0, 'sm'),
+        'smalltext': (0, 'sm'), 'smalltext1': (0, 'sm'), 'smalltext5': (0, 'sm'),
+        'smallxht': (0, 'hei sm'), 'kaiti_smalltext': (0, 'kai sm'), 'heiti_smalltext': (0, 'hei sm'),
+        'underline': (0, 'ul'), 'bg-gray': (0, 'gbox'), 'bg': (0, 'gbox'), 'duokan-western-italic': (0, 'it'),
+        'normal': (0, 'nohei'), 'preface_title1': (0, ''), 'view_title_span': (0, ''), 'geb-overview-label': (0, ''),
+        'ed-figure-link': (0, 'nomark lnk'),                             # links to figures ('图10', '1．'): not note marks
+    },
+}
+# Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
+# spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
+SNAP = {
+    'q16': {(16, 0), (16, 2), (22, 3), (30, 0), (31, 1), (31, 4), (31, 6), (42, 1), (46, 1), (46, 2), (46, 3), (46, 5),
+            (46, 7), (46, 8), (46, 10)},
+}
+_RUNMAP = None
+
+
+def _runmap():
+    global _RUNMAP
+    if _RUNMAP is None:
+        _RUNMAP = RUN_CLS.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), {})
+    return _RUNMAP
+
 
 def _fixes(part):
     """Corrections (bk_fixes) of this book that apply to `part`; the book is the scratch directory (q11 ...)."""
@@ -83,6 +112,30 @@ def fix_runs(runs, fixes):
                 out.insert(next((k for k, r in enumerate(out) if sum(1 if x.get('i') else len(x['t']) for x in out[:k]) >= i), len(out)), run(rep))
             runs = [r for r in out if r.get('i') or r['t'] != '']
     return runs
+
+
+def fix_tree(part, el):
+    """Apply the text corrections of `part` to the text nodes of an ebook element in place (a table set as a picture,
+    tools/snap.py); a correction must lie within one text node here."""
+    fx = [f for f in _fixes(part) if f[1] not in BF_SPECIAL]
+    for node in el.iter():
+        if not isinstance(node.tag, str):
+            continue
+        for attr in (('text',) if node is el else ('text', 'tail')):
+            s = getattr(node, attr)
+            if not s:
+                continue
+            for f in fx:
+                old, new = f[1], f[2]
+                if isinstance(old, str):
+                    n = s.count(old)
+                    s = s.replace(old, new) if n else s
+                else:
+                    s, n = old.subn(lambda m: m.expand(new), s)
+                if n:
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + n
+            setattr(node, attr, s)
+    return el
 
 
 def _txt(it):
@@ -198,6 +251,39 @@ def _apply_fixes(part, out):
                 out.insert(src[0], it)
     for f in [f for f in fx if f[1] in ('RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HREF', 'ANCHOR')]:
         _mark_fix(f, out)
+    for f in [f for f in fx if f[1] == 'CELL']:                 # (part, 'CELL', first cell of the row, column, old, new): one table cell
+        for it in out:
+            for row in it.get('rows') or []:
+                if row and _txt(dict(runs=row[0])).strip() == f[2] and len(row) > f[3] and f[4] in _txt(dict(runs=row[f[3]])):
+                    row[f[3]] = fix_runs(row[f[3]], [(None, f[4], f[5])])
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    break
+            if FIX_USED.get(id(f)):
+                break
+    for f in [f for f in fx if f[1] == 'JOIN']:                 # (part, 'JOIN', end of a paragraph, start of the next): one paragraph the ebook broke in two
+        for k in range(len(out) - 1):
+            a, b = out[k], out[k + 1]
+            if a['k'] == 'p' and b['k'] == 'p' and _txt(a).endswith(f[2]) and _txt(b).startswith(f[3]):
+                out[k:k + 2] = [dict(a, runs=a['runs'] + b['runs'])]
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                break
+    for f in [f for f in fx if f[1] == 'PARA']:                 # (part, 'PARA', paragraph prefix, text that starts a new paragraph
+        for k, it in enumerate(out):                            #  [, speaker label at its start, set like the dialogue speakers])
+            if it['k'] != 'p' or not _txt(it).startswith(f[2]):
+                continue
+            pos = 0
+            for j, r in enumerate(it['runs']):
+                i = r['t'].find(f[3]) if not r.get('i') else -1
+                if i >= 0:
+                    head = it['runs'][:j] + ([dict(r, t=r['t'][:i].rstrip())] if r['t'][:i].strip() else [])
+                    tail = [dict(r, t=r['t'][i:])] + it['runs'][j + 1:]
+                    if len(f) == 6 and tail[0]['t'].startswith(f[4]):
+                        spk = len(f[4])
+                        tail[:1] = [dict(r, t=f[4], c=_cls(r.get('c'), 'spk')), dict(r, t=tail[0]['t'][spk:])]
+                    out[k:k + 1] = [dict(it, runs=head), dict(it, runs=tail, id='')]
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    break
+            break
     for f in [f for f in fx if f[1] == 'HEAD']:                 # (part, 'HEAD', paragraph prefix, level): a heading the ebook set as text
         for k, it in enumerate(out):
             if it['k'] == 'p' and _txt(it).startswith(f[2]):
@@ -241,7 +327,14 @@ def inline(el, part, mark_breaks=False):
                 continue
             t = ln(ch)
             cls = (ch.get('class') or '').split()
-            if t == 'br':
+            rm = _runmap()
+            if t in ('span', 'b', 'i', 'em', 'strong') and set(cls) & set(rm):
+                bold, add = rm[next(x for x in cls if x in rm)]
+                c2 = c
+                for x in add.split():
+                    c2 = _cls(c2, x)
+                rec(ch, 1 if (bold or t in ('b', 'strong')) else b, _cls(c2, 'it') if t in ('i', 'em') else c2, h, a, s)
+            elif t == 'br':
                 if mark_breaks:
                     out.append(run(' '))
                 else:
@@ -260,7 +353,11 @@ def inline(el, part, mark_breaks=False):
                 if ch.get('href'):
                     href = resolve_href(part, ch.get('href'))
                     aid = anchor_key(part, ch.get('id')) if ch.get('id') else a
-                    rec(ch, b, c, href or h, aid, s)
+                    c2 = c
+                    for x in cls:
+                        for y in (rm.get(x, (0, ''))[1] or '').split():
+                            c2 = _cls(c2, y)
+                    rec(ch, b, c2, href or h, aid, s)
                 elif ch.get('id'):
                     aid = anchor_key(part, ch.get('id'))
                     if len(ch) == 0 and not (ch.text or '').strip():
@@ -316,9 +413,20 @@ def items(part):
     body = load_body(part)
     out = []
 
+    dstack = []                                                    # classes of the <div>s around the current element
+    grp = [0, 0]                                                   # (number of <div>s seen, the one the walk is in)
+    ntab = [0]
+    key = os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/'))
+    snap = SNAP.get(key, set())
+    pno = int(part[4:]) if part[4:].isdigit() else -1
+
     def add(k, el, **kw):
         cls = el.get('class') or ''
         it = dict(k=k, tag=ln(el), cls=cls, id=anchor_key(part, el.get('id')) if el.get('id') else '', **kw)
+        if dstack:
+            it['dcls'] = ' '.join(dstack)
+        if k == 'img':
+            it['grp'] = grp[1]
         out.append(it)
         return it
 
@@ -329,7 +437,7 @@ def items(part):
             t = ln(el)
             cls = (el.get('class') or '').split()
             if t in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-                imgs = _imgs(el)
+                imgs = [im for im in _imgs(el) if 'footnote' not in (im.get('class') or '')]   # (a note icon is the mark, not a picture)
                 runs = clean_runs([r for r in inline(el, part, mark_breaks=True) if not r.get('i')])
                 if runs:
                     add('h', el, runs=runs, lvl=int(t[1]))
@@ -365,8 +473,13 @@ def items(part):
                         add('note' if (note or 'fnote' in cls) else 'p', el, runs=runs, q=q, box=box)
                     continue
                 start = len(out)
+                dstack.extend(cls)
+                grp[0] += 1
+                outer, grp[1] = grp[1], grp[0]
                 walk(el, q=q, box=1 if ('roundsolid' in cls or 'kx' in cls) else box, fig=1 if 'chatu' in cls else fig,
                      note=1 if ('fnote' in cls or 'annotation' in cls or '_idFootnote' in cls) else note)
+                grp[1] = outer
+                del dstack[len(dstack) - len(cls):]
                 if '_idFootnote' in cls and el.get('id') and len(out) > start and out[start].get('runs') and not out[start]['runs'][0].get('a'):
                     out[start]['runs'][0] = dict(out[start]['runs'][0], a=anchor_key(part, el.get('id')))   # the entry's id sits on its <div>
             elif t in ('ul', 'ol') and 'duokan-footnote-content' in cls:
@@ -383,18 +496,25 @@ def items(part):
             elif t in ('ul', 'ol'):
                 if 'Level-1' in cls:
                     continue
-                for li in el:
-                    if isinstance(li.tag, str) and ln(li) == 'li':
-                        runs = clean_runs(inline(li, part))
-                        if runs:
-                            add('li', li, runs=runs)
+                lists(el, 0)
             elif t == 'table':
-                rows = []
+                k = ntab[0]
+                ntab[0] += 1
+                if (pno, k) in snap:                                # set as a picture of the ebook's own table
+                    fix_tree(part, el)                              # (tools/snap.py applies the same corrections)
+                    grp[0] += 1
+                    outer, grp[1] = grp[1], grp[0]
+                    add('img', el, src=f'snap_{part}_{k}.png', runs=[], fig=fig, snap=1)
+                    grp[1] = outer
+                    continue
+                rows, spans, heads = [], [], []
                 for tr in el.iter():
                     if isinstance(tr.tag, str) and ln(tr) == 'tr':
-                        cells = [clean_runs(inline(td, part)) for td in tr if isinstance(td.tag, str) and ln(td) in ('td', 'th')]
-                        rows.append(cells)
-                add('table', el, rows=rows, runs=[])
+                        tds = [td for td in tr if isinstance(td.tag, str) and ln(td) in ('td', 'th')]
+                        rows.append([clean_runs(inline(td, part)) for td in tds])
+                        spans.append([int(td.get('colspan') or 1) for td in tds])
+                        heads.append(bool(tds) and all(ln(td) == 'th' for td in tds))
+                add('table', el, rows=rows, runs=[], spans=spans, heads=heads)
             elif t == 'img':
                 add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig)
             elif t in ('hr', 'nav', 'svg', 'br'):
@@ -403,6 +523,28 @@ def items(part):
                 runs = clean_runs(inline(el, part))
                 if runs:
                     add('p', el, runs=runs, q=q, box=box)
+
+    def lists(el, depth):
+        """<ul>/<ol> items; a nested list (inside an item) becomes items one level deeper."""
+        kind = next((x for x in (el.get('class') or '').split() if x in ('square', 'square1', 'circle', 'disc')), '')
+        for li in el:
+            if not (isinstance(li.tag, str) and ln(li) == 'li'):
+                continue
+            subs = [x for x in li if isinstance(x.tag, str) and ln(x) in ('ul', 'ol')]
+            if subs:
+                for x in subs:                                      # the item's own text (without the nested lists) first
+                    li.remove(x)
+                runs = clean_runs(inline(li, part))
+                for x in subs:
+                    li.append(x)
+                if runs:
+                    add('li', li, runs=runs, depth=depth, bullet=kind)
+                for x in subs:
+                    lists(x, depth + 1)
+                continue
+            runs = clean_runs(inline(li, part))
+            if runs:
+                add('li', li, runs=runs, depth=depth, bullet=kind)
 
     walk(body)
     return _apply_fixes(part, out)

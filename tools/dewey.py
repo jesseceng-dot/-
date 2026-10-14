@@ -265,8 +265,9 @@ def copyright_module(n):
                folio=False, single=True)
 
 
-def make_toc(mods, title='目　录'):
-    """Contents: the chapters (with the parts they belong to as bold lines) and the rank-2 headings inside them."""
+def make_toc(mods, title='目　录', sections=True):
+    """Contents: the chapters (with the parts they belong to as bold lines) and the rank-2 headings inside them
+    (`sections=False`: the chapters only; their sections are still in the PDF bookmarks)."""
     from .model import run as R
     blocks = [dict(k='h', style='tochead', rank=1, runs=[R(title)], id='toc')]
     under = False
@@ -285,9 +286,12 @@ def make_toc(mods, title='目　录'):
         ind = 'i' if under else ''
         label = mod.toc_title or mod.title
         if mod.toc_level == 1:
-            blocks.append(dict(k='p', style='toc1' + ind, runs=[R(label, h=mod.mid)], h=mod.mid, toc_ref=(mod.mid, None)))
+            blocks.append(dict(k='p', style='toc1' + ind, runs=[R(label, h=mod.mid)], h=mod.mid, toc_ref=(mod.mid, None),
+                               **({} if sections else {'before': 0})))
         else:
             blocks.append(dict(k='p', style='toc2' + ind, runs=[R(label, h=mod.mid)], h=mod.mid, toc_ref=(mod.mid, None)))
+            continue
+        if not sections:
             continue
         cand = []
         for bi, b in enumerate(mod.blocks):

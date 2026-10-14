@@ -156,6 +156,16 @@ def divider_html(lines):
         if lvl == 97:
             y += 26.0                                     # (a space before an epigraph)
             continue
+        if lvl == 98:                                     # a picture under the title (the part pages of book 16)
+            from PIL import Image
+            iw, ih = Image.open(os.path.join(IMG_DIR, text)).size
+            room = style.TOP + style.TEXT_H - (y + 24.0)
+            sc = min(style.TEXT_W * 0.86 / iw, room / ih)
+            w, h = iw * sc, ih * sc
+            out += (f'<img src="{img_url(text)}" style="position:absolute;left:0;top:0;width:{w:.1f}pt;height:{h:.1f}pt;'
+                    f'transform:translate({(style.PAGE_W - w) / 2:.1f}pt,{y + 24.0:.1f}pt)">')
+            y += 24.0 + h
+            continue
         if not text.strip():
             continue
         if lvl <= 1.0:

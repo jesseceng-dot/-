@@ -5,6 +5,8 @@ from . import style, build, bk
 
 
 def main(b, redo=()):
+    from . import snap
+    snap.ensure(bk.CFG[b]['scratch'])                     # pictures of the tables that are set as images (book 16)
     cfg = bk.book(b)
     out = os.path.join(style.SCRATCH, 'out')
     os.makedirs(out, exist_ok=True)

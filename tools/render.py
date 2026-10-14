@@ -123,8 +123,29 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             b = lb.block
             y = style.TOP + slot0 * st['pitch'] * k
             iw, ih = b['w'], b['h']
+            if b.get('cap_lines') is not None:          # an in-text figure: image and caption centred in its slots
+                from .typeset import CAP_PITCH
+                hc = sum(len(c['starts']) for c in b['cap_lines']) * CAP_PITCH
+                y += (b['n'] * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
+            if anchors is not None and b.get('id') and b['id'] not in anchors:
+                anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'
                          f'transform:translate({x0 + (st["W"] - iw) / 2:.2f}pt,{y:.2f}pt)">')
+            if b.get('cap_lines'):
+                from .typeset import CAP_PITCH
+                yc = y + ih + 5.0
+                cx = x0 + (st['W'] - b['capw']) / 2
+                for (cls, runs), cl in zip(b['cap'], b['cap_lines']):
+                    starts = cl['starts']
+                    ends = starts[1:] + [None]
+                    cst = dict(cls=cls, fs=9.0, first=0, left=0, right=0, slots=1, pitch=CAP_PITCH,
+                               align='c' if len(starts) == 1 else 'j', W=b['capw'])
+                    for j in range(len(starts)):
+                        h = runs_html(runs, starts[j], ends[j], final=True)
+                        parts.append(line_div(cst, j, len(starts), h, cx, yc, b['capw'], 0.0))
+                        if anchors is not None:
+                            _register_anchors(anchors, {}, runs, starts[j], ends[j], page_ref, yc, j == 0)
+                        yc += CAP_PITCH
             continue
         if lb.block['k'] == 'space':
             continue

@@ -4,10 +4,28 @@ from .layout import LB, sty, build_specs, variant_penalty, solve, INF
 from .model import runs_len
 
 
+CAP_PITCH = 13.0         # line pitch of figure captions (they sit inside the figure block, off the text grid)
+
+
+def figure_caption(b, measurer):
+    """An in-text figure with a caption (b['cap'] = [(css class, runs), ...]): measure the caption lines and set the
+    number of grid slots the figure takes (image + caption + a little air), b['n']."""
+    from .model import runs_html
+    specs = [dict(html=runs_html(runs, strip=False), cls=cls, width=b['capw'], indent=0, ls=0.0, lh=CAP_PITCH)
+             for cls, runs in b['cap']]
+    res = measurer.measure(specs) if specs else []
+    b['cap_lines'] = [dict(starts=r['starts'], nat=r['nat']) for r in res]
+    h = b['h'] + (5.0 + CAP_PITCH * sum(len(r['starts']) for r in res) if res else 0.0)
+    b['n'] = int(-(-(h + 10.0) // style.LINE))
+
+
 def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=18):
     variants = variants if variants is not None else style.VARIANTS
     lbs = []
     specs, owner = [], []
+    for b in blocks:
+        if b['k'] == 'img' and b.get('cap') and 'cap_lines' not in b:
+            figure_caption(b, measurer)
     for i, b in enumerate(blocks):
         st = sty(b, grid)
         lb = LB(idx=i, block=b, st=st)
