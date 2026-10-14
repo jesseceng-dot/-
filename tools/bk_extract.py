@@ -252,13 +252,15 @@ def _apply_fixes(part, out):
     for f in [f for f in fx if f[1] in ('RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HREF', 'ANCHOR')]:
         _mark_fix(f, out)
     for f in [f for f in fx if f[1] == 'CELL']:                 # (part, 'CELL', first cell of the row, column, old, new): one table cell
+        done = False
         for it in out:
             for row in it.get('rows') or []:
                 if row and _txt(dict(runs=row[0])).strip() == f[2] and len(row) > f[3] and f[4] in _txt(dict(runs=row[f[3]])):
                     row[f[3]] = fix_runs(row[f[3]], [(None, f[4], f[5])])
                     FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                    done = True
                     break
-            if FIX_USED.get(id(f)):
+            if done:
                 break
     for f in [f for f in fx if f[1] == 'JOIN']:                 # (part, 'JOIN', end of a paragraph, start of the next): one paragraph the ebook broke in two
         for k in range(len(out) - 1):

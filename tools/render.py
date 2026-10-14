@@ -101,11 +101,20 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
     # A page the solver could not fill exactly: the missing slots become extra space above the last heading of the page
     # (line pitch stays uniform); only a page without a heading is stretched.
     shift_from = None
-    if gap:
+    lone = 0.0
+    if gap and page['items'] and all(lbs[it[0]].block['k'] == 'img' for it in page['items']):
+        k, lone = 1.0, gap * g['pitch'] / 2                       # a page of figures only: centred, not spread
+    elif gap:
         for idx in range(len(page['items']) - 1, 0, -1):
             if lbs[page['items'][idx][0]].block['k'] == 'h':
                 shift_from = idx
                 k = 1.0
+                break
+    fig_air = {}
+    if gap and not lone and shift_from is None:                   # no heading: the missing slots go round an in-text figure
+        for idx, it in enumerate(page['items']):
+            if lbs[it[0]].block['k'] == 'img' and lbs[it[0]].block.get('cap_lines') is not None:
+                fig_air[idx], shift_from, k = gap, idx + 1, 1.0
                 break
     x0 = style.LEFT + col * (g['W'] + g['gutter'])
     parts = []
@@ -121,12 +130,12 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
         runs = lb.block['runs']
         if lb.block['k'] == 'img':
             b = lb.block
-            y = style.TOP + slot0 * st['pitch'] * k
+            y = style.TOP + slot0 * st['pitch'] * k + lone
             iw, ih = b['w'], b['h']
             if b.get('cap_lines') is not None:          # an in-text figure: image and caption centred in its slots
                 from .typeset import CAP_PITCH
                 hc = sum(len(c['starts']) for c in b['cap_lines']) * CAP_PITCH
-                y += (b['n'] * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
+                y += ((lb.nl[vi] + fig_air.get(ii, 0)) * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
             if anchors is not None and b.get('id') and b['id'] not in anchors:
                 anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'

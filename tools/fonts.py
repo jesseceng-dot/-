@@ -184,8 +184,27 @@ def build(name):
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 
+def geb_rare(src):
+    """《哥德尔、艾舍尔、巴赫》: the ebook's own font (OEBPS/Fonts/geb.ttf) holds the book's coined characters (U+AA9E–AAAF)
+    and, at 'G', the upside-down G.  Saved as the family "GebRare" with that glyph moved to U+E047, where the text has it
+    (bk_fixes), so that the font can stand first in every font list (style.STYLE_CSS) without touching a Latin G."""
+    font = TTFont(src)
+    for t in font['cmap'].tables:
+        if t.isUnicode() and 0x47 in t.cmap:
+            t.cmap[0xE047] = t.cmap.pop(0x47)
+    for n in font['name'].names:
+        if n.nameID in (1, 4, 6, 16):
+            n.string = 'GebRare'
+    out = os.path.join(FONT_DIR, 'GebRare.ttf')
+    font.save(out)
+    return out
+
+
 if __name__ == '__main__':
     os.makedirs(FONT_DIR, exist_ok=True)
+    if sys.argv[1:2] == ['GebRare']:                # python -m tools.fonts GebRare <unpacked epub>/OEBPS/Fonts/geb.ttf
+        print(geb_rare(sys.argv[2]))
+        sys.exit()
     for n in (sys.argv[1:] or FACES):
         print(n, build(n), os.path.getsize(os.path.join(FONT_DIR, n + '.ttf')) // 1024, 'KB', flush=True)
 

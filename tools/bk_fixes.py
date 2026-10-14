@@ -1658,8 +1658,8 @@ FIXES = {
     'q16': [
         (2, 'Hofsadter', 'Hofstadter', '人名：Hofstadter'),
         (2, 'Inc. /Bardon', 'Inc./Bardon', '排版：多余空格'),
-        (5, '"Speak of the devil!"', '“Speak of the devil!”', '排版：西文直引号改彎引号'),
-        (5, '["Speak of the devil and the devil appears."]', '[“Speak of the devil and the devil appears.”]', '排版：西文直引号改彎引号'),
+        (5, '"Speak of the devil!"', '“Speak of the devil!”', '排版：西文直引号改弯引号'),
+        (5, '["Speak of the devil and the devil appears."]', '[“Speak of the devil and the devil appears.”]', '排版：西文直引号改弯引号'),
         (5, '异国它邦', '异国他邦', '错字：他邦'),
         (5, '考虑一下十七章中', '考虑一下第十七章中', '漏字：第'),
         (5, re.compile(r'^　+(?=比方说换一只)'), '', '排版：多余的段首空格'),
@@ -2155,5 +2155,7 @@ FIXES = {
         (57, 'Rockefeller University Press，1967年版，一篇试图调和', 'Rockefeller University Press，1967年版。一篇试图调和', '标点：句号'),
         (57, '[威勒·威廉·茅顿]“The Ant-Colony', '[威勒·威廉·茅顿]，“The Ant-Colony', '标点：漏逗号'),
         (57, 'Whitely C. H.[怀特利]', 'Whiteley C. H.[怀特利]', '人名：C. H. Whiteley'),
+        (46, 'DNA基序列', 'DNA碱基序列', '漏字：碱基序列'),
+        (48, '随后螃蟹自己吹奏起来）', '随后螃蟹自己吹奏起来。）', '标点：漏句号'),
     ],
 }

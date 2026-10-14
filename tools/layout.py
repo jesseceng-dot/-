@@ -244,12 +244,15 @@ def _norm_end(res, after, N, reserve):
     return f, pg
 
 
+NOSHRINK_PEN = 80.0       # cost of taking a blank line from a `noshrink` block (a lone last line of a contents costs 300)
+
+
 def bef_options(lb):
     """Allowed 'space before' values for a block with their cost: headings may take one blank slot more or less
     (never less than the block's own `minbefore`)."""
     opts = _bef_options(lb)
-    if lb.block.get('noshrink'):                                   # e.g. table-of-contents groups: never squeezed below their blank line
-        opts = [o for o in opts if o[0] >= lb.st['before']] or opts
+    if lb.block.get('noshrink'):                                   # e.g. table-of-contents groups: squeezed below their blank line
+        opts = [o if o[0] >= lb.st['before'] else (o[0], o[1] + NOSHRINK_PEN) for o in opts]   # only to spare a worse page
     lo = lb.block.get('minbefore')
     if lo is not None:
         opts = [o for o in opts if o[0] >= lo] or [(lo, 0.0)]

@@ -22,10 +22,7 @@ def counter(t):
 def source_counter(b):
     """Characters of the source parts of book b that end up in the book (contents / copyright / cover pages excluded)."""
     C = bk.CFG[b]
-    parts = [n for n, _ in C['front']]
-    for x in C['body']:
-        parts += list(x) if isinstance(x, (list, tuple)) else [x]
-    parts += [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes', ()))
+    parts = book_parts(C)
     c = collections.Counter()
     for n in parts:
         for it in BE.items(bk.P(n)):
@@ -49,14 +46,23 @@ def source_counter(b):
     return c
 
 
+def book_parts(C):
+    """Part numbers of the source files a book configuration uses (an entry may group several parts)."""
+    out = []
+    for x in [n for n, _ in C['front']] + list(C['body']) + [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes') or ()):
+        out += list(x) if isinstance(x, (list, tuple)) else [x]
+    return out
+
+
+BLOCK_TAGS = {'p', 'td', 'th', 'li', 'dt', 'dd', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}
+
+
 def raw_missing(b):
     """Independent of the extractor: characters of the raw XHTML <body> text of the book's parts that bk_extract does not yield."""
     from lxml import etree
     C = bk.CFG[b]
-    parts = [n for n, _ in C['front']]
-    for x in C['body']:
-        parts += list(x) if isinstance(x, (list, tuple)) else [x]
-    parts += [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes', ()))
+    parts = book_parts(C)
+    snap = BE.SNAP.get(os.path.basename(style.SCRATCH.rstrip('/')), ())
     if C.get('copyright') is not None:
         parts.append(C['copyright'])
     ign = re.compile(r'[\s\u3000\u2028\u00a0\u200b\u2060]')
@@ -64,12 +70,40 @@ def raw_missing(b):
     for n in parts:
         path = os.path.join(style.SCRATCH, 'unpack/x/mobi8/OEBPS/Text', bk.P(n) + '.xhtml')
         body = etree.parse(path, etree.XMLParser(recover=True, huge_tree=True)).getroot().find('.//{http://www.w3.org/1999/xhtml}body')
-        raw = ign.sub('', ''.join(body.itertext()))
-        for f in BE._fixes(bk.P(n)):                               # (the corrections of bk_fixes are not losses)
+        tables = [t for t in body.iter('{http://www.w3.org/1999/xhtml}table')]
+        for k in sorted((k for pn, k in snap if pn == n), reverse=True):        # tables set as pictures (tools/snap.py)
+            t = tables[k]
+            if t.tail and t.getprevious() is not None:
+                t.getprevious().tail = (t.getprevious().tail or '') + t.tail
+            elif t.tail:
+                t.getparent().text = (t.getparent().text or '') + t.tail
+            t.getparent().remove(t)
+        fx = BE._fixes(bk.P(n))                                    # (the corrections of bk_fixes are not losses)
+        pats = [f for f in fx if not isinstance(f[1], str)]
+        for el in list(body.iter()) if pats else ():               # a pattern applies to the text of a paragraph / table cell
+            if isinstance(el.tag, str) and etree.QName(el).localname in BLOCK_TAGS and not any(
+                    isinstance(c.tag, str) and etree.QName(c).localname in BLOCK_TAGS for c in el.iterdescendants()):
+                t = re.sub(r'[ \t\r\n\f]+', ' ', ''.join(el.itertext())).strip()
+                for f in pats:
+                    t = f[1].sub(lambda m: m.expand(f[2]), t)
+                tail = el.tail
+                el.clear()
+                el.text, el.tail = t, tail
+        raw = re.sub(r'[ \t\r\n\f]+', ' ', ''.join(body.itertext()))     # (white space as in the extracted runs)
+        later = []
+        for f in fx:
             if f[1] in ('RELINK', 'SPLIT'):                         # a relabelled note mark
                 raw = raw.replace(f[3], f[4], 1)
+            elif f[1] == 'CELL':                                    # one table cell
+                raw = raw.replace(f[4], f[5], 1)
             elif isinstance(f[1], str) and f[1] not in BF.SPECIAL:
-                raw = raw.replace(ign.sub('', f[1]), ign.sub('', f[2]))
+                if f[1] in raw:
+                    raw = raw.replace(f[1], f[2])
+                else:
+                    later.append(f)                                 # (text joined from two paragraphs of the markup)
+        raw = ign.sub('', raw)
+        for f in later:
+            raw = raw.replace(ign.sub('', f[1]), ign.sub('', f[2]))
         got = ''
         for it in BE.items(bk.P(n)):
             got += ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
@@ -91,6 +125,8 @@ def block_counter(cfg):
     for m in cfg['modules']:
         if m.kind == 'text' and m.mid not in ('toc', 'copyright'):
             for b in m.blocks:
+                for _, runs in b.get('cap') or ():                # the caption of an in-text figure
+                    c += counter(runs_text(runs).replace('⁠', '').replace(' ', ''))
                 if b['k'] in ('img', 'space'):
                     continue
                 if b.get('id', '').endswith('#top') and b['style'] == 'h1' and runs_text(b['runs']) == '注　释':

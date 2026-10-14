@@ -128,10 +128,12 @@ a{{color:inherit;text-decoration:none}}
 .hei.nohei,.nohei{{font-family:inherit;font-weight:inherit}}
 .sm{{font-size:.86em}}
 .ul{{text-decoration:underline;text-underline-offset:.15em}}
-.gbox{{background:#e4e4e4;border-radius:1.5pt;padding:.08em 0}}
+/* the grey box grows by shadows: vertical padding would move its glyphs 0.08 pt off the baseline */
+.gbox{{background:#e4e4e4;border-radius:1.5pt;box-shadow:0 .08em 0 #e4e4e4,0 -.08em 0 #e4e4e4}}
 .lat{{font-family:"LatSerif","GrkSerif","SongBody","HanExt",serif}}
 .it.lat{{font-family:"LatIt","GrkSerif","SongBody","HanExt",serif;font-style:italic}}
 .lnk{{color:#1f3a93}}
+.spk,.hei,.sm,.lat,.gbox,.ul,.nohei{{line-height:0}}
 .s-small{{font-size:9pt}}
 .s-smallkai{{font-family:"KaiTi","GebRare","GrkSerif","SongBody",serif;font-size:9.5pt}}
 .s-figcap{{font-family:"GrkSerif","GebRare","HeiTi",sans-serif;font-size:9pt;font-weight:500}}
