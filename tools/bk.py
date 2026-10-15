@@ -171,6 +171,18 @@ CFG = {
              cls_style=GEB_STYLE, front=[(3, 'dedication'), (5, 'text'), (6, 'text'), ([7, 8], 'text'), (9, 'text'), (10, 'text')],
              body=[11] + list(range(12, 27)) + [[27, 28]] + list(range(29, 47)) + [[47, 48]] + list(range(49, 57)),
              back=[57, 58], tail=[], inplace=set()),
+    17: dict(scratch='q17', file='乡土中国', title='乡土中国', sub='', author='费孝通 著', credits=[], publisher='天津人民出版社',
+             pdf_author='费孝通', series='果麦经典', cover='CB_3300027208_device_phone_frontcover.jpg', title_img=None, copyright=2,
+             marker='sq', head_clean=True, skip_text=('注释',), lat_apos=True, li_hang=True, cls_cap=('imgdescript',), cls_right=('right-info',),
+             cls_center=('subHead', 'content-c1', 'author'),
+             img_text={'xtzg_math_01.svg': [('X', 'it'), '+1'], 'xtzg_math_02.svg': 'Tönnies', 'xtzg_math_03.svg': 'Émile',
+                       'xtzg_math_04.svg': 'gǔ sǒu', 'xtzg_math_05.svg': 'cóng', 'xtzg_math_06.svg': 'kǔn', 'xtzg_math_07.svg': 'zé',
+                       'xtzg_math_08.svg': '＊　＊　＊', 'xtzg_math_09.svg': '1+1>2'},
+             front=[(3, 'text'), (4, 'figure'), (5, 'text')],
+             body=list(range(6, 21)),
+             back=[21, (22, 'figpages'), 23, 24], tail=[], inplace=set(),
+             errata_note='底本是一份已经通读校订过的个人校订本（书末“本次校订说明”：26 处改正，7 条“校订注”与核查依据链接，均照排）。'
+                         '转换时按要求只改正已经发现的明确错误，没有再全面校订；另把电子书网页式的半角空格（U+2002）和半角括号统一为中文排版规范。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -237,11 +249,12 @@ def mark_runs(runs, fmt):
 LAT_APOS = re.compile(r"(?<=[A-Za-z\u00c0-\u024f])[’'](?=[A-Za-z\u00c0-\u024f])|(?:(?<=[\s(“\"])|^)[’‘'](?=[A-Za-z])")
 
 
-def latin_runs(runs):
+def latin_runs(runs, whole=True):
     """(book 16) Latin text in a Latin face: whole paragraphs that are mostly Latin (the French and German Jabberwocky,
-    English quotations), and apostrophes inside Latin words elsewhere (the CJK faces set ’ full width: “l’ oiseau”)."""
+    English quotations), and apostrophes inside Latin words elsewhere (the CJK faces set ’ full width: “l’ oiseau”).
+    whole=False: only the apostrophes (C['lat_apos'])."""
     add = lambda r: dict(r, c=((r.get('c') or '') + ' lat').strip())
-    if latin_ratio(runs) > 0.5:
+    if whole and latin_ratio(runs) > 0.5:
         return [add(r) if not r.get('i') else r for r in runs]
     out = []
     for r in runs:
@@ -280,9 +293,13 @@ def _img_text(C, runs):
         return runs
     def sub(r):
         v = m[r['i']]
-        t, c = v if isinstance(v, tuple) else (v, '')                  # text, or (text, run class)
-        return dict({k: x for k, x in r.items() if k not in ('i', 'c')}, t=t, **({'c': c} if c else {}))
-    return [sub(r) if r.get('i') else r for r in runs if not r.get('i') or r['i'] in m]
+        pieces = v if isinstance(v, list) else [v]                     # text, (text, run class), or a list of those
+        out = []
+        for x in pieces:
+            t, c = x if isinstance(x, tuple) else (x, '')
+            out.append(dict({k: y for k, y in r.items() if k not in ('i', 'c')}, t=t, **({'c': c} if c else {})))
+        return out
+    return [x for r in runs if not r.get('i') or r['i'] in m for x in (sub(r) if r.get('i') else [r])]
 
 
 def exp_sup(runs):
@@ -358,7 +375,12 @@ def elements(C, items, kaitext=False):
         if k == 'note':
             if ''.join(r['t'] for r in it['runs']).strip('\u3000 ') in C.get('skip_text', ()):
                 continue                                    # a 'notes' label that the ebook sets as a note entry
-            notes.append(it)
+            nr = _img_text(C, it['runs'])                   # (transcribed inline pictures, as in the text)
+            notes.append(dict(it, runs=latin_runs(nr, whole=False) if C.get('lat_apos') else nr))
+            continue
+        if k == 'img' and it['src'] in C.get('img_text', {}):        # a picture of a few characters standing alone: its transcription, centred
+            els.append(dict(k='p', style='center', runs=_img_text(C, [dict(run('\ufffc'), i=it['src'])]), id='', src='img_text',
+                            nomerge=True, novary=True))
             continue
         if k == 'img' and it['src'] in C.get('img_para', {}):
             for ln_ in C['img_para'][it['src']]:                 # a display formula set as an image: transcribed to centred text lines
@@ -432,6 +454,10 @@ def elements(C, items, kaitext=False):
                 els.append(dict(k='p', style='noindent', runs=[run(bul + '\u3000')] + runs, id=it['id'], src='li',
                                 first=-2, left=2 * (d + 2)))
                 continue
+            if C.get('li_hang'):                          # the bullet in a 2-em box, turned lines under the text
+                els.append(dict(k='p', style='noindent', runs=[dict(run('•'), c='nb')] + runs, id=it['id'], src='li',
+                                first=-2, left=2))
+                continue
             els.append(dict(k='p', style='noindent', runs=[run('•　')] + runs, id=it['id'], src='li'))
             continue
         if C.get('strip_indent') and runs and not runs[0].get('i'):
@@ -440,6 +466,8 @@ def elements(C, items, kaitext=False):
                 runs = runs[1:]
             if not runs:
                 continue
+        if C.get('lat_apos'):
+            runs = latin_runs(runs, whole=False)
         b = dict(k='p', runs=runs, id=it['id'], src=f'p.{cls}')
         c = set(cls.split())
         t = plain(runs)
@@ -978,6 +1006,40 @@ def image_blocks(src, max_h, width=None, max_scale=None):
             dict(k='space', style='center', runs=[], n=1)]
 
 
+def figure_pages(n, els, zone='front'):
+    """Page modules for a part made of pictures: each picture a page of its own, fitted into the text block with its
+    caption lines; the part's heading (if any) titles the first page, which then carries the bookmark and the contents line."""
+    title = next((plain(e['runs']) for e in els if e['k'] == 'h'), '')
+    figs, i = [], 0
+    while i < len(els):
+        e = els[i]
+        i += 1
+        if e['k'] != 'fig':
+            continue
+        lines = []
+        while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
+            cur = []
+            for r in els[i]['runs']:
+                if r['t'] in (BR, '\n'):
+                    lines.append(''.join(cur).strip())
+                    cur = []
+                else:
+                    cur.append(r['t'])
+            lines.append(''.join(cur).strip())
+            i += 1
+        figs.append((e['src'], [re.sub(r'\s+', ' ', t) for t in lines if t]))
+    mods = []
+    for k, (src, lines) in enumerate(figs):
+        head = title if k == 0 else ''
+        def html(bb, page, src=src, lines=lines, head=head):
+            return special.figure_page_html(src, lines, head)
+        m = page_module(f'figpage{n}-{k}', zone, html, toc=bool(head), toc_title=head, toc_level=1, title=head or title,
+                        folio=True, head=True)
+        m.lines = ([head] if head else []) + lines                 # (for the text-fidelity report)
+        mods.append(m)
+    return mods
+
+
 def plate_figs(C):
     """(fig_inline books) Figures that go to the back of the book after all, one per page: the configured ones
     (C['plate_figs']) and those that tools/bk_build.py found leaving the foot of a page blank (<scratch>/plate_figs.json)."""
@@ -1287,6 +1349,9 @@ def book(b):
             dm.src_parts = _parts(n)
             front.append(dm)
             continue
+        if kind == 'figure':                                       # a picture that is a page by itself (frontispiece), caption under it
+            front += figure_pages(n, els)
+            continue
         if kind == 'kaibody':                                      # a whole page in the ebook's Kai type: full-width Kai body text
             els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
         add_unit(n, front, 'front', els, notes, top=True, kaitext=(kind == 'kaitext'))
@@ -1315,6 +1380,10 @@ def book(b):
         if isinstance(n, tuple):
             n, kind = n
         els, notes = gather(n)
+        if kind == 'figpages':                                     # pictures one to a page (a facsimile), the title on the first
+            flush(back, 'back')
+            back += figure_pages(n, els, zone='back')
+            continue
         if kind == 'noindent':
             els = [dict(e, style='noindent') if e['k'] == 'p' and e.get('style') == 'body' else e for e in els]
         add_unit(n, back, 'back', els, notes, top=True)

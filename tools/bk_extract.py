@@ -359,6 +359,8 @@ def inline(el, part, mark_breaks=False):
                     for x in cls:
                         for y in (rm.get(x, (0, ''))[1] or '').split():
                             c2 = _cls(c2, y)
+                    if href.startswith(('http://', 'https://')):
+                        c2 = _cls(c2, 'lnk')                          # a web address: blue, as it can be clicked
                     rec(ch, b, c2, href or h, aid, s)
                 elif ch.get('id'):
                     aid = anchor_key(part, ch.get('id'))
@@ -464,6 +466,26 @@ def items(part):
                 walk(el, q=1, box=box, fig=fig, note=note)
             elif t == 'aside':
                 if not any(ln(x) == 'p' for x in el.iter() if isinstance(x.tag, str)):
+                    continue
+                kids = [x for x in el.iter() if isinstance(x.tag, str)]
+                num = next((x for x in kids if 'note-number' in (x.get('class') or '').split()), None)
+                back = next((x for x in kids if ln(x) == 'a' and 'backlink' in (x.get('class') or '').split()), None)
+                if num is not None and back is not None and el.get('id'):
+                    # <aside id=fn-n><p><span.note-number>[n]</span><span.note-text>…</span>[<a.evidence-link>…]<a.backlink>返回正文</a>:
+                    # the number becomes the marker, linked back to the reference; the back-link's own words go
+                    label = ''.join(num.itertext()).strip()
+                    to = resolve_href(part, back.get('href'))
+                    runs = [r for r in clean_runs(inline(next(x for x in kids if ln(x) == 'p'), part))
+                            if not (r.get('h') == to and r['t'].strip() == ''.join(back.itertext()).strip())]
+                    if runs and runs[0]['t'].lstrip().startswith(label):
+                        runs[0] = dict(runs[0], t=runs[0]['t'].lstrip()[len(label):].lstrip())
+                    rest = []
+                    for r in runs:
+                        if (r.get('h') or '').startswith('http'):            # the reviser's evidence: a link to its source
+                            rest += [run('　核查依据：'), dict(r, t=r['t'].strip(), c=_cls(r.get('c'), 'lnk'))]
+                        elif r['t']:
+                            rest.append(r)
+                    add('note', el, runs=[run(label, 0, 0, to, anchor_key(part, el.get('id')))] + rest, q=0, box=0)
                     continue
                 walk(el, q=q, box=box, fig=fig, note=1)
             elif t in ('div', 'section', 'body'):

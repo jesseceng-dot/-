@@ -195,6 +195,38 @@ def divider_html(lines):
     return out
 
 
+def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None):
+    """A picture that is a page of the book by itself (a frontispiece, a page of a facsimile): fitted into the text block
+    -- under the section title when the page carries one (set like a chapter heading) -- with its caption lines under it,
+    picture and caption centred together in the room left."""
+    im = Image.open(os.path.join(IMG_DIR, img))
+    w, h = im.size
+    out = ''
+    top = style.TOP
+    if title:
+        out += (f'<div class="ln s-h1 c" style="width:{style.TEXT_W:.3f}pt;height:{2 * style.LINE}pt;line-height:{2 * style.LINE}pt;'
+                f'transform:translate({style.LEFT:.3f}pt,{style.TOP + 3 * style.LINE:.3f}pt)">{_html.escape(title)}</div>')
+        top = style.TOP + 7 * style.LINE
+    room = style.TOP + style.TEXT_H - top
+    cap_h = (8.0 + 15.0 * len(lines)) if lines else 0.0
+    s = min(style.TEXT_W / w, (room - cap_h) / h)
+    iw, ih = w * s, h * s
+    y = top + (room - ih - cap_h) / 2
+    x = style.LEFT + (style.TEXT_W - iw) / 2
+    out += (f'<img src="{img_url(img)}" style="position:absolute;left:0;top:0;width:{iw:.2f}pt;height:{ih:.2f}pt;'
+            f'transform:translate({x:.2f}pt,{y:.2f}pt)">')
+    yc = y + ih + 8.0
+    for k, t in enumerate(lines):
+        font = 'font-family:HeiTi;font-size:9.5pt;font-weight:500' if k == 0 else 'font-family:KaiTi;font-size:9pt;color:#333'
+        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;{font};line-height:15pt;'
+                f'transform:translate(0pt,{yc:.2f}pt)">{_html.escape(t)}</div>')
+        yc += 15.0
+    if builder is not None:
+        for a in ids:
+            builder.anchors[a] = (page.index, y)
+    return out
+
+
 def _caption_height(text, fs=9.5, width=None):
     """Estimated height (pt) of a wrapped caption: CJK glyph = 1 em, Latin = 0.5 em."""
     width = width or (style.TEXT_W - 30)

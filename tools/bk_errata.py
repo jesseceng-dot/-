@@ -37,8 +37,12 @@ def group(label):
 
 
 def code(s):
-    """A table cell showing the exact characters (spaces and punctuation matter)."""
-    s = str(s).replace('\n', '⏎').replace('|', '\\|')
+    """A table cell showing the exact characters (spaces and punctuation matter); a string of white space only is
+    named by its code points."""
+    s = str(s)
+    if s and not s.strip():
+        return ' '.join(f'U+{ord(c):04X}' for c in s)
+    s = s.replace('\n', '⏎').replace('|', '\\|')
     tick = '``' if '`' in s else '`'
     pad = ' ' if s.startswith('`') or s.endswith('`') else ''
     return f'{tick}{pad}{s}{pad}{tick}' if s else '（空）'
@@ -107,8 +111,10 @@ def write(b):
         groups.setdefault(key, []).append(f)
     BE._fixes('part0000')
     unused = [f for f in (BE._FIX or []) if not BE.FIX_USED.get(id(f))]
-    lines = [f'# 《{C["title"]}》勘误表', '',
-             f'通读全书时改正的问题共 **{len(fixes)}** 条（每条是 `tools/bk_fixes.py` 里的一条改正规则，抽取电子书文字时应用；'
+    lines = [f'# 《{C["title"]}》勘误表', '']
+    if C.get('errata_note'):
+        lines += [C['errata_note'], '']
+    lines += [f'{"" if C.get("errata_note") else "通读全书时"}改正的问题共 **{len(fixes)}** 条（每条是 `tools/bk_fixes.py` 里的一条改正规则，抽取电子书文字时应用；'
              f'生成时逐条核对：{"全部规则都在原文中找到并已应用" if not unused else f"{len(unused)} 条未匹配"}）。'
              '“原文”是电子书里的文字（为便于定位，常连同前后几个字一起列出），“改为”是 PDF 里的文字；“全书”一节的规则对每一章都适用。'
              '核对依据：上下文与全书用字、用词的一致性，英文原著（错译、事实、人名、书目），以及常识与工具书（史实、学名、外文）。', '',

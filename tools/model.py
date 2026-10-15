@@ -40,7 +40,8 @@ def _wrap(r, inner):
     if r.get('s'):
         inner = f'<span class="sup">{inner}</span>'
     if r.get('h'):
-        inner = f'<a href="{LINK_BASE}{_html.escape(r["h"])}">{inner}</a>'
+        base = '' if r['h'].startswith(('http://', 'https://')) else LINK_BASE      # (a web address stays one)
+        inner = f'<a href="{base}{_html.escape(r["h"])}">{inner}</a>'
     return inner
 
 

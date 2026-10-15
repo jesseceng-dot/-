@@ -121,7 +121,8 @@ a{{color:inherit;text-decoration:none}}
 .s-index{{font-size:8.5pt}}
 .s-cip{{font-size:9pt}}
 .s-idxhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
-.nn{{display:inline-block;width:3em;text-align:left}}
+.nn{{display:inline-block;width:3em;text-align:left;text-align-last:left}}
+.nb{{display:inline-block;width:2em;text-align:left;text-align-last:left}}
 .pn{{color:#1f3a93}}
 .spk{{font-family:"GebRare","HeiTi",sans-serif;font-weight:400}}
 .hei{{font-family:"GrkSerif","GebRare","HeiTi",sans-serif;font-weight:500}}

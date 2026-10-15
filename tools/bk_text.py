@@ -50,7 +50,7 @@ def fix_edges(runs):
     return [r for r in runs if r['t'] != '']
 
 
-NUM = re.compile(r'^(?:[註注])?[\[［(（〔]?\s*(\d+)\s*[\]］)）〕]?[．.]?$')
+NUM = re.compile(r'^(?:[註注])?[\[［(（〔]?\s*(?:校(?=\d+[\]］]))?(\d+)\s*[\]］)）〕]?[．.]?$')     # ([校1]: a reviser's note, book 17)
 
 
 def marker_text(t, fmt):
@@ -67,4 +67,6 @@ def marker_text(t, fmt):
         return f'[{n}]'
     if fmt == 'keep':                                   # the ebook's own brackets: [n] author's notes, (n) translator's notes
         return f'({n})' if t.strip().startswith(('(', '（')) else f'[{n}]'
+    if fmt == 'sq' and '校' in t:
+        return f'[校{n}]'
     return f'({n})' if fmt == 'paren' else f'[{n}]'
