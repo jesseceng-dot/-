@@ -57,6 +57,22 @@ def book_parts(C):
 BLOCK_TAGS = {'p', 'td', 'th', 'li', 'dt', 'dd', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}
 
 
+def dropped_pictures(b):
+    """Inline pictures (inside a line of text or a note) without a transcription in C['img_text']: the pipeline leaves
+    them out, so every one of them must be either transcribed or knowingly dropped (a decorative icon)."""
+    C = bk.CFG[b]
+    known = C.get('img_text', {})
+    out = collections.Counter()
+    for n in book_parts(C):
+        for it in BE.items(bk.P(n)):
+            rows = [c for row in it.get('rows') or [] for c in row]
+            for runs in [it.get('runs') or []] + rows:
+                for r in runs:
+                    if r.get('i') and r['i'] not in known:
+                        out[r['i']] += 1
+    return out
+
+
 def raw_missing(b):
     """Independent of the extractor: characters of the raw XHTML <body> text of the book's parts that bk_extract does not yield."""
     from lxml import etree
@@ -230,7 +246,8 @@ def book(b, m):
                 rep=dict(rep_tot), loose=n_loose, lines=n_lines, kin=len(kin), nkin=nkin, fid=len(fid), fid_head=[str(x)[:120] for x in fid[:4]],
                 miss=dict(miss.most_common(12)), n_miss=sum(miss.values()), extra=dict(extra.most_common(12)), n_extra=sum(extra.values()),
                 body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b), fix_unused=fix_unused(),
-                overlap=len(over), overlap_head=[list(x) for x in over[:6]], trow_wrapped=trow_wrapped)
+                overlap=len(over), overlap_head=[list(x) for x in over[:6]], trow_wrapped=trow_wrapped,
+                img_dropped=dict(dropped_pictures(b)))
 
 
 DOC = os.path.join(style.ROOT, 'docs', '16k')
@@ -281,6 +298,8 @@ def main(b):
           + (f" fix_unused {r['fix_unused']}" if r.get('fix_unused') else ''))
     for x in r['overlap_head']:
         print('    text over text:', x)
+    if r.get('img_dropped'):
+        print('    inline pictures left out (no img_text):', r['img_dropped'])
     print('    source-only chars:', r['miss'], r['n_miss'])
     print('    typeset-only chars:', r['extra'], r['n_extra'])
     for x in r['fid_head']:

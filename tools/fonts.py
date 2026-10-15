@@ -246,7 +246,7 @@ def geb_rare(src):
     return out
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' and sys.argv[1:2] != ['--shared']:
     os.makedirs(FONT_DIR, exist_ok=True)
     if sys.argv[1:2] == ['GebRare']:                # python -m tools.fonts GebRare <unpacked epub>/OEBPS/Fonts/geb.ttf
         print(geb_rare(sys.argv[2]))
@@ -304,7 +304,32 @@ def embolden(src_name, dst_name, amount=0.022):
 BOLD_FROM = {'UKai-Bold': 'UKai-Regular', 'SungtiL-Bold': 'SungtiL-Regular', 'MicroHei-Bold': 'MicroHei-Regular',
              'UMing-Bold': 'UMing-Regular', 'KaitiM-Bold': 'KaitiM-Regular', 'Droid-Bold': 'Droid-Regular'}
 
-if __name__ == '__main__' and False:
-    pass
+SYSTEM_COPIES = {                                  # used whole (TrueType outlines already): Kai text and the Latin / Greek face
+    'LXGWWenKai-Regular.ttf': '/usr/share/fonts/truetype/lxgw-wenkai/LXGWWenKai-Regular.ttf',
+    'LXGWWenKai-Bold.ttf': '/usr/share/fonts/truetype/lxgw-wenkai/LXGWWenKai-Bold.ttf',
+    'NotoSerif-Regular.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf',
+    'NotoSerif-Bold.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Bold.ttf',
+    'NotoSerif-Italic.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Italic.ttf',
+}
+
+
+def shared():
+    """Every font file the style sheets name, in FONT_DIR: the subsets of all FACES (the book's corpus), the emboldened
+    bold faces of the heading families that have no bold, and the fonts used whole."""
+    import shutil
+    os.makedirs(FONT_DIR, exist_ok=True)
+    for n in FACES:
+        print(n, build(n), flush=True)
+    for dst, src in BOLD_FROM.items():
+        print(dst, embolden(src, dst), flush=True)
+    for dst, src in SYSTEM_COPIES.items():
+        out = os.path.join(FONT_DIR, dst)
+        if not os.path.exists(out):
+            shutil.copy(src, out)
+        print(dst, out, flush=True)
+
+
+if __name__ == '__main__' and sys.argv[1:2] == ['--shared']:     # python -m tools.fonts --shared   (BOOK_SCRATCH, BOOK_FONT_DIR)
+    shared()
 
 
