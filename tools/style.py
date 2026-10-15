@@ -104,7 +104,7 @@ a{{color:inherit;text-decoration:none}}
 .it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}
 /* table cells: inline boxes of fixed width (em of the line font) */
 .tw{{display:inline-block;vertical-align:baseline;white-space:nowrap}}
-.w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w9{{width:9em}} .w10{{width:10em}} .w11{{width:11em}} .w12{{width:12em}} .w13{{width:13em}} .w14{{width:14em}} .w16{{width:16em}} .w18{{width:18em}} .w20{{width:20em}} .w22{{width:22em}} .w24{{width:24em}} .w26{{width:26em}} .w28{{width:28em}}
+.w2{{width:2em}} .w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w9{{width:9em}} .w10{{width:10em}} .w11{{width:11em}} .w12{{width:12em}} .w13{{width:13em}} .w14{{width:14em}} .w15{{width:15em}} .w16{{width:16em}} .w17{{width:17em}} .w18{{width:18em}} .w19{{width:19em}} .w20{{width:20em}} .w21{{width:21em}} .w22{{width:22em}} .w23{{width:23em}} .w24{{width:24em}} .w25{{width:25em}} .w26{{width:26em}} .w27{{width:27em}} .w28{{width:28em}} .w29{{width:29em}} .w30{{width:30em}} .w31{{width:31em}} .w32{{width:32em}} .w33{{width:33em}} .w34{{width:34em}}
 .s-kaibody{{font-family:"KaiTi","GrkSerif","SongBody",serif}}
 .kai{{font-family:"KaiTi","GrkSerif","SongBody",serif;line-height:0}}
 .s-refhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}

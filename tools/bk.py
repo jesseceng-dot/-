@@ -575,32 +575,205 @@ def table_blocks(rows, head=True):
     return out
 
 
+_FACE = {}
+
+
+def _em(ch, bold=False):
+    """Advance of a character in the body face, in em, from the book's own font subset: Latin capitals are about 0.7 em
+    wide, not half an em; CJK characters, full-width punctuation and the dashes of Chinese text one em."""
+    if bold not in _FACE:
+        from fontTools.ttLib import TTFont
+        try:
+            f = TTFont(os.path.join(style.FONT_DIR, 'SerifSC-Bold.ttf' if bold else 'SerifSC-Regular.ttf'))
+            _FACE[bold] = (f.getBestCmap(), f['hmtx'].metrics, f['head'].unitsPerEm)
+        except OSError:
+            _FACE[bold] = ({}, {}, 1000)
+    cmap, hmtx, upm = _FACE[bold]
+    if ch in '—…' or ord(ch) >= 0x2e80 and ord(ch) not in cmap:
+        return 1.0
+    g = cmap.get(ord(ch))
+    return hmtx[g][0] / upm if g in hmtx else (1.0 if ord(ch) >= 0x2e80 else 0.6)
+
+
+_NO_START = set('，。、；：！？）》」』”’】〕…—·%,.;:!?)]}')       # (a line of a table cell does not start with these
+_NO_END = set('（《「『“‘【〔([{')                                #  nor end with those)
+_CJK = lambda ch: ord(ch) >= 0x2e80
+
+
+def _can_break(t, i):
+    """May a line of a table cell end before t[i]?  Between CJK characters, at spaces, never inside a Latin word."""
+    a, b = t[i - 1], t[i]
+    j = i
+    while j < len(t) and t[j] == ' ':                            # (the spaces at a break go; what follows them opens the line)
+        j += 1
+    if b in _NO_START or a in _NO_END or j < len(t) and t[j] in _NO_START:
+        return False
+    return _CJK(a) or _CJK(b) or a == ' ' or b == ' '
+
+
+def _slice_runs(runs, s, e):
+    out, pos = [], 0
+    for r in runs:
+        n = len(r['t'])
+        lo, hi = max(s, pos), min(e, pos + n)
+        if lo < hi:
+            out.append(dict(r, t=r['t'][lo - pos:hi - pos]))
+        pos += n
+    return out
+
+
+def _wrap_cell(runs, width, bold=False, code=False):
+    """A line of a table cell broken into lines at most `width` em wide (greedy, with the line-start / line-end rules);
+    a line of code or a formula continues two em further in than it starts."""
+    t = ''.join(r['t'] if not r.get('i') else '￼' for r in runs)
+    if not t:
+        return [runs]
+    ws = [_em(c, bold) for c in t]
+    lead = len(t) - len(t.lstrip('　'))
+    hang = (lead + 2) * 1.0 if code else 0.0
+    lines, start = [], 0
+    while start < len(t):
+        room = width - (hang if lines else 0.0)
+        w, i, ok = 0.0, start, None
+        while i < len(t) and w + ws[i] <= room + 1e-6:
+            w += ws[i]
+            i += 1
+            if i < len(t) and i > start and _can_break(t, i):
+                ok = i
+        if i >= len(t):
+            lines.append((start, len(t)))
+            break
+        if ok is None:                                           # one word longer than the line: after a hyphen, comma or slash,
+            ok = next((k for k in range(i, start, -1) if (t[k - 1] in '-,/' or t[k] in '([')        # or before a bracket
+                       and t[k] not in _NO_START and t[k - 1] not in _NO_END), None) or max(i, start + 1)
+            opens = lambda k: (t[k:].lstrip(' ') or ' ')[0]
+            while ok > start + 1 and ok < len(t) and (opens(ok) in _NO_START or t[ok - 1] in _NO_END):
+                ok -= 1                                          # (even then no closing mark opens a line)
+        lines.append((start, ok))
+        start = ok
+        while start < len(t) and t[start] == ' ':
+            start += 1
+    out = []
+    for k, (a, b) in enumerate(lines):
+        part = BT.fix_edges(_slice_runs(runs, a, b)) if k else _slice_runs(runs, a, b)
+        if k and code and part:
+            part = [dict(part[0], t='　' * int(hang)) ] + part if part[0].get('i') else [dict(part[0], t='　' * int(hang) + part[0]['t'])] + part[1:]
+        out.append(part)
+    return out
+
+
+def _line_em(runs, bold=False):
+    return sum(_em(c, bold) if not r.get('i') else 1.0 for r in runs for c in (r['t'] if not r.get('i') else 'x'))
+
+
+def _col_widths(cells, nat, code, avail, pad):
+    """Column widths (whole em) for a table wider than the text: columns of a few characters keep their width; for the
+    others every combination of widths that fits is tried and the one giving the fewest lines in all is taken (a line
+    broken in a column of code or formulas counts more than one in a column of prose; among equals the widths closest
+    to the proportions of the natural widths)."""
+    import itertools
+    ncol = len(nat)
+    fixed = [nat[j] <= 4.5 for j in range(ncol)]
+    width = [math.ceil(nat[j]) if fixed[j] else 0 for j in range(ncol)]
+    flex = [j for j in range(ncol) if not fixed[j]]
+    room = avail - sum(width)
+    if not flex:
+        return width
+    cache = {}
+
+    def nlines(ri, j, w):
+        key = (ri, j, w)
+        if key not in cache:
+            cache[key] = sum(len(_wrap_cell(l, w - (pad if j < ncol - 1 else 0.0), code=code[j])) for l in cells[ri][j]) if cells[ri][j] else 1
+        return cache[key]
+
+    def units(j):                                                # the widest piece that should not be broken
+        best = 0.0
+        for row in cells:
+            for l in row[j]:
+                t = ''.join(r['t'] for r in l if not r.get('i'))
+                w = 0.0
+                for i, c in enumerate(t):
+                    if i and _can_break(t, i):
+                        best, w = max(best, w), 0.0
+                    w += _em(c)
+                best = max(best, w)
+        return best
+
+    lo = [min(math.ceil(nat[j]), max(3, math.ceil(units(j) + pad))) for j in flex]
+    hi = [math.ceil(nat[j]) for j in flex]
+    if sum(lo) > room:                                           # no way to keep every word whole: in proportion
+        tot = sum(nat[j] for j in flex)
+        for j in flex:
+            width[j] = max(2, int(room * nat[j] / tot))
+        return width
+    if len(flex) > 3:
+        ranges = [range(max(l, min(h, int(room * nat[j] / sum(nat[k] for k in flex)))), h + 1) for j, l, h in zip(flex, lo, hi)]
+    else:
+        ranges = [range(l, h + 1) for l, h in zip(lo, hi)]
+    best = None
+    for combo in itertools.product(*ranges):
+        if sum(combo) > room:
+            continue
+        total = 0.0
+        for ri in range(len(cells)):
+            n = [nlines(ri, j, w) for j, w in zip(flex, combo)]
+            total += max(n + [1]) + sum(0.6 * (x - 1) for x, j in zip(n, flex) if code[j])
+        tot_nat = sum(nat[j] for j in flex)
+        skew = max(abs(w / sum(combo) - nat[j] / tot_nat) for j, w in zip(flex, combo))
+        key = (round(total, 3), skew)
+        if best is None or key < best[0]:
+            best = (key, combo)
+    for j, w in zip(flex, best[1]):
+        width[j] = w
+    return width
+
+
 def table_blocks2(rows, spans, heads, center=True):
     """(book 16) A text table centred in the text width: cells as fixed-width inline boxes as in `table_blocks`; a row
-    whose only cell spans the whole table ('*　*　*') is a centred line; only header cells (<th>) are bold."""
+    whose only cell spans the whole table ('*　*　*') is a centred line; only header cells (<th>) are bold.  Widths come
+    from the font's own advances; a table wider than the text gets its column widths from `_col_widths` and its cells
+    broken into lines (`_wrap_cell`)."""
     ncol = max(sum(sp) for sp in spans) if spans else max(len(r) for r in rows)
     full = [len(r) == 1 and (sp[0] if sp else 1) >= max(2, ncol) for r, sp in zip(rows, spans)]
-    grid = [[_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)] for r, f in zip(rows, full) if not f]
-    widths = [max([_w(l) for g in grid for l in g[j]] or [0]) + 1.2 for j in range(ncol)]
-    while ncol > 1 and widths[-1] <= 1.2:                         # (an empty last column)
+    pad = 1.2
+    body = [(ri, r) for ri, (r, f) in enumerate(zip(rows, full)) if not f]
+    cells = [[_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)] for _, r in body]
+    bolds = [bool(heads and heads[ri]) for ri, _ in body]
+    nat = [max([_line_em(l, b) for g, b in zip(cells, bolds) for l in g[j]] or [0]) + pad for j in range(ncol)]
+    while ncol > 1 and nat[-1] <= pad:                           # (an empty last column)
         ncol -= 1
-        widths.pop()
-    sizes = (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28)
-    cls_of = lambda w: f'tw w{min([x for x in sizes if x >= w], default=28)}'
-    used = [int(cls_of(w).split('w')[-1]) for w in widths]
-    indent = sum(used[:-1])
-    total = indent + widths[-1]
-    off = max(0.0, (style.TEXT_W / style.FONT - total) / 2) if center else 0.0
+        nat.pop()
+        cells = [g[:ncol] for g in cells]
+    def latin(j):
+        t = ''.join(x['t'] for g in cells for l in g[j] for x in l if not x.get('i')).replace(' ', '').replace('　', '')
+        return bool(t) and sum(1 for c in t if not _CJK(c)) >= 0.6 * len(t)
+    code = [latin(j) for j in range(ncol)]
+    avail = style.TEXT_W / style.FONT - 1.0
+    if sum(nat) - pad <= avail:
+        widths = [math.ceil(w) for w in nat]
+        wrap = False
+    else:
+        widths = _col_widths(cells, nat, code, avail, pad)
+        wrap = True
+    cls_of = lambda w: f'tw w{max(2, min(34, int(w)))}'
+    indent = sum(widths[:-1])
+    total = indent + (widths[-1] if wrap else nat[-1] - pad)
+    off = max(0.0, (avail - total) / 2) if center else 0.0
     out = []
     n = len(rows)
+    gi = 0
     for ri, (r, f) in enumerate(zip(rows, full)):
         first, last = ri == 0, ri == n - 1
         if f:
             out.append(dict(k='p', style='center', runs=BT.fix_edges(BT.fix_runs(r[0])), novary=True, nomerge=True,
                             before=1 if first else 0, after=1 if last else 0))
             continue
-        g = [_cell_lines(r[j]) if j < len(r) else [[]] for j in range(ncol)]
-        bold = bool(heads and heads[ri])
+        g, bold = cells[gi], bolds[gi]
+        gi += 1
+        if wrap:
+            g = [[x for l in g[j] for x in (_wrap_cell(l, widths[j] - (pad if j < ncol - 1 else 0.0), bold, code[j]) if l else [l])]
+                 for j in range(ncol)]
         nl = max(len(c) for c in g)
         for li in range(nl):
             runs = []
@@ -609,9 +782,10 @@ def table_blocks2(rows, spans, heads, center=True):
                 if j == ncol - 1:
                     runs += [dict(x, b=1) if bold else x for x in cell]
                 else:
-                    runs += [dict(x, c=(x.get('c', '') + ' ' + cls_of(widths[j])).strip(), **({'b': 1} if bold else {})) for x in cell]
+                    runs += [dict(x, c=(x.get('c', '') + ' ' + cls_of(widths[j])).strip(), **({'b': 1} if bold else {}))
+                             for x in merge_runs(cell)]                  # (one box per cell: runs of one format merged)
                     if not cell:
-                        runs.append(run('\u2060', c=cls_of(widths[j])))
+                        runs.append(run('⁠', c=cls_of(widths[j])))
             out.append(dict(k='p', style='trow', runs=runs, novary=True, nomerge=True, first=-indent, left=round(off + indent + 1, 2),
                             before=1 if first and li == 0 else 0, after=1 if last and li == nl - 1 else 0,
                             **({'keep': 1} if li < nl - 1 else {})))

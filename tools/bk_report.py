@@ -114,6 +114,28 @@ def raw_missing(b):
     return sum(miss.values())
 
 
+def overlaps(doc):
+    """Text drawn over text (a table cell running into the next one): pairs of spans on one baseline whose extents
+    overlap by more than 1.5 pt."""
+    out = []
+    for i, pg in enumerate(doc):
+        spans = []
+        for b in pg.get_text('rawdict')['blocks']:
+            for l in b.get('lines', []):
+                for sp in l['spans']:
+                    ch = [c for c in sp['chars'] if c['c'].strip()]
+                    if ch:
+                        spans.append((round(sp['origin'][1], 1), ch[0]['bbox'][0], ch[-1]['bbox'][2], ''.join(c['c'] for c in ch)))
+        spans.sort()
+        for a in range(len(spans)):
+            for b in range(a + 1, len(spans)):
+                if spans[b][0] - spans[a][0] > 1.0:
+                    break
+                if min(spans[a][2], spans[b][2]) - max(spans[a][1], spans[b][1]) > 1.5:
+                    out.append((pg.get_label(), spans[a][3][:12], spans[b][3][:12]))
+    return out
+
+
 def fix_unused():
     """Corrections of bk_fixes for this book that matched nothing (after every part has been read at least once)."""
     BE._fixes('part0000')
@@ -188,6 +210,9 @@ def book(b, m):
                         n_loose += 1
     kin, nkin = kinsoku(cfg)
     doc = pymupdf.open(pdf)
+    over = overlaps(doc)
+    trow_wrapped = sum(1 for mod in cfg['modules'] if mod.kind == 'text' and mod.lbs for lb in mod.lbs
+                       if lb.block.get('style') == 'trow' and lb.nl[mod.plan['variants'][lb.idx]] > 1)   # a table line the column could not hold
     links = sum(len(p.get_links()) for p in doc)
     sizes = {(round(p.rect.width, 2), round(p.rect.height, 2)) for p in doc}
     src = source_counter(b)
@@ -204,7 +229,8 @@ def book(b, m):
                 ref_bottom=pc['ref_bottom'], bad_bottom=len(pc['bad_bottom']), type3=len(pc['type3']),
                 rep=dict(rep_tot), loose=n_loose, lines=n_lines, kin=len(kin), nkin=nkin, fid=len(fid), fid_head=[str(x)[:120] for x in fid[:4]],
                 miss=dict(miss.most_common(12)), n_miss=sum(miss.values()), extra=dict(extra.most_common(12)), n_extra=sum(extra.values()),
-                body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b), fix_unused=fix_unused())
+                body_size=fonts.most_common(1)[0][0], raw_missing=raw_missing(b), fix_unused=fix_unused(),
+                overlap=len(over), overlap_head=[list(x) for x in over[:6]], trow_wrapped=trow_wrapped)
 
 
 DOC = os.path.join(style.ROOT, 'docs', '16k')
@@ -251,7 +277,10 @@ def main(b):
     print(f"book {b} {r['title']}: pages {r['pages']} sizes {r['sizes']} body {r['body_size']} bottom {r['ref_bottom']} bad_bottom {r['bad_bottom']} type3 {r['type3']} "
           f"gap {rep.get('gap')} head_bottom {rep.get('head_bottom')} head_short {rep.get('head_short')} lone {rep.get('lone')} last {rep.get('last_page')} "
           f"widow/orphan {rep.get('widow', 0) + rep.get('orphan', 0)} loose {r['loose']}/{r['lines']} kinsoku {r['kin']}/{r['nkin']} fid {r['fid']} links {r['links']} raw_missing {r['raw_missing']}"
+          + f" overlap {r['overlap']} trow_wrapped {r['trow_wrapped']}"
           + (f" fix_unused {r['fix_unused']}" if r.get('fix_unused') else ''))
+    for x in r['overlap_head']:
+        print('    text over text:', x)
     print('    source-only chars:', r['miss'], r['n_miss'])
     print('    typeset-only chars:', r['extra'], r['n_extra'])
     for x in r['fid_head']:
