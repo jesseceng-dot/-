@@ -62,6 +62,7 @@ FONTS_CSS = """
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GebRare";src:url("%(f)s/GebRare.ttf");unicode-range:U+AA9E-AAAF,U+E047}
+@font-face{font-family:"GuaSym";src:url("%(f)s/LXGWWenKai-Regular.ttf");font-weight:400;unicode-range:U+2630-2637,U+268A-268F,U+4DC0-4DFF}
 @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
 @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
 """ % {'f': 'file://' + FONT_DIR}
@@ -134,7 +135,8 @@ a{{color:inherit;text-decoration:none}}
 .lat{{font-family:"LatSerif","GrkSerif","SongBody","HanExt",serif}}
 .it.lat{{font-family:"LatIt","GrkSerif","SongBody","HanExt",serif;font-style:italic}}
 .lnk{{color:#1f3a93}}
-.spk,.hei,.sm,.lat,.gbox,.ul,.nohei{{line-height:0}}
+.gua{{font-family:"GuaSym","SongBody",serif}}
+.spk,.hei,.sm,.lat,.gbox,.ul,.nohei,.gua{{line-height:0}}
 .s-small{{font-size:9pt}}
 .s-smallkai{{font-family:"KaiTi","GebRare","GrkSerif","SongBody",serif;font-size:9.5pt}}
 .s-figcap{{font-family:"GrkSerif","GebRare","HeiTi",sans-serif;font-size:9pt;font-weight:500}}

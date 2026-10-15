@@ -73,6 +73,7 @@ def corpus_codepoints():
     cps |= {0x03ca, 0x00bd, 0x2153}       # ϊ ½ ⅓ (transcribed formulas)
     cps |= {0x9958}                       # 饘 (an inline glyph image of the ebook of 《叫魂》, transcribed to text)
     cps |= {0x2B695, 0x29F7E, 0x29F8C, 0x2B689}   # 𫚕 𩽾 𩾌 𫚉: fish characters behind the NFDA1-4 placeholders (Kant vol. 8)
+    cps |= {0x9DC3}                       # 鷃: its left half 晏 builds 𮭨 (compose_yan)
     scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
     for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
@@ -80,6 +81,17 @@ def corpus_codepoints():
         from . import bk_fixes
         for f in bk_fixes.FIXES.get(os.path.basename(scratch.rstrip('/')), []):
             cps |= {ord(c) for x in f[2:] if isinstance(x, str) for c in x}
+    except ImportError:
+        pass
+    try:                                  # the transcriptions of the ebook's inline glyph pictures (bk.CFG img_text)
+        from . import bk
+        key = os.path.basename(scratch.rstrip('/'))
+        for C in bk.CFG.values():
+            if C.get('scratch') != key:
+                continue
+            for v in C.get('img_text', {}).values():
+                for x in (v if isinstance(v, list) else [v]):
+                    cps |= {ord(c) for c in (x[0] if isinstance(x, tuple) else x)}
     except ImportError:
         pass
     # GB2312 level-1/2 hanzi for safety (Big5 level 1/2 for a traditional-character book)
@@ -167,6 +179,37 @@ def compose_tinamou(font, cp=0x2EB65):
     return _add_glyph(font, cp, gong)
 
 
+def _fit(path, box, sy=None):
+    """`path` scaled and moved into box = (x0, y0, x1, y1); sy given: that vertical scale, the bottom at y0."""
+    x0, y0, x1, y1 = path.bounds
+    sx = (box[2] - box[0]) / (x1 - x0)
+    sy = sy or (box[3] - box[1]) / (y1 - y0)
+    return path.transform(sx, 0, 0, sy, box[0] - x0 * sx, box[1] - y0 * sy)
+
+
+def compose_huan(font, cp=0x24D2F):
+    """U+24D2F 𤴯 (疒 + 丸; 《庄子·大宗师》 “以死为决𤴯溃痈”), which the ebook of 《中国哲学简史》 gives as a picture, is missing
+    from Noto Serif CJK: the 疒 of 疔 (its 丁 left out) around the 丸 of 纨, set into the room the 丁 took."""
+    frame = _outline(font, '疔', lambda b: not (b[0] >= 300 and b[3] <= 600))
+    frame.addPath(_fit(_outline(font, '纨', lambda b: b[0] >= 300), (325, -79, 955, 585)))
+    return _add_glyph(font, cp, frame)
+
+
+def compose_xi(font, cp=0x2B370):
+    """U+2B370 𫍰 (讠 + 思, simplified 諰; 《荀子·乐论》 “使其文足以辨而不𫍰”): the 讠 of 谌 beside the 思 of 腮."""
+    left = _outline(font, '谌', lambda b: b[0] < 200 and b[2] <= 420)
+    si = _outline(font, '腮', lambda b: b[0] >= 270)
+    left.addPath(_fit(si, (left.bounds[2] + 20, si.bounds[1], max(si.bounds[2], 955), si.bounds[3]), sy=1.0))
+    return _add_glyph(font, cp, left)
+
+
+def compose_yan(font, cp=0x2EB68):
+    """U+2EB68 𮭨 (晏 + 鸟, simplified 鷃; 向秀、郭象注 “斥𮭨之能下”): the 晏 of 鷃 beside the 鸟 of 鹌."""
+    yan = _outline(font, '鷃', lambda b: b[2] <= 535 and b[0] < 460)
+    yan.addPath(_fit(_outline(font, '鹌', lambda b: b[0] >= 500), (548, -77, 975, 837)))
+    return _add_glyph(font, cp, yan)
+
+
 def build(name):
     path, idx = FACES[name]
     out = os.path.join(FONT_DIR, name + '.ttf')
@@ -181,6 +224,9 @@ def build(name):
     if name == 'SerifSC-Regular':
         compose_hong(font)
         compose_tinamou(font)
+        compose_huan(font)
+        compose_xi(font)
+        compose_yan(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 

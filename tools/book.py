@@ -57,6 +57,18 @@ def _gaps(plan):
     return sum(p['gap'] for p in plan['pages'][:-1])
 
 
+def _lone_lines(lbs, plan):
+    """Paragraphs split so that a single line stands alone at the top (widow) or bottom (orphan) of a page."""
+    n = 0
+    for p in plan['pages']:
+        for (bi, lo, hi, s0) in p['items']:
+            lb = lbs[bi]
+            nl = lb.nl[plan['variants'][bi]]
+            if lb.splittable and nl > 1 and hi - lo == 1 and hi - lo < nl:
+                n += 1
+    return n
+
+
 def title_text(runs):
     """Plain title: no forced breaks, no superscript note markers."""
     t = ''.join(r['t'] for r in runs if not r.get('s')).replace(BR, '')
@@ -161,10 +173,11 @@ class BookBuilder:
         if hyph.hyphenate_blocks(mod, self.hyph_log):
             lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid, tail_min=tm)
             mod.lbs, mod.plan = lbs, plan
-        if _gaps(plan):
-            # a page that cannot be filled with the usual letter-spacing steps: try the wider ones once
+        if _gaps(plan) or _lone_lines(lbs, plan):
+            # a page that cannot be filled, or a paragraph that leaves a single line on a page, with the usual
+            # letter-spacing steps: try the wider ones once
             lbs2, plan2 = typeset.typeset(mod.blocks, self.m, mod.grid, variants=style.VARIANTS_ALL, tail_min=tm)
-            if _gaps(plan2) < _gaps(plan):
+            if (_gaps(plan2), _lone_lines(lbs2, plan2)) < (_gaps(plan), _lone_lines(lbs, plan)):
                 mod.lbs, mod.plan = lbs2, plan2
 
     # ---------------------------------------------------------------- page sequence and labels

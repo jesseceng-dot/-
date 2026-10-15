@@ -10,6 +10,14 @@ _RE_APOS = re.compile(r"(?<=[A-Za-z])'(?=[A-Za-z]|\s|[）”，。；：])")
 _RE_SPACE_CLOSE = re.compile(r'(?<=[A-Za-z0-9])[ 　]+(?=[）】》”’，。；：！？、])')
 _RE_SPACE_OPEN = re.compile(r'(?<=[“‘（《])[ 　]+(?=[A-Za-z0-9一-鿿])')
 CLOSE = '）】》”’，。；：！？、'
+_LAT_END = re.compile(r'[A-Za-z0-9\u00c0-\u024f.,;:!?)\]’\']$')
+_LAT_START = re.compile(r'^[A-Za-z0-9\u00c0-\u024f(\[‘“"]')
+
+
+def _word_space(out, i):
+    """out[i] is nothing but the space between two Latin words set in runs of their own (<i>A</i> <i>History</i>): it stays."""
+    return (0 < i < len(out) - 1 and not out[i]['t'].strip(' ') and not out[i - 1].get('i') and not out[i + 1].get('i')
+            and bool(_LAT_END.search(out[i - 1]['t'])) and bool(_LAT_START.search(out[i + 1]['t'])))
 
 
 def fix_text(t):
@@ -32,7 +40,8 @@ def fix_runs(runs):
         if t:
             out.append(dict(r, t=t))
     for i in range(len(out)):                            # a space at a run boundary before a closing mark
-        if i and out[i]['t'].startswith(' ') and out[i]['t'].lstrip(' ')[:1] in CLOSE and not out[i - 1].get('i'):
+        if i and out[i]['t'].startswith(' ') and out[i]['t'].lstrip(' ')[:1] in CLOSE and not out[i - 1].get('i') \
+                and not _word_space(out, i):
             out[i] = dict(out[i], t=out[i]['t'].lstrip(' '))
         if i + 1 < len(out) and out[i + 1]['t'][:1] in CLOSE and not out[i].get('i'):
             out[i] = dict(out[i], t=out[i]['t'].rstrip(' '))

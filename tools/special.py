@@ -12,6 +12,23 @@ def img_url(name):
     return 'file://' + os.path.join(IMG_DIR, name)
 
 
+def img_size(name):
+    """Size of an image of the ebook in pixels; an SVG picture: its width and height (or its viewBox) in user units."""
+    path = os.path.join(IMG_DIR, name)
+    if not name.lower().endswith('.svg'):
+        return Image.open(path).size
+    import re
+    from lxml import etree
+    root = etree.parse(path, etree.XMLParser(resolve_entities=False, no_network=True)).getroot()
+    def num(v):
+        m = re.match(r'[\d.]+', v or '')
+        return float(m.group(0)) if m and not v.endswith('%') else None
+    w, h = num(root.get('width')), num(root.get('height'))
+    if not (w and h):
+        w, h = [float(x) for x in (root.get('viewBox') or '').replace(',', ' ').split()[2:4]]
+    return w, h
+
+
 def _avg(im, box):
     px = list(im.crop(box).convert('RGB').getdata())
     n = len(px)
@@ -103,8 +120,7 @@ def ads_html(items, heading=''):
 def plate_html(n, img, ref_anchor, caption, builder=None, page=None):
     """One back-of-book plate: caption, the image scaled to the text block, and a return link to the reference in the text."""
     from .style import LINK_BASE
-    im = Image.open(os.path.join(IMG_DIR, img))
-    w, h = im.size
+    w, h = img_size(img)
     box_w, box_h = style.TEXT_W, style.TEXT_H - 71.0
     s = min(box_w / w, box_h / h)
     iw, ih = w * s, h * s
@@ -140,7 +156,7 @@ def plate_size(img, extra=0.0):
     if img.startswith('table:'):
         from . import kant_tables
         return kant_tables.size(img)
-    w, h = Image.open(os.path.join(IMG_DIR, img)).size
+    w, h = img_size(img)
     s = min(style.TEXT_W / w, (style.TEXT_H - 71.0 - extra) / h, 1.6 if w < 300 else 1.0)
     return w * s, h * s
 

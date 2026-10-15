@@ -202,6 +202,9 @@ def _word_boundaries(text, idx):
     return keep if len(keep) >= 2 else idx
 
 
+ORD_ALONE = re.compile(r'^(第[一二三四五六七八九十百零〇\d]+[部篇章节讲回卷]|附录[一二三四五六七八九十A-Z\d]*)$')
+
+
 def balance_title(runs, fs, avail_pt, slack=0.94):
     """Insert forced line breaks so that a long title breaks into balanced, sensible lines."""
     text = runs_text(runs)
@@ -226,8 +229,11 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
     idx = [i for i in range(1, len(text)) if _breakable(text, i)]
     idx = _word_boundaries(text, idx)
     best = None
+    gap = text.find('\u3000')
+    if 0 < gap <= 8 and ORD_ALONE.match(text[:gap]) and sum(widths[gap + 1:]) <= cap:
+        best = (0.0, (gap,))            # 'Ordinal　Title' too long for one line: the ordinal alone, the whole title under it
     from math import comb
-    for k in range(n_lines, n_lines + 3):
+    for k in (range(n_lines, n_lines + 3) if best is None else ()):
         if comb(len(idx), k - 1) > 150000:
             continue
         for cuts in itertools.combinations(idx, k - 1):
@@ -279,7 +285,7 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
                     out.append(dict(r, t=seg))
                 out.append(run(BR))
                 seg = ''
-                if ch == ' ':
+                if ch in ' \u3000':
                     continue
             seg += ch
         if seg:

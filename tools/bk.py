@@ -183,6 +183,23 @@ CFG = {
              back=[21, (22, 'figpages'), 23, 24], tail=[], inplace=set(),
              errata_note='底本是一份已经通读校订过的个人校订本（书末“本次校订说明”：26 处改正，7 条“校订注”与核查依据链接，均照排）。'
                          '转换时按要求只改正已经发现的明确错误，没有再全面校订；另把电子书网页式的半角空格（U+2002）和半角括号统一为中文排版规范。'),
+    18: dict(scratch='q18', file='中国哲学简史', title='中国哲学简史', sub='', author='冯友兰 著', credits=['涂又光　译'],
+             publisher='北京大学出版社', pdf_author='冯友兰', cover='00032.jpeg', title_img='00001.jpeg', copyright=1, marker='sq',
+             note_cls=('note',), cls_quote=('block',), fig_inline=True, fig_dpi=300,
+             img_text={'00002.jpeg': '𤴯', '00003.jpeg': '𢜔', '00004.jpeg': '乂', '00016.jpeg': '𬘡', '00017.jpeg': '𫍰',
+                       '00018.jpeg': '𮭨', '00019.jpeg': '㑺',
+                       # the eight trigrams (先天 order 乾兑离震巽坎艮坤), hexagrams and yao signs, read off line by line
+                       '00005.jpeg': ('☰', 'gua'), '00006.jpeg': ('☱', 'gua'), '00007.jpeg': ('☲', 'gua'), '00008.jpeg': ('☳', 'gua'),
+                       '00009.jpeg': ('☴', 'gua'), '00010.jpeg': ('☵', 'gua'), '00011.jpeg': ('☶', 'gua'), '00012.jpeg': ('☷', 'gua'),
+                       'dui_latex.svg': ('☱', 'gua'), '00013.jpeg': ('䷀', 'gua'), '00014.jpeg': ('䷁', 'gua'), '00015.jpeg': ('䷂', 'gua'),
+                       '00020.jpeg': ('䷗', 'gua'), '00021.jpeg': ('䷒', 'gua'), '00022.jpeg': ('䷊', 'gua'), '00023.jpeg': ('䷡', 'gua'),
+                       '00024.jpeg': ('䷪', 'gua'), '00025.jpeg': ('䷫', 'gua'), '00026.jpeg': ('䷠', 'gua'), '00027.jpeg': ('䷋', 'gua'),
+                       '00028.jpeg': ('䷓', 'gua'), '00029.jpeg': ('䷖', 'gua'),
+                       'yang_latex.svg': ('⚊', 'gua'), 'yin_latex.svg': ('⚋', 'gua'), 'yang_emblem_latex.svg': ('⚌', 'gua'),
+                       'yin_emblem_latex.svg': ('⚍', 'gua')},
+             front=[(2, 'text')], body=list(range(4, 32)), back=[], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题（标点的全角半角、西文姓名缩写里的全角句点、漏掉的空格），'
+                         '以及一处排成正文的小标题和一幅排错位置的插图。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -959,11 +976,10 @@ FIG_SCALE = None           # pt per pixel of the ebook's full-width images (set 
 
 def fig_block(C, e, fmt):
     """An in-text figure: image scaled into the text width, caption lines under it; it may float to the next page."""
-    from PIL import Image
     global FIG_SCALE
     if FIG_SCALE is None:
         FIG_SCALE = style.TEXT_W / 566.0
-    w, h = Image.open(os.path.join(special.IMG_DIR, e['src'])).size
+    w, h = special.img_size(e['src'])
     capw = style.TEXT_W - 2 * style.FONT
     caps, fid = [], ''
     for c in e.get('caps', []):
@@ -979,6 +995,8 @@ def fig_block(C, e, fmt):
         sc = SNAP_SCALE                                         # a picture of a table: its own size (made at SNAP_SCALE)
     elif re.match(C.get('formula_img', r'$^'), e['src']):
         sc = formula_scale(e['src'])                            # a formula set as an image: its letters about the size of the text
+    elif C.get('fig_dpi'):
+        sc = 72.0 / C['fig_dpi']                                # (book 18) the printed size: the scans' resolution (an SVG redrawing: its units as their pixels)
     else:
         sc = FIG_SCALE
     sc = min(sc, style.TEXT_W / w, max_h / h)
@@ -996,8 +1014,7 @@ def fig_block(C, e, fmt):
 
 def image_blocks(src, max_h, width=None, max_scale=None):
     """A figure that stays in the text: an image block scaled into the text width (at most max_h pt high)."""
-    from PIL import Image
-    w, h = Image.open(os.path.join(special.IMG_DIR, src)).size
+    w, h = special.img_size(src)
     s = min((width or style.TEXT_W) / w, max_h / h, max_scale or 1e9)
     iw, ih = w * s, h * s
     n = math.ceil(ih / style.LINE)

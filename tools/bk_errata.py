@@ -63,6 +63,8 @@ def describe(f):
         return '', code('…' + f[2]) + ' ⏎ ' + code(f[3] + '…'), '两段合为一段'
     if kind == 'CELL':
         return f'表格（首格为 {code(f[2])} 的一行）第 {f[3] + 1} 列', code(f[4]), code(f[5])
+    if kind == 'MOVE':
+        return '', code(f[2] + '…'), f'这一段（或标题）移到 {code(f[3] + "…")} 之前'
     return '', ' '.join(code(x) for x in f[2:-1] if isinstance(x, (str, int))), kind
 
 
@@ -117,7 +119,8 @@ def write(b):
     lines += [f'{"" if C.get("errata_note") else "通读全书时"}改正的问题共 **{len(fixes)}** 条（每条是 `tools/bk_fixes.py` 里的一条改正规则，抽取电子书文字时应用；'
              f'生成时逐条核对：{"全部规则都在原文中找到并已应用" if not unused else f"{len(unused)} 条未匹配"}）。'
              '“原文”是电子书里的文字（为便于定位，常连同前后几个字一起列出），“改为”是 PDF 里的文字；“全书”一节的规则对每一章都适用。'
-             '核对依据：上下文与全书用字、用词的一致性，英文原著（错译、事实、人名、书目），以及常识与工具书（史实、学名、外文）。', '',
+             + ('' if C.get('errata_note') else
+                '核对依据：上下文与全书用字、用词的一致性，英文原著（错译、事实、人名、书目），以及常识与工具书（史实、学名、外文）。'), '',
              '## 分类统计', '', '| 类别 | 条数 | 其中（按说明里的标签） |', '|---|---|---|']
     lines += [f'| {g} | {grouped[g]} | {"、".join(labels[g])} |' for g in [g for g, _ in GROUPS] + ['其他'] if grouped[g]]
     lines += [f'| 合计 | {len(fixes)} | |']
