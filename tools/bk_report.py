@@ -72,7 +72,7 @@ def dropped_pictures(b):
     C = bk.CFG[b]
     known = C.get('img_text', {})
     out = collections.Counter()
-    for n in book_parts(C) + ([C['copyright']] if C.get('copyright') is not None else []):
+    for n in book_parts(C) + (bk._parts(C['copyright']) if C.get('copyright') is not None else []):
         for it in BE.items(bk.P(n)):
             rows = [c for row in it.get('rows') or [] for c in row]
             for runs in [it.get('runs') or []] + rows:
@@ -89,7 +89,7 @@ def raw_missing(b):
     parts = book_parts(C)
     snap = BE.SNAP.get(os.path.basename(style.SCRATCH.rstrip('/')), ())
     if C.get('copyright') is not None:
-        parts.append(C['copyright'])
+        parts += bk._parts(C['copyright'])
     ign = re.compile(r'[\s\u3000\u2028\u00a0\u200b\u2060\ue000]')
     miss = collections.Counter()
     for n in parts:

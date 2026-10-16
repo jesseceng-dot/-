@@ -30,6 +30,7 @@ _BACK_WORDS = re.compile(r'\s*(?:↩\s*)?返回正文\s*')            # the word
 
 _FIX = None
 FIX_USED = {}
+EPUB_TYPE = '{http://www.idpf.org/2007/ops}type'
 _SPAN_ID = None
 
 # Span classes of one book -> (bold: 1 / 0 = inherit, run classes added); key = the book's scratch directory.
@@ -395,6 +396,10 @@ def inline(el, part, mark_breaks=False):
             elif t == 'svg':                                    # a formula drawn in the text itself: keyed by its <title> (its LaTeX)
                 title = next((''.join(x.itertext()).strip() for x in ch if isinstance(x.tag, str) and ln(x) == 'title'), '')
                 out.append(run(OBJ, b, 0, h, a, i='svg:' + title, c=ch.get('class') or ''))
+            elif t == 'a' and ch.get(EPUB_TYPE) == 'noteref' and ch.get('href') and not ''.join(ch.itertext()).strip():
+                href = resolve_href(part, ch.get('href'))           # an icon (image) as the mark of an EPUB3 footnote (<aside>):
+                frag = href.split('#')[-1]                          # numbered later (renum); the note links back to this anchor
+                out.append(run('0', b, 1, href, anchor_key(part, 'ref-' + frag), c=c))
             elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
                 m = re.search(r'(\d+)$', ch.get('id') or '')
                 if m and ch.get('href'):                          # an icon (image) as the note mark: the number comes from the id
@@ -420,7 +425,8 @@ def inline(el, part, mark_breaks=False):
                     rec(ch, b, c, h, a, s)
             elif t == 'sup':
                 txt = ''.join(ch.itertext()).strip()
-                if not txt and any(ln(x) == 'a' and 'duokan-footnote' in (x.get('class') or '') for x in ch.iter() if isinstance(x.tag, str)):
+                if not txt and any(ln(x) == 'a' and ('duokan-footnote' in (x.get('class') or '') or x.get(EPUB_TYPE) == 'noteref')
+                                   for x in ch.iter() if isinstance(x.tag, str)):
                     rec(ch, b, c, h, a, 1)
                 elif MARK_RE.match(txt) or h:
                     rec(ch, b, c, h, a, 1)
@@ -450,6 +456,15 @@ def inline(el, part, mark_breaks=False):
             emit(ch.tail, b, c, h, a, s)
 
     rec(el, 0, '', '', '')
+    k = 0
+    while k < len(out) - 1:                                     # a mark split into links of its own: '[' '1' ']' -> '[1]'
+        r, q = out[k], out[k + 1]
+        if r.get('s') and q.get('s') and r.get('h') and r.get('h') == q.get('h') and not (r.get('i') or q.get('i')) \
+                and re.fullmatch(r'[\[［]?\d*[\]］]?', r['t'] + q['t']):
+            out[k] = dict(r, t=r['t'] + q['t'], a=r.get('a') or q.get('a', ''))
+            del out[k + 1]
+            continue
+        k += 1
     if pending[0] and pending[0] == span_pend[0]:
         out.append(run('\u2060', a=pending[0]))                # an anchor <span id> that ends its paragraph: kept on a word joiner
     return merge_runs(out)
@@ -571,6 +586,13 @@ def items(part):
             elif t == 'blockquote':
                 walk(el, q=1, box=box, fig=fig, note=note)
             elif t == 'aside':
+                lis = [x for x in el.iter() if isinstance(x.tag, str) and ln(x) == 'li' and 'duokan-footnote-item' in (x.get('class') or '')]
+                if lis and el.get('id'):                            # an EPUB3 footnote in the duokan form: its mark is an icon
+                    runs = clean_runs(inline(lis[0], part))
+                    if runs:
+                        add('note', el, runs=[run('0', 0, 0, anchor_key(part, 'ref-' + el.get('id')), anchor_key(part, el.get('id')))]
+                            + runs, q=0, box=0)
+                    continue
                 if not any(ln(x) == 'p' for x in el.iter() if isinstance(x.tag, str)):
                     continue
                 kids = [x for x in el.iter() if isinstance(x.tag, str)]

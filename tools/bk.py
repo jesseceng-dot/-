@@ -407,9 +407,10 @@ CFG = {
              author='〔美〕詹姆斯·C.斯科特 著', credits=['王晓毅　译', '胡　搏　校'], publisher='社会科学文献出版社', series='思想会',
              pdf_author='〔美〕詹姆斯·C.斯科特', cover='00052.jpeg', front_flaps=['00001.jpeg'], title_img='00003.jpeg',
              back_flaps=['00050.jpeg'], backcover='00051.jpeg',
-             copyright=[24, 2], copyright_imgs={'00002.jpeg': 36.0},   # the CIP page (last in the ebook) and the original's rights + fund mark
-             marker='sq', lat_apos=True, toc_even=True, open_air=True, note_cls=('note',),
+             copyright=[24, 2], copyright_imgs={'00002.jpeg': 26.0}, copyright_top=1,   # the CIP page (last in the ebook) and the original's rights + fund mark
+             marker='sq', lat_apos=True, toc_even=True, open_air=2, note_cls=('note',),
              cls_quote=('block',), cls_right=('lk',), cls_center=('center1',), cls_cap=('img',),
+             text_map=[(r'^(A\.三权广场|在这张图上可以看到：|这个布局显示出：|图片描述了21世纪|图8-3中右侧|环状图表示)', ('cap', 0, 0))],   # (the legends under six figures)
              part_re=r'^第[一二三四]部分', part_split=r'^(第[一二三四]部分)[\s\u3000]*(.*)$',
              fig_inline=True, fig_dpi=150, table2=True, table_keep=12,
              # the ebook's pictures of a word and a character, and the reviser's one LaTeX picture: maître; 𮝴 (U+2E774, the
@@ -1544,7 +1545,7 @@ def renumber(els, notes):
 
 # ---------------------------------------------------------------------------------------------- pages
 def copyright_module(n, skip=0, C=None):
-    blocks = [dict(k='space', style='cip', runs=[], n=4)]
+    blocks = [dict(k='space', style='cip', runs=[], n=(C or {}).get('copyright_top', 4))]
     items, raw = [], []
     for k_, n_ in enumerate(_parts(n)):                          # (several parts: the CIP page and the original's rights page)
         if k_:
@@ -1560,7 +1561,7 @@ def copyright_module(n, skip=0, C=None):
             items.append(it)
     for it in items:
         if it['k'] == 'gap':
-            blocks.append(dict(k='space', style='cip', runs=[], n=2))
+            blocks.append(dict(k='space', style='cip', runs=[], n=1))
             continue
         if it['k'] == 'img' and C and C.get('copyright_imgs') and it['src'] in C['copyright_imgs']:
             w = C['copyright_imgs'][it['src']]                    # a small picture of the page (a fund's mark), its width in pt
@@ -1732,14 +1733,19 @@ def book(b):
             blocks[:2] = blocks[1::-1]                             # (a plate reference does not open a chapter: it goes under the title)
         blocks = wrap_lines(finish_blocks(blocks))
         if C.get('open_air'):                                      # the text under a chapter title may start one line lower,
+            two = C['open_air'] == 2                               # (open_air=2: up to two lines)
             for j in range(len(blocks) - 1):                       # when that spares a page with an empty foot
                 if blocks[j]['k'] == 'h' and blocks[j].get('style') == 'h1':
                     if blocks[j + 1]['k'] == 'p' and not blocks[j + 1].get('before'):
-                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0)]
+                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0)] + ([(2, 150.0)] if two else [])
                     break
-            for x in blocks:                                       # and an epigraph's '——name' may stand one line below it
+            for j, x in enumerate(blocks):                         # and an epigraph's '——name' may stand one line below it
                 if x['k'] == 'p' and x.get('style') == 'right' and plain(x.get('runs', [])).startswith('——') and not x.get('before'):
-                    x['bef_opts'] = [(0, 0.0), (1, 30.0)]
+                    nx = blocks[j + 1] if j + 1 < len(blocks) else {}
+                    if not two:
+                        x['bef_opts'] = [(0, 0.0), (1, 30.0)]
+                    elif nx.get('k') == 'p' and nx.get('style') == 'body' and not nx.get('before') and not nx.get('bef_opts'):
+                        nx['bef_opts'] = [(0, 0.0), (1, 10.0), (2, 25.0)]   # (open_air=2: the name under its quotation, the air below the pair)
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)

@@ -86,8 +86,9 @@ def part_titles(b):
             out[n] = t
     order = [n for g in groups for n in (list(g) if isinstance(g, (list, tuple)) else [g])]
     if C.get('copyright') is not None:
-        out[C['copyright']] = '版权页'
-        order.insert(0, C['copyright'])
+        for k, n in enumerate(bk._parts(C['copyright'])):         # (one part, or the parts a merged copyright page is made of)
+            out[n] = '版权页'
+            order.insert(k, n)
     return out, order
 
 
