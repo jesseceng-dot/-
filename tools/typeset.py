@@ -11,11 +11,16 @@ def figure_caption(b, measurer):
     """An in-text figure with a caption (b['cap'] = [(css class, runs), ...]): measure the caption lines and set the
     number of grid slots the figure takes (image + caption + a little air), b['n']."""
     from .model import runs_html
+    tops = b.get('cap_top', [])
     specs = [dict(html=runs_html(runs, strip=False), cls=cls, width=b['capw'], indent=0, ls=0.0, lh=CAP_PITCH)
-             for cls, runs in b['cap']]
+             for cls, runs in b['cap'] + tops]
     res = measurer.measure(specs) if specs else []
-    b['cap_lines'] = [dict(starts=r['starts'], nat=r['nat']) for r in res]
-    h = b['h'] + (5.0 + CAP_PITCH * sum(len(r['starts']) for r in res) if res else 0.0)
+    nb = len(b['cap'])
+    b['cap_lines'] = [dict(starts=r['starts'], nat=r['nat']) for r in res[:nb]]
+    h = b['h'] + (5.0 + CAP_PITCH * sum(len(r['starts']) for r in res[:nb]) if nb else 0.0)
+    if tops:                                                     # (a table's title above its picture)
+        b['cap_top_lines'] = [dict(starts=r['starts'], nat=r['nat']) for r in res[nb:]]
+        h += CAP_PITCH * sum(len(r['starts']) for r in res[nb:]) + 5.0
     b['n'] = int(-(-(h + 10.0) // style.LINE))
 
 
@@ -24,7 +29,7 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=18):
     lbs = []
     specs, owner = [], []
     for b in blocks:
-        if b['k'] == 'img' and b.get('cap') and 'cap_lines' not in b:
+        if b['k'] == 'img' and (b.get('cap') or b.get('cap_top')) and 'cap_lines' not in b:
             figure_caption(b, measurer)
     for i, b in enumerate(blocks):
         st = sty(b, grid)

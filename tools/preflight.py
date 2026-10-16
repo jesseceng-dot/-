@@ -213,12 +213,17 @@ def main():
     # 4. pictures
     print('\n# 4. 图片')
     use = collections.defaultdict(list)
+    icons = collections.Counter()
     for name, b in texts.items():
         for x in b.iter():
             if ln(x) not in ('img', 'image'):
                 continue
             src = x.get('src') or x.get('{http://www.w3.org/1999/xlink}href') or x.get('href') or ''
             src = os.path.basename(src)
+            if any(ln(y) == 'a' and (y.get('{http://www.idpf.org/2007/ops}type') == 'noteref'
+                                     or 'duokan-footnote' in (y.get('class') or '')) for y in x.iterancestors()):
+                icons[src] += 1                                 # an icon as a note mark (EPUB3 / duokan footnote): no text to transcribe
+                continue
             blk = block_of(x)
             bt = text_of(blk) if blk is not None else ''
             rest = bt.replace('\u25a1', '').strip()
@@ -232,6 +237,8 @@ def main():
     alone = [s for s, us in use.items() if s not in inline]
     unused = sorted(set(os.listdir(IMG_DIR)) - set(use)) if os.path.isdir(IMG_DIR) else []
     tr = (C or {}).get('img_text', {})
+    if icons:
+        print(f'  注释角标图标（不是文字，转换时换成编号角标）{len(icons)} 种、{sum(icons.values())} 处：{" ".join(sorted(icons))}')
     print(f'  行内小图（夹在文字里，必须精确转成文字）{len(inline)} 种、{sum(len(use[s]) for s in inline)} 处'
           + (f'；已配置转写 {sum(1 for s in inline if s in tr)} 种' if C else ''))
     for s in sorted(inline):

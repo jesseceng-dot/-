@@ -39,7 +39,7 @@ def fidelity(bb, pdf):
             continue
         exp = collections.Counter()
         for b in mod.blocks:
-            for _, runs in b.get('cap') or ():                    # the caption of an in-text figure
+            for _, runs in (b.get('cap') or []) + (b.get('cap_top') or []):                    # the caption of an in-text figure
                 exp += norm_counter(runs_text(runs))
             if b['k'] in ('img', 'space'):
                 continue

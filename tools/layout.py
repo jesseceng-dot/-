@@ -348,6 +348,8 @@ def solve(lbs, N=N, reserve=0, tail_min=2):
                 else:
                     opts.append((top(pg2) + top_bef, c0 + (0.0 if b.brk else gap_pen(g)), g, True, pg2))
             for f0, c1, g0, broke, pgs in opts:
+                if fl >= 0 and not broke and b.block.get('nofloat'):
+                    continue                            # (a text table: a deferred figure may not pass into it)
                 for vi, n in enumerate(b.nl):
                     vp = b.pen[vi]
                     if vp == INF:

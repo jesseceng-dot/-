@@ -399,6 +399,8 @@ def inline(el, part, mark_breaks=False):
             elif t == 'a' and ch.get(EPUB_TYPE) == 'noteref' and ch.get('href') and not ''.join(ch.itertext()).strip():
                 href = resolve_href(part, ch.get('href'))           # an icon (image) as the mark of an EPUB3 footnote (<aside>):
                 frag = href.split('#')[-1]                          # numbered later (renum); the note links back to this anchor
+                if out and not out[-1].get('s') and out[-1]['t'] != OBJ:
+                    out[-1] = dict(out[-1], t=out[-1]['t'].rstrip())    # (the ebook's line break before the icon: no space before the mark)
                 out.append(run('0', b, 1, href, anchor_key(part, 'ref-' + frag), c=c))
             elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
                 m = re.search(r'(\d+)$', ch.get('id') or '')
@@ -459,9 +461,11 @@ def inline(el, part, mark_breaks=False):
     k = 0
     while k < len(out) - 1:                                     # a mark split into links of its own: '[' '1' ']' -> '[1]'
         r, q = out[k], out[k + 1]
-        if r.get('s') and q.get('s') and r.get('h') and r.get('h') == q.get('h') and not (r.get('i') or q.get('i')) \
-                and re.fullmatch(r'[\[［]?\d*[\]］]?', r['t'] + q['t']):
-            out[k] = dict(r, t=r['t'] + q['t'], a=r.get('a') or q.get('a', ''))
+        if (r.get('s') or q.get('s')) and r.get('h') and r.get('h') == q.get('h') and not (r.get('i') or q.get('i')) \
+                and re.fullmatch(r'[\[［]?\d*[\]］]?', r['t'] + q['t']):      # (the brackets alone are no mark: 'msup' superscripts)
+            base = r if r.get('s') else q
+            c_ = ' '.join(x for x in (base.get('c') or '').split() if x != 'msup')
+            out[k] = dict(base, t=r['t'] + q['t'], a=r.get('a') or q.get('a', ''), s=1, c=c_)
             del out[k + 1]
             continue
         k += 1
@@ -672,7 +676,7 @@ def items(part):
                 for tr in el.iter():
                     if isinstance(tr.tag, str) and ln(tr) == 'tr':
                         tds = [td for td in tr if isinstance(td.tag, str) and ln(td) in ('td', 'th')]
-                        rows.append([clean_runs(inline(td, part)) for td in tds])
+                        rows.append([cell_runs(td) for td in tds])
                         spans.append([int(td.get('colspan') or 1) for td in tds])
                         heads.append(bool(tds) and all(ln(td) == 'th' for td in tds))
                 add('table', el, rows=rows, runs=[], spans=spans, heads=heads)
@@ -684,6 +688,18 @@ def items(part):
                 runs = clean_runs(inline(el, part))
                 if runs:
                     add('p', el, runs=runs, q=q, box=box)
+
+    def cell_runs(td):
+        """A table cell: paragraphs inside it (book 26) are lines of the cell, kept apart by a line break."""
+        blocks = [x for x in td if isinstance(x.tag, str) and ln(x) in ('p', 'div', 'li')]
+        if not blocks:
+            return clean_runs(inline(td, part))
+        out = []
+        for x in blocks:
+            r = clean_runs(inline(x, part))
+            if r:
+                out += ([run(BR)] if out else []) + r
+        return out
 
     def lists(el, depth):
         """<ul>/<ol> items; a nested list (inside an item) becomes items one level deeper."""

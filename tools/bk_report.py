@@ -48,9 +48,12 @@ def source_counter(b):
                 continue
             if re.fullmatch(r'[—－-]{6,}', ''.join(r['t'] for r in it['runs']).strip()):
                 continue                                    # the dashed rule above the notes of book 4 (dropped on purpose)
-            for r in it['runs']:
+            for k, r in enumerate(it['runs']):
                 if r.get('i'):
                     continue
+                if C.get('renum') and (r.get('s') or k == 0 and (it['k'] == 'note' or C.get('note_by_marker')) and (r.get('h') or r.get('a'))
+                                       and re.fullmatch(r'\s*[\[［]?\d*[\]］]?\s*', r['t'])):
+                    continue                              # (renumbered marks and note numbers: checked by qa_marks, not here)
                 c += counter(r['t'].replace(' ', ''))
     return c
 
@@ -179,12 +182,12 @@ def fix_unused():
     return [f'{f[0]}:{f[1] if isinstance(f[1], str) else f[1].pattern}' for f in (BE._FIX or []) if not BE.FIX_USED.get(id(f))]
 
 
-def block_counter(cfg):
+def block_counter(cfg, renum=False):
     c = collections.Counter()
     for m in cfg['modules']:
         if m.kind == 'text' and m.mid not in ('toc', 'copyright'):
             for b in m.blocks:
-                for _, runs in b.get('cap') or ():                # the caption of an in-text figure
+                for _, runs in (b.get('cap') or []) + (b.get('cap_top') or []):                # the caption of an in-text figure
                     c += counter(runs_text(runs).replace('⁠', '').replace(' ', ''))
                 if b['k'] in ('img', 'space'):
                     continue
@@ -192,7 +195,8 @@ def block_counter(cfg):
                     continue
                 if b.get('style') == 'idxhead' and m.mid.startswith('notes'):
                     continue
-                t = runs_text(b['runs']).replace('⁠', '').replace(' ', '')
+                runs = [r for r in b['runs'] if not (r.get('s') == 1 or r.get('c') == 'nn')] if renum else b['runs']
+                t = runs_text(runs).replace('⁠', '').replace(' ', '')
                 c += counter(re.sub(r'[\d—]', '', t) if m.idxmap else t)
         elif m.kind == 'page' and hasattr(m, 'lines'):
             for t in m.lines:
@@ -257,7 +261,7 @@ def book(b, m):
     links = sum(len(p.get_links()) for p in doc)
     sizes = {(round(p.rect.width, 2), round(p.rect.height, 2)) for p in doc}
     src = source_counter(b)
-    have = block_counter(cfg)
+    have = block_counter(cfg, bool(bk.CFG[b].get('renum')))
     miss, extra = src - have, have - src
     fonts = collections.Counter()
     for p in doc:

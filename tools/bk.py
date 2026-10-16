@@ -420,6 +420,25 @@ CFG = {
              front=[(4, 'figure'), (5, 'text'), (6, 'text')], body=list(range(8, 20)),
              back=[20, 21, (22, 'index'), 23], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    26: dict(scratch='q26', file='第三个千年思维', title='第三个千年思维', sub='重新理解世界的思想、工具和方法',
+             author='〔美〕索尔·珀尔马特　〔美〕约翰·坎贝尔　〔美〕罗伯特·麦考恩 著', credits=['彭相珍　译'], publisher='中信出版集团',
+             pdf_author='〔美〕索尔·珀尔马特、约翰·坎贝尔、罗伯特·麦考恩', cover='cover.jpeg', title_img=None,
+             copyright=2, copyright_skip=2, marker='sq', renum=True, note_by_marker=True, lat_apos=True, toc_even=True,
+             open_air=3, url_break=True, dedication_grid=True,   # (open_air: chapter 13 has three rigid paragraphs under its title)
+             # the section titles are bold paragraphs; '第3章' + its title, '1' + the part's title, '推荐序一' + its title: one heading
+             bold_head=(3, 40), head_join=[(r'推荐序[一二三]', '／'), (r'第\d+章', '\u3000'), (r'\d', '\u3000')],
+             head_relevel={'证真偏差': 3, '事实与价值观': 3},       # (two section titles tagged like chapter titles)
+             head_split='／', head_split_balance=True, head_split_join='\u3000', head_split_width=340,
+             part_re=r'^\d\s', part_split=r'^(\d)\s+(.*)$',
+             short_right={4: 40, 5: 40, 6: 40, 7: 40}, cls_right=('short_right',),
+             text_map=[(r'^[图表]\d+-\d+\s', ('cap', 0, 0))], cap_mode='tabfig', cap_top_re=r'^表',
+             fig_inline=True, table2=True, table_keep=12, table_head_keep=True,
+             # the reviser's four formula pictures: their LaTeX / alt text
+             img_text={'book01-repair-01.svg': '229733±9', 'book01-repair-02.svg': '1英尺=0.3048米',
+                       'book01-repair-03.svg': '1英寸=0.0254米', 'book01-repair-04.svg': 'f′′(a)(x-a)²/2'},
+             front=[(3, 'dedication'), (4, 'text'), (5, 'text'), (6, 'text'), (7, 'text')], body=list(range(8, 32)),
+             back=[32], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -741,6 +760,13 @@ def elements(C, items, kaitext=False):
                 elif hr:
                     els.append(dict(k='h', lvl=float(lvl), runs=hr, id=it['id'], src=f'p.{cls}', cls=cls))
                 continue
+        if k == 'p' and C.get('bold_head') and not it.get('box') and runs:     # (book 26) section titles set as bold paragraphs
+            lvl_b, max_b = C['bold_head']
+            t_b = plain(runs)
+            if len(t_b) <= max_b and t_b[-1] not in '。！，；：…' and not any(r.get('s') for r in runs) \
+                    and all(r.get('b') for r in runs if r['t'].strip()):
+                els.append(dict(k='h', lvl=float(lvl_b), runs=[dict(r, b=0) for r in runs], id=it['id'], src=f'p.{cls}', cls=cls))
+                continue
         if k == 'h' and C.get('head_clean'):
             runs = _head_runs(C, runs)
             if not runs:
@@ -758,7 +784,13 @@ def elements(C, items, kaitext=False):
             if C.get('merge_dash_head') and t.startswith('——') and els and els[-1]['k'] == 'h':
                 els[-1]['runs'] = merge_runs(els[-1]['runs'] + runs)          # 'Title' + '——sub-title' set as two headings
                 continue
-            els.append(dict(k='h', lvl=float(it['lvl']), runs=runs, id=it['id'], src=f'h{it["lvl"]}.{cls}', cls=cls))
+            sep = next((sp for pat, sp in C.get('head_join', ()) if els and els[-1]['k'] == 'h'
+                        and re.fullmatch(pat, plain(els[-1]['runs']))), None)
+            if sep is not None:                                  # (book 26) '第3章' and its title as two headings: one heading
+                els[-1]['runs'] = merge_runs(els[-1]['runs'] + [run(sep)] + runs)
+                continue
+            lvl_h = C.get('head_relevel', {}).get(t, it['lvl'])     # (a section title the ebook tags like a chapter title)
+            els.append(dict(k='h', lvl=float(lvl_h), runs=runs, id=it['id'], src=f'h{it["lvl"]}.{cls}', cls=cls))
             continue
         if k == 'li':
             if C.get('cls_style') is not None:            # (book 16) nested lists: one hanging level per depth, the list's own bullet
@@ -1135,10 +1167,18 @@ def table_blocks2(rows, spans, heads, center=True):
                              for x in merge_runs(cell)]                  # (one box per cell: runs of one format merged)
                     if not cell:
                         runs.append(run('⁠', c=cls_of(widths[j])))
+            if nl > ROW_SPLIT:                                   # (book 26) a row of many lines may break between pages,
+                kp = li == 0 or nl - 3 < li < nl - 1             # two lines of it at least on either side
+            else:
+                kp = li < nl - 1
+            kp = kp or bold and not last and li == nl - 1        # (the header row stays with the first row under it)
             out.append(dict(k='p', style='trow', runs=runs, novary=True, nomerge=True, first=-indent, left=round(off + indent + 1, 2),
                             before=1 if first and li == 0 else 0, after=1 if last and li == nl - 1 else 0,
-                            **({'keep': 1} if li < nl - 1 else {})))
+                            **({'keep': 1} if kp else {})))
     return out
+
+
+ROW_SPLIT = 8              # a table row of more lines than this may be split between pages
 
 
 def fig_label(text, pat=r'^(图[^\s　]+)'):
@@ -1266,8 +1306,12 @@ def fig_inline(C, els):
             out.append(e)
             i += 1
             continue
+        caps_top = []
         if out and out[-1]['k'] == 'p' and out[-1].get('style') == 'cap':
-            out[-1]['keep'] = 1                                  # a title above the picture (表6-1) stays with it
+            if C.get('cap_top_re') and re.match(C['cap_top_re'], plain(out[-1]['runs'])):
+                caps_top = [out.pop()]                           # (book 26) a table title above its picture: part of the figure, floats with it
+            else:
+                out[-1]['keep'] = 1                              # a title above the picture (表6-1) stays with it
         srcs = [e['src']]
         i += 1
         while i < len(els) and els[i]['k'] == 'fig' and els[i].get('grp') == e.get('grp') and not e.get('snap'):
@@ -1282,7 +1326,8 @@ def fig_inline(C, els):
         while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
             caps.append(els[i])
             i += 1
-        out.append(dict(k='fig', src=srcs[0] if len(srcs) == 1 else join_images(srcs), caps=caps, snap=e.get('snap')))
+        out.append(dict(k='fig', src=srcs[0] if len(srcs) == 1 else join_images(srcs), caps=caps, snap=e.get('snap'),
+                        **({'caps_top': caps_top} if caps_top else {})))
     return out
 
 
@@ -1326,7 +1371,9 @@ def fig_block(C, e, fmt):
         title = 'maintitle' in c.get('src', '')
         fid = fid or (c.get('id') if title else '')
         caps.append(('s-figcap' if title else 's-figsub', mark_runs(runs, fmt)))
-    est = sum(math.ceil(len(plain(r)) * 9.0 / capw + 0.01) for _, r in caps)
+    tops = [('s-figsub', mark_runs(BT.fix_edges(BT.fix_runs(c['runs'])), fmt)) for c in e.get('caps_top', [])]
+    tops = [x for x in tops if x[1]]
+    est = sum(math.ceil(len(plain(r)) * 9.0 / capw + 0.01) for _, r in caps + tops)
     max_h = min(FIG_MAX_H, (style.NLINES - 3) * style.LINE - 15.0 - 13.0 * est)
     if e.get('snap'):
         sc = SNAP_SCALE                                         # a picture of a table: its own size (made at SNAP_SCALE)
@@ -1338,11 +1385,13 @@ def fig_block(C, e, fmt):
         sc = FIG_SCALE
     sc = min(sc, style.TEXT_W / w, max_h / h)
     iw, ih = round(w * sc, 2), round(h * sc, 2)
-    flt = bool(caps) and plain(caps[0][1]).startswith('图') or ih > 6 * style.LINE   # numbered figures and tall pictures may float
+    flt = bool(caps) and plain(caps[0][1]).startswith('图') or bool(tops) or ih > 6 * style.LINE   # numbered figures and tables, tall pictures may float
     b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw,
              fig_src=e['src'])
-    if caps:
+    if caps or tops:
         b['cap'] = caps
+        if tops:
+            b['cap_top'] = tops                                 # (the title of a table: above the picture)
     else:
         b['cap_lines'] = []
         b['n'] = int(math.ceil((ih + 10.0) / style.LINE))
@@ -1614,6 +1663,20 @@ def _parts(x):
     return list(x) if isinstance(x, (list, tuple)) else [x]
 
 
+def short_right(items, max_len):
+    """Short lines that are no sentences (a name, a title, 'author of …') set flush right; a blank line before the next
+    paragraph of text after them."""
+    out, prev = [], False
+    for it in items:
+        t = plain(it.get('runs') or []).strip()
+        sh = it['k'] == 'p' and t and len(t) <= max_len and t[-1] not in '。！？…”' and not all(r.get('b') for r in it['runs'] if r['t'].strip())
+        if it['k'] == 'p' and t and not sh and prev:
+            out.append(dict(k='p', cls='', id='', runs=[], blank=1))
+        out.append(dict(it, cls=(it.get('cls', '') + ' short_right').strip()) if sh else it)
+        prev = bool(sh)
+    return out
+
+
 def part_divider(C, els):
     """A heading 'Part N' (+ sub-title lines that follow it) that becomes a page of its own: (lines, toc title, remaining elements)."""
     pr = re.compile(C.get('part_re') or PART_RE.pattern)
@@ -1695,7 +1758,10 @@ def book(b):
     def gather(ns, kaitext=False):
         els, notes = [], []
         for n in _parts(ns):
-            e, nt = elements(C, BE.items(P(n)), kaitext=kaitext)
+            its = BE.items(P(n))
+            if n in C.get('short_right', {}):                     # (book 26) the names and titles under endorsements and prefaces
+                its = short_right(its, C['short_right'][n])
+            e, nt = elements(C, its, kaitext=kaitext)
             els += e
             notes += nt
         return els, notes
@@ -1718,12 +1784,15 @@ def book(b):
                                 n=math.ceil(osz[1] / style.LINE))]
             elif e['k'] == 'table' and C.get('table2'):
                 tb = table_blocks2(e['rows'], e.get('spans') or [[1] * len(r) for r in e['rows']], e.get('heads'))
-                if C.get('table_keep') and len(tb) <= C['table_keep']:
+                for x in tb:
+                    x['nofloat'] = 1                                # (a floating figure lands before the table or on its first page)
+                small = C.get('table_keep') and len(tb) <= C['table_keep']
+                if small:
                     for x in tb[:-1]:
                         x['keep'] = 1                               # a small table is not split over two pages
-                    if blocks and blocks[-1].get('style') in ('cap', 'ck'):
-                        blocks[-1].update(keep=1, before=tb[0].get('before', 0), nomerge=True)   # its title above it, kept with it
-                        tb[0]['before'] = 0
+                if blocks and blocks[-1].get('style') in ('cap', 'ck') and (small or C.get('table_head_keep')):
+                    blocks[-1].update(keep=1, before=tb[0].get('before', 0), nomerge=True, nofloat=1)   # its title above it, kept with it
+                    tb[0]['before'] = 0
                 blocks += tb
             elif e['k'] == 'table':
                 blocks += table_blocks(e['rows'], C.get('table_head', True))
@@ -1733,11 +1802,11 @@ def book(b):
             blocks[:2] = blocks[1::-1]                             # (a plate reference does not open a chapter: it goes under the title)
         blocks = wrap_lines(finish_blocks(blocks))
         if C.get('open_air'):                                      # the text under a chapter title may start one line lower,
-            two = C['open_air'] == 2                               # (open_air=2: up to two lines)
+            two = C['open_air'] >= 2                               # (open_air=2, 3: up to two, three lines)
             for j in range(len(blocks) - 1):                       # when that spares a page with an empty foot
                 if blocks[j]['k'] == 'h' and blocks[j].get('style') == 'h1':
                     if blocks[j + 1]['k'] == 'p' and not blocks[j + 1].get('before'):
-                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0)] + ([(2, 150.0)] if two else [])
+                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0), (2, 150.0), (3, 300.0)][:int(C['open_air']) + 1]
                     break
             for j, x in enumerate(blocks):                         # and an epigraph's '——name' may stand one line below it
                 if x['k'] == 'p' and x.get('style') == 'right' and plain(x.get('runs', [])).startswith('——') and not x.get('before'):

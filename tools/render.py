@@ -143,11 +143,13 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             if b.get('cap_lines') is not None:          # an in-text figure: image and caption centred in its slots,
                 from .typeset import CAP_PITCH          # flush with the text block when it opens or closes the page
                 hc = sum(len(c['starts']) for c in b['cap_lines']) * CAP_PITCH
+                tt = sum(len(c['starts']) for c in b.get('cap_top_lines', ())) * CAP_PITCH
+                tt = tt + 5.0 if tt else 0.0                # (a table's title above the picture: its lines and a little air)
                 slots = lb.nl[vi] + fig_air.get(ii, 0)
                 body_base = BASE.get(f's-body@{style.LINE}', 12.0)
                 alone = lone or len(page['items']) == 1
                 if not alone and ii == 0 and slot0 == 0:
-                    y = style.TOP + body_base - 0.88 * style.FONT          # its top level with the top of the first line of text
+                    y = style.TOP + body_base - 0.88 * style.FONT + tt     # its top level with the top of the first line of text
                 elif not alone and ii == len(page['items']) - 1 and slot0 + slots >= n:
                     last = style.TOP + (n - 1) * style.LINE + body_base    # the last baseline of the page
                     if hc:                                                 # the last caption line on it
@@ -157,16 +159,22 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
                     else:
                         y = last + 0.25 * style.FONT - ih                  # the image down to the descenders of a last line
                 else:
-                    y += (slots * style.LINE - (ih + (5.0 + hc if hc else 0.0))) / 2
+                    y += (slots * style.LINE - (ih + (5.0 + hc if hc else 0.0) + tt)) / 2 + tt
             if anchors is not None and b.get('id') and b['id'] not in anchors:
                 anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'
                          f'transform:translate({x0 + (st["W"] - iw) / 2:.2f}pt,{y:.2f}pt)">')
-            if b.get('cap_lines'):
+            capsets = []
+            if b.get('cap_top_lines'):
                 from .typeset import CAP_PITCH
-                yc = y + ih + 5.0
+                capsets.append((b['cap_top'], b['cap_top_lines'],
+                                y - 5.0 - sum(len(c['starts']) for c in b['cap_top_lines']) * CAP_PITCH))
+            if b.get('cap_lines'):
+                capsets.append((b['cap'], b['cap_lines'], y + ih + 5.0))
+            for caps_, lines_, yc in capsets:
+                from .typeset import CAP_PITCH
                 cx = x0 + (st['W'] - b['capw']) / 2
-                for (cls, runs), cl in zip(b['cap'], b['cap_lines']):
+                for (cls, runs), cl in zip(caps_, lines_):
                     starts = cl['starts']
                     ends = starts[1:] + [None]
                     cst = dict(cls=cls, fs=9.0, first=0, left=0, right=0, slots=1, pitch=CAP_PITCH,
