@@ -220,11 +220,11 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
     depth = [0] * (len(text) + 1)
     d = 0
     for i, ch in enumerate(text):
-        if ch in '（《〔(':
+        if ch in '（《〔(“':
             d += 1
         depth[i] = d
-        if ch in '）》〕)':
-            d -= 1
+        if ch in '）》〕)”':
+            d -= 1                                          # (a quotation is not broken either, when a break outside it fits)
     import itertools
     idx = [i for i in range(1, len(text)) if _breakable(text, i)]
     idx = _word_boundaries(text, idx)

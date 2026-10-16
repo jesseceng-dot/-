@@ -28,6 +28,7 @@ def fix_text(t):
     t = _RE_SPACE_CLOSE.sub('', t)
     t = re.sub(r' {2,}', ' ', t)
     t = re.sub(r'(?<=\d)([–—~～])(?=\d)', '\\1\u2060', t)          # a range of numbers (pp.123–132) is not broken after its dash
+    t = re.sub(r'(?<![A-Za-z])(pp?\.) (?=\d)', '\\1\u00a0', t)                  # 'p. 60': the page number stays with its 'p.'
     return t
 
 
@@ -38,6 +39,13 @@ def fix_runs(runs):
             out.append(r)
             continue
         t = fix_text(r['t'])
+        if BR in t and t != BR:                          # (a correction that breaks the line: the break is a run of its own)
+            for k, piece in enumerate(t.split(BR)):
+                if k:
+                    out.append(run(BR))
+                if piece:
+                    out.append(dict(r, t=piece))
+            continue
         if t:
             out.append(dict(r, t=t))
     for i in range(len(out)):                            # a space at a run boundary before a closing mark

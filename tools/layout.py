@@ -264,6 +264,8 @@ def bef_options(lb):
 def _bef_options(lb):
     st = lb.st
     base = st['before']
+    if lb.block.get('bef_opts'):                                   # (a block with its own choices: the text under a chapter title)
+        return list(lb.block['bef_opts'])
     if lb.block.get('k') == 'h' and st.get('slots', 1) == 1 and not st.get('top_keep'):
         opts = [(base, 0.0), (base + 1, 6.0)]
         if base >= 2:

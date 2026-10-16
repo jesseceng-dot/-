@@ -13,7 +13,9 @@ def check(b):
     parts = [x for n, _ in C['front'] for x in bk._parts(n)]
     for x in C['body']:
         parts += bk._parts(x)
-    parts += [x[0] if isinstance(x, tuple) else x for x in C['back']] + list(C.get('endnotes', ()))
+    for x in C['back']:
+        parts += bk._parts(x[0] if isinstance(x, tuple) else x)
+    parts += list(C.get('endnotes', ()))
     marks, notes, dup = {}, {}, []
     noteish = set(C.get('note_cls', ()))
     for n in parts:

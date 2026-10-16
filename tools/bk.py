@@ -7,7 +7,7 @@ import math
 import os
 import re
 import shutil
-from . import bk_extract as BE, bk_text as BT, kant_struct as KS, special, style
+from . import bk_extract as BE, bk_text as BT, kant_struct as KS, normalize, special, style
 from .book import Mod, title_text
 from .kant import finish_blocks, balance_headings, wrap_lines, repair_link
 from .dewey import make_toc as toc_blocks
@@ -252,6 +252,86 @@ CFG = {
              back=[17, 18, 19, 20, 21, 22, (23, 'notes'), 24], tail=[], inplace=set(),
              errata_note='底本是一份已经通读修订过的个人校订本（书末“本次校订说明”：408 条文字修订，9 条“校订注”与核查依据链接，均照排）。'
                          '按要求没有再全面校订；这里只有转换时发现的排版问题。'),
+    20: dict(scratch='q20', file='论证是一门学问', title='论证是一门学问', sub='', author='〔美〕安东尼·韦斯顿 著',
+             credits=['姜昊骞　译'], publisher='天地出版社', pdf_author='〔美〕安东尼·韦斯顿', cover='cover00070.jpeg',
+             title_img=None, copyright=1, marker='sq', lat_apos=True, cls_kai=('bodycontent-text_yinwen',),
+             cls_right=('bodycontent-text_right',), cls_center=('bodycontent-text_center',),
+             # the LaTeX pictures of the ebook: roman numerals and circled numbers of the CIP line, logic letters (italic),
+             # E₁–E₃, the numerals I–IV that label conclusions (upright)
+             img_text={'arg33-math-001.svg': 'Ⅰ', 'arg33-math-002.svg': '①', 'arg33-math-003.svg': 'Ⅱ', 'arg33-math-004.svg': '②',
+                       'arg33-math-005.svg': 'Ⅲ', 'arg33-math-006.svg': 'Ⅳ', 'arg33-math-007.svg': ' © ',
+                       'arg33-math-008.svg': '145mm×210mm', 'arg33-math-009.svg': '1/32', 'arg33-math-010.svg': '◆',
+                       'arg33-math-011.svg': [('X', 'it')], 'arg33-math-012.svg': [('Y', 'it')], 'arg33-math-013.svg': '88%',
+                       'arg33-math-014.svg': '50%', 'arg33-math-015.svg': [('E', 'it'), ('1', 'msub')],
+                       'arg33-math-016.svg': [('E', 'it'), ('2', 'msub')], 'arg33-math-017.svg': [('E', 'it'), ('3', 'msub')],
+                       'arg33-math-018.svg': [('p', 'it')], 'arg33-math-019.svg': [('q', 'it')], 'arg33-math-020.svg': [('s', 'it')],
+                       'arg33-math-021.svg': [('b', 'it')], 'arg33-math-022.svg': [('r', 'it')], 'arg33-math-023.svg': [('c', 'it')],
+                       'arg33-math-024.svg': [('a', 'it')], 'arg33-math-025.svg': [('d', 'it')], 'arg33-math-026.svg': [('f', 'it')],
+                       'arg33-math-027.svg': [('l', 'it')], 'arg33-math-028.svg': 'I', 'arg33-math-029.svg': 'II',
+                       'arg33-math-030.svg': 'III', 'arg33-math-031.svg': 'IV', 'arg33-math-032.svg': '25%'},
+             front=[(3, 'text'), (4, 'text')], body=list(range(5, 16)), back=[16, 17], endnotes=[18], endnotes_title='注释',
+             tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题（西文逗号后漏空格、西文里的全角冒号、套用的书名号）。'),
+    21: dict(scratch='q21', file='这才是心理学', title='这才是心理学', sub='看穿伪心理学的本质（第10版）',
+             author='〔加〕基思·斯坦诺维奇 著', credits=['窦东徽　刘肖岑　译'], publisher='中国人民大学出版社',
+             pdf_author='〔加〕基思·斯坦诺维奇', cover='00004.jpeg', title_img=None, copyright=1, marker='sq', renum=True,
+             lat_apos=True, li_hang=True, note_cls=('noteContent',), skip_text=('注释',),
+             cls_quote=('yinwen',), cls_center=('yinwen1',), cls_right=('bodytext-right',), cls_cap=('tuzhu-center', 'page-label'),
+             cls_map={'proof-note': ('smallkai', 0, 2), 'di': ('noindent', 0, 2)},     # the reviser's notes; the list of APA divisions
+             head_sub=[(r'^(Chapter \d+)[\s\u2028]+', r'\1／'), (r'^推荐序 ', '推荐序\u3000')], head_split='／',
+             head_split_balance=True, head_split_join='\u3000', head_demote={'表1-1 美国心理学会（APA）的分支机构': 'cap'},
+             fig_inline=True, figpage_each=True, open_air=True,
+             # the reviser's LaTeX pictures of numbers (each carries its LaTeX source; checked against the drawing): times 7:45,
+             # ratios 16∶1, ranges 80～110, fractions a/b
+             img_text={
+                       'psy-math-002769163017.svg': '7:45', 'psy-math-0602d7c813c1.svg': '0.05', 'psy-math-071d4531b1c7.svg': '90%',
+                       'psy-math-08985ebeaf12.svg': '20%', 'psy-math-0cfd86153ae2.svg': '36%', 'psy-math-1190e5399884.svg': '7:55',
+                       'psy-math-124844a94058.svg': '609.6', 'psy-math-1d464f4ecc27.svg': '0.80',
+                       'psy-math-1db007921411.svg': '58%', 'psy-math-268b204a015c.svg': '≈', 'psy-math-28d6d2a47fca.svg': '8%',
+                       'psy-math-2b6b8c86778a.svg': '1%', 'psy-math-2d0ffa76cefe.svg': '80～110',
+                       'psy-math-2eac8a7139ff.svg': '7:05', 'psy-math-2f93767b72dd.svg': '16∶1',
+                       'psy-math-323665401a33.svg': '0.305', 'psy-math-380918b946a5.svg': '＝', 'psy-math-385223d01d09.svg': '2%',
+                       'psy-math-3985b83ab29f.svg': '7:35', 'psy-math-39ef8fa9c9d8.svg': '0.00000033',
+                       'psy-math-3ad2d7cc2c3f.svg': '1/600000', 'psy-math-3bb60d45ab44.svg': '600～800',
+                       'psy-math-4075fa87d10c.svg': '10%', 'psy-math-40e4098702d3.svg': '100∶1',
+                       'psy-math-41a94e154d3e.svg': '86.7%', 'psy-math-4387108b67da.svg': '69%',
+                       'psy-math-441a04df7ce4.svg': '7.973', 'psy-math-4510b7bcd95a.svg': '77.5',
+                       'psy-math-45aded9a043f.svg': '125～150', 'psy-math-46e32115bc24.svg': '60%', 'psy-math-4893e9df8b54.svg': 'α',
+                       'psy-math-494cce58d2c6.svg': '105.6', 'psy-math-5055a2cf5dca.svg': '1/10',
+                       'psy-math-51127aefe2e5.svg': '49.00', 'psy-math-52524a6cc469.svg': '27%', 'psy-math-552230819632.svg': '50%',
+                       'psy-math-586b30cdcb5a.svg': '1/100', 'psy-math-58a44ef59594.svg': '75%',
+                       'psy-math-5b25f56c05d1.svg': '64.3', 'psy-math-5e061ba9d1d9.svg': '____分之____',
+                       'psy-math-6133ba955336.svg': '47%', 'psy-math-6165ec595070.svg': '21%',
+                       'psy-math-6294b0aa1a92.svg': '0.000126', 'psy-math-63bec9cedbf3.svg': '7:21',
+                       'psy-math-6bb65766f903.svg': '76.9%', 'psy-math-72898fffd9d8.svg': '4%', 'psy-math-72b8c71a2884.svg': '25%',
+                       'psy-math-7306a5d2435e.svg': '0～0.000126', 'psy-math-773a15ec53a8.svg': '0.03',
+                       'psy-math-7a53bd4744c5.svg': '101.9', 'psy-math-7b1bd53949b7.svg': '8.0',
+                       'psy-math-7e88bc95b587.svg': '2.54', 'psy-math-81d93f7d474b.svg': '5～6',
+                       'psy-math-833d2652d626.svg': '1/101', 'psy-math-85c0e583a6b5.svg': '44%', 'psy-math-870327446d5a.svg': '55%',
+                       'psy-math-8b084868aad0.svg': '→', 'psy-math-8ea3355aee43.svg': '29%', 'psy-math-911acc3ad146.svg': '70∶30',
+                       'psy-math-9153d7a11972.svg': '12.5%', 'psy-math-93f432a7d292.svg': '6%', 'psy-math-943b5cbdc716.svg': '7%',
+                       'psy-math-96cb56f579cf.svg': '8∶1', 'psy-math-976333852323.svg': '7:19', 'psy-math-9bde70798669.svg': '100%',
+                       'psy-math-a8426aab51ee.svg': '43%', 'psy-math-a881c898486d.svg': '33%', 'psy-math-a9c3e0de9a5b.svg': '29.95',
+                       'psy-math-ad283dbc1440.svg': '57%', 'psy-math-ad716a1a87e6.svg': '7:10', 'psy-math-ad722b5464b8.svg': '80%',
+                       'psy-math-b03f309488a7.svg': '10.95', 'psy-math-b0c17c0e1187.svg': '70%',
+                       'psy-math-b59eab6a1f9f.svg': '20～25', 'psy-math-b8736b999909.svg': '2.5',
+                       'psy-math-b8d3c4b69a55.svg': '72.7%', 'psy-math-bdd751395eb4.svg': '8.027',
+                       'psy-math-beaac16687f2.svg': '0.0144', 'psy-math-bf1d4c38465b.svg': '30%',
+                       'psy-math-bf5fac6e3a72.svg': '0.96', 'psy-math-c1bb1ff3063d.svg': '2×2', 'psy-math-c45cbf80cde9.svg': '1/3',
+                       'psy-math-c559959ed440.svg': [('G', 'it'), ('f', 'it msub'), '-', ('G', 'it'), ('c', 'it msub')],
+                       'psy-math-c95d9419b96b.svg': '16/17', 'psy-math-cd06d2d11645.svg': '5%', 'psy-math-cd7603e86d09.svg': '7:20',
+                       'psy-math-cf51bd76819a.svg': '40%', 'psy-math-d103bbf440f1.svg': '2/3', 'psy-math-d1a841c056a4.svg': '58.2',
+                       'psy-math-d1effb5e1f4b.svg': '76%', 'psy-math-d2cbad71ff33.svg': '0.5', 'psy-math-d84ccfc4e559.svg': '63%',
+                       'psy-math-da5cbc320029.svg': '6～9', 'psy-math-df15459dcbf2.svg': '8/9',
+                       'psy-math-e7019f188ff7.svg': '70×0.70', 'psy-math-ec8e07ba9e2f.svg': '95%',
+                       'psy-math-f090366ee5cc.svg': '30×0.3', 'psy-math-f870c5a7e0e9.svg': '96.9%',
+                       'psy-math-f88afaea4207.svg': '0.50', 'psy-math-f97844def35e.svg': '6.25%',
+                       'psy-math-fbc32f5d6148.svg': '110～125', 'psy-math-fd2f3b661ba6.svg': '1/32',},
+             front=[(3, 'text'), (4, 'text'), (5, 'text')],
+             body=[[6, 7, 8, 9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24, 25, 26], [27, 28, 29, 30, 31], [32, 33, 34, 35], [36, 37, 38, 39], [40, 41, 42, 43, 44], [45, 46, 47, 48], [49, 50, 51, 52, 53], [54, 55, 56, 57, 58], [59, 60, 61, 62, 63, 64, 65]],
+             back=[66, (list(range(67, 99)), 'figpages')], tail=[], inplace=set(),
+             errata_note='底本是一份已经通读校订过的个人校订本（21 条“校订注”排在相关段落之后，注释里的校订也照排）。'
+                         '按要求没有再全面校订；这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -476,6 +556,12 @@ def elements(C, items, kaitext=False):
             if ''.join(r['t'] for r in it['runs']).strip('\u3000 ') in C.get('skip_text', ()):
                 continue                                    # a 'notes' label that the ebook sets as a note entry
             nr = _img_text(C, it['runs'])                   # (transcribed inline pictures, as in the text)
+            r0 = nr[0] if nr else {}
+            m = re.match(r'\s*(\[\d+\])', r0.get('t', '')) if (r0.get('h') or r0.get('a')) and not r0.get('i') else None
+            if m and r0['t'][m.end():].strip():               # the whole entry is its back-link: the number links back, the text is plain
+                back = r0.get('h')
+                nr = [dict(r0, t=m.group(1))] + [{k: v for k, v in x.items() if not (k == 'h' and v == back) and k != 'a'}
+                                                 for x in [dict(r0, t=r0['t'][m.end():])] + nr[1:]]
             notes.append(dict(it, runs=latin_runs(nr, whole=False) if C.get('lat_apos') else nr))
             continue
         if k == 'img' and it['src'] in C.get('img_text', {}):        # a picture of a few characters standing alone: its transcription, centred
@@ -622,6 +708,11 @@ def elements(C, items, kaitext=False):
             b['style'] = 'kaibody'
         else:
             b['style'] = 'body'
+        cm = next((C['cls_map'][x] for x in cls.split() + (it.get('dcls') or '').split() if x in C.get('cls_map', {})), None)
+        if cm:                                              # (a class of this book with a style of its own: style, first, left)
+            b.update(style=cm[0], first=cm[1], left=cm[2])
+            if cm[0] in ('quote', 'smallkai', 'verse'):
+                b['right'] = 0
         if c & _cs(C, 'cls_hang'):                         # '● item' paragraphs: hanging indent under the bullet
             r0 = b['runs'][0]
             b['runs'] = [dict(r0, t=re.sub(r'^([●•■◆▲○◇□])[\s\u3000]*', '\\1\u3000', r0['t']))] + b['runs'][1:]
@@ -1045,6 +1136,8 @@ def fig_inline(C, els):
             out.append(e)
             i += 1
             continue
+        if out and out[-1]['k'] == 'p' and out[-1].get('style') == 'cap':
+            out[-1]['keep'] = 1                                  # a title above the picture (表6-1) stays with it
         srcs = [e['src']]
         i += 1
         while i < len(els) and els[i]['k'] == 'fig' and els[i].get('grp') == e.get('grp') and not e.get('snap'):
@@ -1137,17 +1230,23 @@ def image_blocks(src, max_h, width=None, max_scale=None):
             dict(k='space', style='center', runs=[], n=1)]
 
 
-def figure_pages(n, els, zone='front'):
+def figure_pages(n, els, zone='front', ids=(), cap_before=False):
     """Page modules for a part made of pictures: each picture a page of its own, fitted into the text block with its
-    caption lines; the part's heading (if any) titles the first page, which then carries the bookmark and the contents line."""
+    caption lines; the part's heading (if any) titles the first page, which then carries the bookmark and the contents line.
+    `cap_before`: the caption line stands before the picture in the ebook (a page label); `ids`: anchors of the first page
+    (links to the part from elsewhere in the book)."""
     title = next((plain(e['runs']) for e in els if e['k'] == 'h'), '')
     figs, i = [], 0
+    pre = []
     while i < len(els):
         e = els[i]
         i += 1
+        if cap_before and e['k'] == 'p' and e.get('style') == 'cap':
+            pre.append(plain(e['runs']))
+            continue
         if e['k'] != 'fig':
             continue
-        lines = []
+        lines, pre = pre, []
         while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
             cur = []
             for r in els[i]['runs']:
@@ -1162,8 +1261,8 @@ def figure_pages(n, els, zone='front'):
     mods = []
     for k, (src, lines) in enumerate(figs):
         head = title if k == 0 else ''
-        def html(bb, page, src=src, lines=lines, head=head):
-            return special.figure_page_html(src, lines, head)
+        def html(bb, page, src=src, lines=lines, head=head, a=tuple(ids) if k == 0 else ()):
+            return special.figure_page_html(src, lines, head, ids=a, builder=bb, page=page)
         m = page_module(f'figpage{n}-{k}', zone, html, toc=bool(head), toc_title=head, toc_level=1, title=head or title,
                         folio=True, head=True)
         m.lines = ([head] if head else []) + lines                 # (for the text-fidelity report)
@@ -1442,10 +1541,18 @@ def book(b):
         if len(blocks) > 1 and blocks[0].get('plate_ref') and blocks[1]['k'] == 'h':
             blocks[:2] = blocks[1::-1]                             # (a plate reference does not open a chapter: it goes under the title)
         blocks = wrap_lines(finish_blocks(blocks))
+        if C.get('open_air'):                                      # the text under a chapter title may start one line lower,
+            for j in range(len(blocks) - 1):                       # when that spares a page with an empty foot
+                if blocks[j]['k'] == 'h' and blocks[j].get('style') == 'h1':
+                    if blocks[j + 1]['k'] == 'p' and not blocks[j + 1].get('before'):
+                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0)]
+                    break
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(x['runs'], fmt)
         title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
+        if C.get('head_split_join') is not None:
+            title = title.replace(C['head_split'], C['head_split_join'])     # (contents, bookmark, running head: one line)
         if C.get('head_split'):                                    # 'Title／Sub-title' chapter headings: the sub-title on a line of its own
             for x in blocks:
                 if x['k'] == 'h' and x.get('style') == 'h1' and any(C['head_split'] in r['t'] for r in x['runs']):
@@ -1457,6 +1564,19 @@ def book(b):
                                 out.append(run('\n'))
                             if t:
                                 out.append(dict(r, t=t))
+                    if C.get('head_split_balance'):          # each line balanced by itself ('Chapter 3' / a long title in two lines)
+                        segs, cur = [], []
+                        for r in out + [run('\n')]:
+                            if r['t'] == '\n':
+                                segs.append(cur)
+                                cur = []
+                            else:
+                                cur.append(r)
+                        out = []
+                        for k, seg in enumerate(segs):
+                            if k:
+                                out.append(run('\n'))
+                            out += normalize.balance_title(merge_runs(seg), 17.0, 294) if seg else []
                     x['runs'] = out
                     x['nobalance'] = True
         keep = [x for x in blocks if x.get('nobalance')]
@@ -1525,7 +1645,12 @@ def book(b):
         els, notes = gather(n)
         if kind == 'figpages':                                     # pictures one to a page (a facsimile), the title on the first
             flush(back, 'back')
-            back += figure_pages(n, els, zone='back')
+            if C.get('figpage_each'):                              # (one part per page, its label before the picture)
+                for p_ in _parts(n):
+                    e_, _ = gather(p_)
+                    back += figure_pages(p_, e_, zone='back', ids=(P(p_),), cap_before=True)
+            else:
+                back += figure_pages(n, els, zone='back')
             continue
         if kind == 'notes':                                        # the ebook's own collection of notes (the translator's), in its place
             flush(back, 'back')
