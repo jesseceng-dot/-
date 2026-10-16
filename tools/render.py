@@ -108,6 +108,9 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
     lone = 0.0
     if gap and page['items'] and all(lbs[it[0]].block['k'] == 'img' for it in page['items']):
         k, lone = 1.0, gap * g['pitch'] / 2                       # a page of figures only: centred, not spread
+    elif gap and page['items'] and any(lbs[it[0]].block.get('toc_even') for it in page['items']):
+        k, gap = 1.0, 0                                           # contents with fixed spacing: the page ends between two
+                                                                  # entries, its foot left short (no line spread)
     elif gap:
         for idx in range(len(page['items']) - 1, 0, -1):
             if lbs[page['items'][idx][0]].block['k'] == 'h':

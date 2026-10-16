@@ -1,5 +1,6 @@
 """Static pages: covers, half-title, title page, image plates, advertisement page."""
 import math
+import re
 import os
 import html as _html
 from PIL import Image
@@ -161,6 +162,42 @@ def plate_size(img, extra=0.0):
     return w * s, h * s
 
 
+_NO_START = set('，。、；：？！）》」』”’】〕…—')
+_NO_END = set('（《「『“‘【〔')
+
+
+def _para_lines(text, cap, indent):
+    """A paragraph broken into lines of at most `cap` em (the first `indent` em shorter): CJK characters one by one, a Latin
+    word (or number) whole, no closing mark at a line start and no opening one at a line end.  -> [(line, is_last)]"""
+    from . import normalize
+    toks = re.findall(r"[A-Za-z0-9\u00c0-\u024f'’.\-]+|\s+|.", text)
+    lines, cur, cw = [], '', 0.0
+    room = cap - indent
+    for t in toks:
+        tw = sum(normalize._w(ch) for ch in t)
+        if cw + tw > room * 0.985 and cur.strip():
+            if t[0] in _NO_START or (cur and cur[-1] in _NO_END):         # keep the mark with its neighbour
+                carry = cur[-1] if cur and cur[-1] in _NO_END else ''
+                if carry:
+                    cur = cur[:-1]
+                    lines.append(cur.rstrip())
+                    cur, cw = carry + t, sum(normalize._w(ch) for ch in carry + t)
+                else:
+                    pull = cur[-1]
+                    lines.append(cur[:-1].rstrip())
+                    cur, cw = pull + t, sum(normalize._w(ch) for ch in pull + t)
+            else:
+                lines.append(cur.rstrip())
+                cur, cw = ('' if t.isspace() else t), (0.0 if t.isspace() else tw)
+            room = cap
+            continue
+        cur += t
+        cw += tw
+    if cur.strip():
+        lines.append(cur.rstrip())
+    return [(l, k == len(lines) - 1) for k, l in enumerate(lines)]
+
+
 KAI_SHIFT = 0.78      # (measured) the Kai face's baseline in a 17 pt line lies 0.78 pt above the Song face's
 
 
@@ -177,6 +214,19 @@ def divider_html(lines, grid=False):
     for lvl, text in lines:
         if lvl == 97:
             y += 26.0                                     # (a space before an epigraph)
+            continue
+        if lvl == 96:                                     # a paragraph under the title (the introduction of a part): a
+            fs, lh, w = 10.5, 17.0, round(style.TEXT_W * 0.82, 1)    # justified Kai block, indented, centred on the page, each
+            y = style.TOP + math.ceil((y - style.TOP) / style.LINE) * style.LINE + KAI_SHIFT     # line set on the text grid
+            x = (style.PAGE_W - w) / 2
+            for k, (ln_, last) in enumerate(_para_lines(text, w / fs, 2.0)):
+                ind = 2 * fs if k == 0 else 0.0
+                out += (f'<div style="position:absolute;left:0;top:0;width:{w - ind:.2f}pt;font-family:KaiTi;font-size:{fs}pt;'
+                        f'line-height:{lh}pt;white-space:nowrap;text-align:{"left" if last else "justify"};'
+                        f'text-align-last:{"left" if last else "justify"};color:#000;'
+                        f'transform:translate({x + ind:.2f}pt,{y + k * lh:.2f}pt)">'
+                        f'<span style="line-height:0">{_html.escape(ln_)}</span></div>')
+            y += (k + 1) * lh + 8.0
             continue
         if lvl == 98:                                     # a picture under the title (the part pages of book 16)
             from PIL import Image

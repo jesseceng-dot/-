@@ -135,6 +135,7 @@ a{{color:inherit;text-decoration:none}}
 .lat{{font-family:"LatSerif","GrkSerif","SongBody","HanExt",serif}}
 .it.lat{{font-family:"LatIt","GrkSerif","SongBody","HanExt",serif;font-style:italic}}
 .lnk{{color:#1f3a93}}
+.url{{word-break:break-all;overflow-wrap:anywhere}}
 .gua{{font-family:"GuaSym","SongBody",serif}}
 .spk,.hei,.sm,.lat,.gbox,.ul,.nohei,.gua{{line-height:0}}
 .s-small{{font-size:9pt}}

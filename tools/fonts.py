@@ -211,6 +211,15 @@ def compose_yan(font, cp=0x2EB68):
     return _add_glyph(font, cp, yan)
 
 
+def compose_gu(font, cp=0x2E774):
+    """U+2E774 𮝴 (车 + 瓜, simplified 軱 gū, "a large bone"; 《庄子·养生主》 “技经肯綮之未尝，而况大𮝴乎”), which the ebook of
+    《国家的视角》 gives as a picture: the 车 of 轱 beside the 瓜 of 呱."""
+    left = _outline(font, '轱', lambda b: b[2] <= 470)
+    gua = _outline(font, '呱', lambda b: b[0] >= 200 and b[3] > 800)
+    left.addPath(_fit(gua, (left.bounds[2] + 15, gua.bounds[1], 975, gua.bounds[3]), sy=1.0))
+    return _add_glyph(font, cp, left)
+
+
 def build(name):
     path, idx = FACES[name]
     out = os.path.join(FONT_DIR, name + '.ttf')
@@ -228,6 +237,7 @@ def build(name):
         compose_huan(font)
         compose_xi(font)
         compose_yan(font)
+        compose_gu(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 

@@ -389,6 +389,36 @@ CFG = {
              back=[(30, 'index'), (31, 'kaibody'), (32, 'kaibody'), (33, 'notes'), (34, 'pagelinks'), 35], tail=[], inplace=set(),
              errata_note='底本是一份已经通读修订过的个人校订本（书末“本次校订说明”：1050 条文字修订，7 条“校订注”附核查来源，均照排）。'
                          '按要求没有再全面校订；这里只有转换时发现的排版问题和一处校订说明里的人名错误。'),
+    24: dict(scratch='q24', file='理性之谜', title='理性之谜', sub='', author='〔法〕雨果·梅西耶　〔法〕丹·斯珀伯 著', credits=[],
+             publisher='中信出版集团', pdf_author='〔法〕雨果·梅西耶　〔法〕丹·斯珀伯', cover='cover.jpg', title_img=None,
+             copyright=1, copyright_skip=2, marker='sq', lat_apos=True, toc_even=True, open_air=True, url_break=True,
+             note_cls=('zhusi',), cls_quote=('bodycontent-text_yinwen',), cls_right=('bodycontent-text_right',),
+             cls_cap=('tuti', 'bodycontent-text-tushuo'), text_map=[(r'^反射比=', ('center', 0, 0))],   # (a formula line under a figure)
+             head_sub=[(r'^推荐序\s+', '推荐序／'), (r'^(序言|结论)\s+', '\\1\u3000')], head_split='／', head_split_balance=True,
+             head_split_join='\u3000', head_split_width=340,      # ('推荐序' above its long title, as in the ebook)
+             part_re=r'^第[一二三四五]部分', part_split=r'^(第[一二三四五]部分)[\s\u3000]*(.*)$',
+             part_epi_cls=('bodycontent-text_yinwen',), part_epi_para=True,     # the introduction of each part, on the part page
+             fig_inline=True, fig_dpi=180, table2=True, table_keep=12,
+             # the reviser's one LaTeX picture: drawn "185.014 m", its text (alt) "185.014米", as the context ("607英尺")
+             img_text={'book03-repair-01.svg': '185.014米'},
+             front=[(2, 'text')], body=list(range(3, 28)), back=[28], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题（中文里的半角括号和分号、西文逗号后漏空格、西文里的全角冒号、多余的空格）。'),
+    25: dict(scratch='q25', file='国家的视角', title='国家的视角', sub='那些试图改善人类状况的项目是如何失败的',
+             author='〔美〕詹姆斯·C.斯科特 著', credits=['王晓毅　译', '胡　搏　校'], publisher='社会科学文献出版社', series='思想会',
+             pdf_author='〔美〕詹姆斯·C.斯科特', cover='00052.jpeg', front_flaps=['00001.jpeg'], title_img='00003.jpeg',
+             back_flaps=['00050.jpeg'], backcover='00051.jpeg',
+             copyright=[24, 2], copyright_imgs={'00002.jpeg': 36.0},   # the CIP page (last in the ebook) and the original's rights + fund mark
+             marker='sq', lat_apos=True, toc_even=True, open_air=True, note_cls=('note',),
+             cls_quote=('block',), cls_right=('lk',), cls_center=('center1',), cls_cap=('img',),
+             part_re=r'^第[一二三四]部分', part_split=r'^(第[一二三四]部分)[\s\u3000]*(.*)$',
+             fig_inline=True, fig_dpi=150, table2=True, table_keep=12,
+             # the ebook's pictures of a word and a character, and the reviser's one LaTeX picture: maître; 𮝴 (U+2E774, the
+             # simplified 軱 the picture shows, 车 + 瓜; composed from the face's own strokes, fonts.compose_gu); the formula
+             # drawn as "4264 (°C)²", its text (alt) "4264平方摄氏度"
+             img_text={'00011.jpeg': 'maître', '00049.jpeg': '\U0002E774', 'book02-repair-01.svg': '4264平方摄氏度'},
+             front=[(4, 'figure'), (5, 'text'), (6, 'text')], body=list(range(8, 20)),
+             back=[20, 21, (22, 'index'), 23], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -463,6 +493,27 @@ def _marker(r, fmt):
             and any(re.search(CIRC_LINK, r.get(k) or '') for k in ('h', 'a')):
         return circ_number(re.sub(r'\D', '', mt))
     return mt
+
+
+URL_RE = re.compile(r'(?:https?://|www\.)[^\s，。；：、）】\]”]+[^\s，。；：、）】\]”.,;:]')
+
+
+def url_runs(runs):
+    """(C['url_break']) A web address may break at any character: a long one has no other place to break."""
+    out = []
+    for r in runs:
+        if r.get('i') or not URL_RE.search(r['t']):
+            out.append(r)
+            continue
+        pos = 0
+        for m in URL_RE.finditer(r['t']):
+            if m.start() > pos:
+                out.append(dict(r, t=r['t'][pos:m.start()]))
+            out.append(dict(r, t=m.group(0), c=_cls_add(r.get('c'), 'url')))
+            pos = m.end()
+        if pos < len(r['t']):
+            out.append(dict(r, t=r['t'][pos:]))
+    return out
 
 
 def mark_runs(runs, fmt):
@@ -1456,7 +1507,7 @@ def index_module(C, n):
                 hn = len(blocks)
             elif re.fullmatch(r'[A-Z]', t):
                 blocks.append(dict(k='p', style='idxhead', runs=rs, id=it['id']))
-            elif t[0].islower():
+            elif t[0].islower() or t.startswith('—'):            # (a sub-entry: lower-case English, or '—term' under the entry)
                 blocks.append(dict(k='p', style='indexc', runs=rs, id=it['id'], first=-1, left=2))
             else:
                 blocks.append(dict(k='p', style='index', runs=rs, id=it['id']))
@@ -1494,8 +1545,12 @@ def renumber(els, notes):
 # ---------------------------------------------------------------------------------------------- pages
 def copyright_module(n, skip=0, C=None):
     blocks = [dict(k='space', style='cip', runs=[], n=4)]
-    items = []
-    for it in BE.items(P(n))[skip:]:
+    items, raw = [], []
+    for k_, n_ in enumerate(_parts(n)):                          # (several parts: the CIP page and the original's rights page)
+        if k_:
+            raw.append(dict(k='gap'))
+        raw += BE.items(P(n_))[skip if k_ == 0 else 0:]
+    for it in raw:
         if it['k'] == 'table':                                  # (book 16: the publisher's lines are a table) one line per row
             for row in it['rows']:
                 cells = [plain(c) for c in row if plain(c)]
@@ -1504,6 +1559,17 @@ def copyright_module(n, skip=0, C=None):
         else:
             items.append(it)
     for it in items:
+        if it['k'] == 'gap':
+            blocks.append(dict(k='space', style='cip', runs=[], n=2))
+            continue
+        if it['k'] == 'img' and C and C.get('copyright_imgs') and it['src'] in C['copyright_imgs']:
+            w = C['copyright_imgs'][it['src']]                    # a small picture of the page (a fund's mark), its width in pt
+            from PIL import Image
+            iw, ih = Image.open(os.path.join(special.IMG_DIR, it['src'])).size
+            pitch = style.TEXT_H / style.SMALL_N
+            blocks.append(dict(k='img', style='orn', runs=[], src=special.img_url(it['src']), w=w, h=w * ih / iw,
+                               n=math.ceil(w * ih / iw / pitch) + 1))
+            continue
         if it['k'] != 'p':
             continue
         runs = BT.fix_edges(BT.fix_runs(_img_text(C, it['runs']) if C else it['runs']))
@@ -1576,7 +1642,7 @@ def part_divider(C, els):
     if epi and rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
         lines.append((97, ''))
         while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
-            lines.append((99, plain(rest[0]['runs'])))
+            lines.append((96 if C.get('part_epi_para') else 99, plain(rest[0]['runs'])))     # (96: a paragraph, justified)
             rest = rest[1:]
     return lines, title, rest
 
@@ -1595,6 +1661,8 @@ def book(b):
         if not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
             shutil.copy(src, dst)
     mods = [page_module('cover', 'cover', special.cover_html(cover), folio=False)]
+    for k_, im in enumerate(C.get('front_flaps', ())):             # the flap of the cover (the author's biography): a page image
+        mods.append(page_module(f'flap{k_}', 'cover', special.cover_html(im), folio=False))
     if C['title_img']:
         mods.append(page_module('title', 'front', special.cover_html(C['title_img']), folio=False))
     else:
@@ -1674,7 +1742,9 @@ def book(b):
                     x['bef_opts'] = [(0, 0.0), (1, 30.0)]
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
-                x['runs'] = mark_runs(x['runs'], fmt)
+                x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)
+        if C.get('url_break'):
+            notes = [dict(it, runs=url_runs(it['runs'])) for it in notes]
         title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
         if C.get('head_split_join') is not None:
             title = title.replace(C['head_split'], C['head_split_join'])     # (contents, bookmark, running head: one line)
@@ -1701,7 +1771,7 @@ def book(b):
                         for k, seg in enumerate(segs):
                             if k:
                                 out.append(run('\n'))
-                            out += normalize.balance_title(merge_runs(seg), 17.0, 294) if seg else []
+                            out += normalize.balance_title(merge_runs(seg), 17.0, C.get('head_split_width', 294)) if seg else []
                     x['runs'] = out
                     x['nobalance'] = True
         keep = [x for x in blocks if x.get('nobalance')]
@@ -1842,12 +1912,15 @@ def book(b):
                 n_ = 0
             x['before'] = n_
             x['bef_opts'] = [(n_, 0.0)]
+            x['toc_even'] = True                                   # (render: a page that ends short is not spread)
             prev = z
     toc = Mod(mid='toc', zone='front', title='目錄' if C.get('tc') else '目录', blocks=toc_bl, toc=False, head=True)
     toc.tail_min = 5
     tail = []
     if C['tail']:
         tail.append(page_module('qr', 'back', qr_html(C['tail']), folio=False))
+    for k_, im in enumerate(C.get('back_flaps', ())):              # the back flap, before the back cover
+        tail.append(page_module(f'bflap{k_}', 'back', special.cover_html(im), folio=False))
     if C.get('backcover'):
         tail.append(page_module('backcover', 'back', special.cover_html(C['backcover']), folio=False))
     mods += [toc] + allm + tail

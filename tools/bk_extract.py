@@ -46,7 +46,8 @@ RUN_CLS = {
         'ed-figure-link': (0, 'nomark lnk'),                             # links to figures ('图10', '1．'): not note marks
     },
     'q22': {'yanse': (0, 'hei')},                               # 心智社会: the ebook's coloured terms (agents' names, labels) in 黑体
-    'q23': {'jiacu': (0, 'hei')},                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
+    'q23': {'jiacu': (0, 'hei')},
+    'q24': {'italic': (0, 'it')},                               # 理性之谜: titles of works in italics                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.

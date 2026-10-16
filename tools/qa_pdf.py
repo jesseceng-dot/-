@@ -53,6 +53,10 @@ def foot(d, meta, bottom):
     lab2idx = {d[i].get_label(): i for i in range(len(d))}
     starts = sorted(set([lab2idx[l] for _, l in meta.get('toc', []) if l in lab2idx] + [0, 1, 2, 3]))
     last = {s - 1 for s in starts[1:]} | {len(d) - 1}
+    t0 = next((lab2idx[l] for m, l in meta.get('toc', []) if m == 'toc' and l in lab2idx), None)
+    if t0 is not None:                                            # the contents: its pages end between entries
+        t1 = next((s for s in starts if s > t0), len(d))
+        last |= set(range(t0, t1))
     out = []
     for i, pg in enumerate(d):
         if i in last or i < 4:

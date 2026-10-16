@@ -19,8 +19,8 @@ def module_report(mod):
     pages = plan['pages']
     for pi, p in enumerate(pages):
         last_page = pi == len(pages) - 1
-        if p['gap'] and not last_page:
-            rep['gap'].append((pi, p['gap']))
+        if p['gap'] and not last_page and not any(lbs[it[0]].block.get('toc_even') for it in p['items']):
+            rep['gap'].append((pi, p['gap']))                     # (contents with fixed spacing end between entries)
         items = p['items']
         if not items:
             continue
@@ -94,6 +94,8 @@ def pdf_checks(pdf, bb):
     for p in bb.pages:
         if p.mod.kind != 'text' or p.mod.mid in ('master-toc',):
             continue
+        if any(b.get('toc_even') for b in p.mod.blocks):
+            continue                                         # (contents with fixed spacing: its pages end between entries)
         page = doc[p.index]
         if any(im['bbox'][3] - im['bbox'][1] > 40 for im in page.get_image_info()):
             continue                                         # a page carrying a figure of its own (appendix table image): no text baseline to compare
