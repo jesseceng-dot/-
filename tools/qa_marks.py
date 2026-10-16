@@ -14,6 +14,8 @@ def check(b):
     for x in C['body']:
         parts += bk._parts(x)
     for x in C['back']:
+        if isinstance(x, tuple) and x[1] in ('pagelinks', 'index'):
+            continue                                      # (links to printed pages, page numbers: not note marks)
         parts += bk._parts(x[0] if isinstance(x, tuple) else x)
     parts += list(C.get('endnotes', ()))
     marks, notes, dup = {}, {}, []

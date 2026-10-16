@@ -24,10 +24,19 @@ def source_counter(b):
     C = bk.CFG[b]
     parts = book_parts(C)
     c = collections.Counter()
+    remapped = {x[0] for x in C['back'] if isinstance(x, tuple) and x[1] == 'index' and C.get('index_map')}
     for n in parts:
+        if n in remapped:                                 # an index whose page numbers become pages of this PDF: letters only
+            for it in BE.items(bk.P(n)):
+                for r in it.get('runs', []):
+                    if not r.get('i'):
+                        c += counter(re.sub(r'[\d—]', '', r['t'].replace(' ', '')))
+            continue
         for it in BE.items(bk.P(n)):
             if it['k'] == 'img':
                 continue
+            if set(it['cls'].split()) & set(C.get('note_group_cls', ())) and (n, 'notes') in C['back']:
+                continue                                  # (group headings of the notes: not counted on the typeset side either)
             if set(it['cls'].split()) & set(C.get('cls_skip', ())) or ''.join(r['t'] for r in it.get('runs', [])).strip() in C.get('skip_text', ()):
                 continue
             if it['k'] == 'table':
@@ -98,6 +107,12 @@ def raw_missing(b):
             BE._drop(a)                                             # (a note's '返回正文' link: its words are left out on purpose)
         for im in body.iter('{http://www.w3.org/1999/xhtml}img'):
             im.tail = '\ue000' + (im.tail or '')                   # (an inline picture is '\0' in the text the corrections see)
+        for sv in list(body.iter('{http://www.w3.org/2000/svg}svg')):
+            if sv.getparent() is not None:                      # (a formula drawn in the text: a picture too, its <title> is no text)
+                sv.tail = '\ue000' + (sv.tail or '')
+                for x in list(sv):
+                    sv.remove(x)
+                sv.text = None
         fx = BE._fixes(bk.P(n))                                    # (the corrections of bk_fixes are not losses)
         pats = [f for f in fx if not isinstance(f[1], str)]
         for el in list(body.iter()) if pats else ():               # a pattern applies to the text of a paragraph / table cell
@@ -177,7 +192,8 @@ def block_counter(cfg):
                     continue
                 if b.get('style') == 'idxhead' and m.mid.startswith('notes'):
                     continue
-                c += counter(runs_text(b['runs']).replace('⁠', '').replace(' ', ''))
+                t = runs_text(b['runs']).replace('⁠', '').replace(' ', '')
+                c += counter(re.sub(r'[\d—]', '', t) if m.idxmap else t)
         elif m.kind == 'page' and hasattr(m, 'lines'):
             for t in m.lines:
                 c += counter(t.replace('⁠', '').replace(' ', ''))

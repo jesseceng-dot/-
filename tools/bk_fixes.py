@@ -17,7 +17,7 @@ _PUNCT = '，。、；：？！“”‘’（）《》〈〉「」『』…'
 DASH1 = re.compile(r'(?<=[%s%s])—(?![—\d])|(?<![—\d])—(?=[%s%s])' % (CJK, _PUNCT, CJK, _PUNCT))
 
 # books whose cross-references point at <span id=…> anchors (captured as link targets)
-SPAN_ANCHORS = {'q15': r'^jz_\d+_\d+$'}
+SPAN_ANCHORS = {'q15': r'^jz_\d+_\d+$', 'q23': r'^source-page-\d+$'}
 SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN',
            'NOTELINK', 'MOVETAB')   # mark/structure fixes (not text replacements)
 
@@ -2194,5 +2194,23 @@ FIXES = {
         (3, '彭凯平 清华', '彭凯平\u3000清华', '排版：署名与职务之间用全角空格'),
         (4, '窦东徽 刘肖岑', '窦东徽\u3000刘肖岑', '排版：两位译者署名之间用全角空格'),
         ('*', re.compile(r'\s*·\s*返回附录目录'), '', '排版：英文原版页图上方标签里的“返回附录目录”是电子书的导航链接，PDF 里由目录和书签代替'),
+    ],
+    'q22': [                                                       # 心智社会（机械工业出版社 2016）
+        ('*', re.compile(r'(?<=[A-Za-z])：(?=[A-Z])'), ': ', '排版：西文书名里的全角冒号改半角（Machine Learning: An Artificial…、Computation: Finite and Infinite Machines、K-lines: A Theory of Memory）'),
+    ],
+    'q23': [                                                       # 美国大城市的死与生（60周年致敬版，译林出版社 2020；全文通读修订版）
+        (25, '汽车(包括卡车）', '汽车（包括卡车）', '标点：半角左括号改全角，与后面的全角右括号配对'),
+        (35, '余秋雨导读', '俞孔坚导读', '人名：导读的作者是俞孔坚（见导读署名），本次校订说明误作“余秋雨”'),
+        (30, '（条目后的数字为原书页码，见本书边码）',
+         '（条目后的页码已由英文原书页码换算成本书页码，可以点击。原书每页在本书中的位置据电子书保留在正文里的原书页末标记确定；'
+         '原书一页跨本书两页的，取条目词所在的一页。）',
+         '排版：本 PDF 没有边码，索引页码换算成本书页码（原说明“条目后的数字为原书页码，见本书边码”随之改写）'),
+        (30, re.compile(r'(?<=[A-Za-z)])([一-鿿])'), r' \1', '排版：索引条目里英文与中文之间漏空格（9 处，如“Parkchester (Bronx housing project) 帕克切斯特”，其中两处是电子书拆开的条目重新接上时漏的）'),
+        (30, re.compile(r'(?<=[A-Za-z)])， (?=[A-Za-z])'), ', ', '标点：索引英文部分里的全角逗号改半角（Holmes, Oliver Wendell, Jr.；Houston (Texas), crime；New York, Morningside Heights）'),
+        (30, re.compile(r'(?<=[A-Za-z)]);\s?(?=[A-Z])'), '；', '标点：索引“见”“另见”后几个参见条目之间的分号，与全书索引一样用全角（Interior courtyards；Parks；Safety 等）'),
+        (30, re.compile(r'；\s+(?=[A-Z])'), '；', '排版：索引参见条目之间全角分号后多余的空格'),
+        (30, 'Turf(system)', 'Turf (system)', '排版：西文词与括号之间漏空格'),
+        (30, 'projects 项目 4，', 'projects 项目，4，', '标点：索引子条目“项目”与页码之间漏逗号'),
+        (35, '“现代文库”序，后收入Vital', '“现代文库”序，\n后收入Vital', '排版：核查来源一条在“后收入”前换行，免得末行只剩“（2016）”'),
     ],
 }

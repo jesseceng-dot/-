@@ -12,7 +12,7 @@ import bisect
 from .model import runs_text
 
 CLOSE = {'（': '）', '(': ')', '〔': '〕', '[': ']', '［': '］', '【': '】'}
-NUM_RE = re.compile(r'(?<![\d.A-Za-z])(\d+)(?:[—–-](\d+))?(?![\d])')
+NUM_RE = re.compile(r'(?<![\d.A-Za-z])(\d+)(?:[—–-]\u2060?(\d+))?(?![\d])')   # (the word joiner after a range dash: bk_text)
 NOT_PAGE_AFTER = re.compile(r'^(?:年|月|日|世纪|页|卷|章|节|篇|号|岁|个|种|届|次|%|％|\.\d)')
 NOT_PAGE_BEFORE = re.compile(r'(?:前|约|公元|第|共|？|\?)$')
 
@@ -521,10 +521,99 @@ def resolve_module(mod, blocks_of, siblings=None):
     return refs, resolved
 
 
+def _cjk_keys(t):
+    """Search keys of an index line 'English words 中文词，副词，12，34ff': its Chinese words (longest form first)."""
+    m = re.search(r'[\u4e00-\u9fff]', t)
+    if not m:
+        return []
+    body = re.split(r'[，,；]\s*(?=\d|第|见|另见)', t[m.start():])[0]
+    keys = []
+    for seg in re.split(r'[，、（）()“”《》·\s]+', body):
+        seg = seg.strip()
+        for k in (seg, seg[:4], seg[:3], seg[:2]):
+            if len(k) >= 2 and re.match(r'^[\u4e00-\u9fff]', k) and k not in keys:
+                keys.append(k)
+    return keys
+
+
+NEAR = 500           # characters around a printed page's stretch searched for the term of an entry
+
+
+def resolve_markers(bb, mod):
+    """(an ebook that keeps a marker at the end of every printed page: <span id=source-page-N>) Every page reference N of
+    the index -> the stretch of text between the markers of pages N-1 and N; the term of the entry is looked up there
+    (a printed page may run over two pages of this PDF), else the start of the stretch is taken.  Exact, no model."""
+    cfg = mod.idxmap
+    pat = re.compile(cfg['markers'])
+    mods = [m for m in bb.mods if m.kind == 'text' and not m.idxmap]
+    S = Series(mods)
+    start_of = {blk: off for blk, off in zip(S.blocks, S.starts)}
+    marks = {}
+    for m in mods:
+        for bi, b in enumerate(m.blocks):
+            pos = start_of[(m.mid, bi)]
+            for r in b.get('runs') or []:
+                mm = pat.search(r.get('a') or '')
+                if mm:
+                    marks.setdefault(int(mm.group(1)), pos)
+                pos += len(r['t'])
+    pages = sorted(marks)
+    refs = parse_entries(mod.src_blocks)
+    resolved, stats = [], {}
+    head_keys = []
+    for r in refs:
+        t = runs_text(mod.src_blocks[r['bi']]['runs'])
+        first_cjk = re.search(r'[\u4e00-\u9fff]', t)
+        keys = _cjk_keys(t)
+        if mod.src_blocks[r['bi']]['style'] == 'index':
+            head_keys = keys
+        else:
+            keys = keys + [k for k in head_keys if k not in keys]
+        if not first_cjk or r['start'] < first_cjk.start() or r['lo'] not in marks or r['hi'] not in marks:
+            resolved.append(('none', None, None))
+            stats['none'] = stats.get('none', 0) + 1
+            continue
+
+        def stretch(n):
+            k = bisect.bisect_left(pages, n)
+            a = marks[pages[k - 1]] if k > 0 else 0
+            while a < len(S.text) and S.text[a] in '\u2060\n':     # (a marker that ends a paragraph: the next one)
+                a += 1
+            return a, marks[n]
+
+        def find(a, b):
+            for k in keys:
+                i = S.text.find(k, a, b)
+                if i >= 0:
+                    return i, 'term'
+            best = None                                   # (the translation moves sentences across the printed page's end:
+            for k in keys[:2]:                            #  the term just outside the stretch, the nearest occurrence)
+                for i in (S.text.rfind(k, max(0, a - NEAR), a), S.text.find(k, b, b + NEAR)):
+                    if i >= 0:
+                        d = a - i if i < a else i - b
+                        if best is None or d < best[0]:
+                            best = (d, i)
+            return (best[1], 'near') if best else (None, 'page')
+        a0, b0 = stretch(r['lo'])
+        i0, how = find(a0, b0)
+        p0 = i0 if i0 is not None else a0
+        if r['lo'] == r['hi']:
+            p1, kind = p0, how
+        else:
+            a1, b1 = stretch(r['hi'])
+            p1, kind = max(p0, b1 - 1), 'range'
+        resolved.append((kind, S.locate(p0), S.locate(p1)))
+        stats[kind] = stats.get(kind, 0) + 1
+    mod.idx_stats = dict(stats, anchors=len(marks))
+    return refs, resolved
+
+
 def remap_module(bb, mod):
     """New block list of an index module: every printed page number replaced by the label of the page of this PDF that
     holds the term (linked to that page).  Pure function of the module's source blocks and the current page labels."""
     import copy
+    if getattr(mod, 'idx_resolved', None) is None and mod.idxmap.get('markers'):
+        mod.idx_refs, mod.idx_resolved = resolve_markers(bb, mod)
     if getattr(mod, 'idx_resolved', None) is None:
         by_id = {m.mid: m for m in bb.mods}
         sib = [m for m in bb.mods if m.idxmap]

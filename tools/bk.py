@@ -332,6 +332,63 @@ CFG = {
              back=[66, (list(range(67, 99)), 'figpages')], tail=[], inplace=set(),
              errata_note='底本是一份已经通读校订过的个人校订本（21 条“校订注”排在相关段落之后，注释里的校订也照排）。'
                          '按要求没有再全面校订；这里只有转换时发现的排版问题。'),
+    22: dict(scratch='q22', file='心智社会', title='心智社会', sub='从细胞到人工智能，人类思维的优雅解读',
+             author='〔美〕马文·明斯基 著', credits=['任楠　译'], publisher='机械工业出版社', pdf_author='〔美〕马文·明斯基',
+             cover='00170.jpeg', title_img=None, copyright=0, marker='sq', renum=True, lat_apos=True, toc_even=True,
+             note_cls=('fnote',), cls_quote=('ziti1',), cls_right=('you1',), cls_cap=('middle-img',),
+             cls_map={'yanse': ('body', 2, 0, 'hei'), 'manual-proofreading-note': ('small', 0, 2)},   # the ebook's coloured lines; the reviser's notes
+             text_map=[(r'(校注|图示)', ('small', 0, 2))],         # (four reviser's notes set as quotations in the ebook)
+             fig_inline=True, open_air=True,
+             # formulas the ebook draws as <svg> in the text, keyed by their LaTeX (<title>): Minsky's agents A, B, K ... upright
+             img_text={r'svg:A\,\text{引起}\,B\quad\text{（A causes B）}': [('A', 'it'), '引起', ('B', 'it'), '（A causes B）'],
+                       r'svg:B\,\text{引起}\,A\quad\text{（B causes A）}': [('B', 'it'), '引起', ('A', 'it'), '（B causes A）'],
+                       r'svg:A\to B,\quad A\to C,\quad A\to D': [('A', 'it'), '→', ('B', 'it'), '、', ('A', 'it'), '→', ('C', 'it'), '、',
+                                                                ('A', 'it'), '→', ('D', 'it')],
+                       r'svg:4\,\text{在}\,3\,\text{之后}': '4在3之后', r'svg:0\,\text{美元}': '0美元',
+                       r'svg:\frac{2}{3},\quad\frac{4}{9},\quad\frac{8}{27}': '2/3、4/9、8/27', r'svg:\texttt{-{}-{}-{}o}': '---o',
+                       r'svg:1\,\text{英尺}=0.3048\,\text{米}': '1英尺=0.3048米', r'svg:1\,\text{英寸}=0.0254\,\text{米}': '1英寸=0.0254米',
+                       r'svg:\mathrm{M}\text{-}1': 'M-1', r'svg:\mathrm{M}\text{-}2': 'M-2', r'svg:\frac{1}{4}': '1/4',
+                       r'svg:\frac{1}{1000}': '1/1000', r'svg:\frac{1}{10^{12}}': ['1/10', ('12', 'msup')],
+                       r'svg:\left(3,3,5,7,1,1,-15\right)': '(3, 3, 5, 7, 1, 1, −15)',
+                       r'svg:\mathrm{A},\mathrm{B},\mathrm{C}': 'A、B、C',
+                       r'svg:(\mathrm{A}),(\mathrm{B}),(\mathrm{C}),(\mathrm{B})': '(A)、(B)、(C)、(B)',
+                       r'svg:p': [('p', 'it')], r'svg:q': [('q', 'it')], r'svg:5+8=13': '5+8=13',
+                       **{'svg:\\mathrm{%s}' % x: x for x in ('A', 'B', 'C', 'D', 'K', 'L', 'M', 'P', 'Q', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z',
+                                                         'IT', 'AND', 'kP')},
+                       **{'svg:%s' % x: x for x in ('0', '1', '2', '3', '4', '5', '6', '8', '10', '11', '12', '13', '40', '50', '100')}},
+             front=[(2, 'text')], body=[list(range(3, 10)), list(range(10, 17)), list(range(17, 23)), list(range(23, 32)), list(range(32, 40)), list(range(40, 55)), list(range(55, 65)), list(range(65, 77)), list(range(77, 82)), list(range(82, 92)), list(range(92, 102)), list(range(102, 116)), list(range(116, 124)), list(range(124, 134)), list(range(134, 146)), list(range(146, 157)), list(range(157, 169)), list(range(169, 179)), list(range(179, 190)), list(range(190, 200)), list(range(200, 208)), list(range(208, 220)), list(range(220, 226)), list(range(226, 236)), list(range(236, 243)), list(range(243, 256)), list(range(256, 265)), list(range(265, 274)), list(range(274, 283)), list(range(283, 292))],
+             back=[list(range(292, 300)), 300, 301], tail=[], inplace=set(),
+             errata_note='底本有人校订过（11 条“校注”“图示”说明排在相关插图之后，注释里的校订说明也照排）。'
+                         '按要求没有再全面校订；这里只有转换时发现的排版问题。'),
+    23: dict(scratch='q23', file='美国大城市的死与生', title='美国大城市的死与生', sub='60周年致敬版',
+             author='〔加〕简·雅各布斯 著', credits=['金衡山　译'], publisher='译林出版社', pdf_author='〔加〕简·雅各布斯',
+             cover=None, cover_file='source/covers/23-美国大城市的死与生.png', title_img=None, copyright=2, marker='sq', lat_apos=True,
+             cls_quote=('yinwen',), cls_center=('yinwen-c',), cls_right=('divtext-right',), cls_cap=('tuzhu-center',),
+             part_re=r'^第[一二三四]部分', part_split=r'^(第[一二三四]部分)[\s\u3000]*(.*)$',
+             fig_inline=True, fig_dpi=150, open_air=True, toc_sections=False, toc_even=True,
+             edit_inplace=r'\[校\d+\]', edit_style=('smallkai', 0, 2),        # the reviser's 7 notes at the ends of their chapters
+             note_cls=('noteContent',), note_group_cls=('heiti',), dedication_grid=True, page_anchor=r'#source-page-\d+$', index_map=r'#source-page-(\d+)$',
+             pagelinks_note='〔本 PDF 说明〕下列页码都可以点击，跳到原书该页末尾在本书中的位置；书末索引的页码已据这些标记换算成本书页码。',
+             # the reviser's LaTeX pictures of fractions, percentages and the multiplication sign (each carries its text as alt;
+             # checked against the drawing)
+             img_text={'city_math_001.svg': '1/13', 'city_math_002.svg': '1/2', 'city_math_003.svg': '1/3',
+                       'city_math_004.svg': '1/4', 'city_math_005.svg': '1/6', 'city_math_006.svg': '1/7',
+                       'city_math_007.svg': '1/8', 'city_math_008.svg': '1/9', 'city_math_009.svg': '10%',
+                       'city_math_010.svg': '12%', 'city_math_011.svg': '15%', 'city_math_012.svg': '2/3',
+                       'city_math_013.svg': '2/9', 'city_math_014.svg': '20%', 'city_math_015.svg': '22%',
+                       'city_math_016.svg': '25%', 'city_math_017.svg': '36%', 'city_math_018.svg': '40%',
+                       'city_math_019.svg': '43.37%', 'city_math_020.svg': '44.38%', 'city_math_021.svg': '5%',
+                       'city_math_022.svg': '50%', 'city_math_023.svg': '58%', 'city_math_024.svg': '59.58%',
+                       'city_math_025.svg': '60%', 'city_math_026.svg': '60.60%', 'city_math_027.svg': '66%',
+                       'city_math_028.svg': '7%', 'city_math_029.svg': '7.86%', 'city_math_030.svg': '7.9%',
+                       'city_math_031.svg': '70%', 'city_math_032.svg': '75%', 'city_math_033.svg': '80%',
+                       'city_math_034.svg': '83%', 'city_math_035.svg': '85%', 'city_math_036.svg': '90%',
+                       'city_math_037.svg': '92%', 'city_math_038.svg': '95%', 'city_math_039.svg': '97%',
+                       'city_math_040.svg': '×', 'city_math_041.svg': '××'},
+             front=[(3, 'kaibody'), (4, 'kaibody'), (5, 'kaibody'), (6, 'dedication'), (7, 'text')], body=list(range(8, 30)),
+             back=[(30, 'index'), (31, 'kaibody'), (32, 'kaibody'), (33, 'notes'), (34, 'pagelinks'), 35], tail=[], inplace=set(),
+             errata_note='底本是一份已经通读修订过的个人校订本（书末“本次校订说明”：1050 条文字修订，7 条“校订注”附核查来源，均照排）。'
+                         '按要求没有再全面校订；这里只有转换时发现的排版问题和一处校订说明里的人名错误。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -384,6 +441,7 @@ def regap_heading(runs):
 
 # ---------------------------------------------------------------------------------------------- markers
 CIRC_LINK = None          # (set per book from C['circ_link']) marks and entries of a second series of notes, set as ①②③
+PAGE_ANCHOR = None        # (set per book from C['page_anchor']) anchors of the ends of printed pages, kept in the text
 
 
 def circ_number(n):
@@ -411,6 +469,9 @@ def mark_runs(runs, fmt):
     """Note markers (linked runs whose text is a bare note number) -> superscript '[n]' / '(n)', never at the start of a line."""
     out = []
     for r in runs:
+        if PAGE_ANCHOR and not r.get('h') and re.search(PAGE_ANCHOR, r.get('a') or ''):
+            out.append(r)                                         # (the anchor of a printed page's end on a run of digits)
+            continue
         if (r.get('h') or r.get('a')) and not r.get('i') and 'nomark' not in (r.get('c') or ''):
             mt = _marker(r, fmt)
             if mt:
@@ -517,6 +578,10 @@ def _head_runs(C, runs, keep=None):
     return BT.fix_edges(merge_runs(out))
 
 
+def _cls_add(c, x):
+    return x if not c else (c if x in c.split() else c + ' ' + x)
+
+
 def elements(C, items, kaitext=False):
     """Items of one part -> (elements, note items).  Headings carry 'lvl'; figures are {'k': 'fig'}; captions style 'cap'."""
     els, notes = [], []
@@ -562,6 +627,16 @@ def elements(C, items, kaitext=False):
                 back = r0.get('h')
                 nr = [dict(r0, t=m.group(1))] + [{k: v for k, v in x.items() if not (k == 'h' and v == back) and k != 'a'}
                                                  for x in [dict(r0, t=r0['t'][m.end():])] + nr[1:]]
+            if C.get('edit_inplace') and nr and re.fullmatch(C['edit_inplace'], nr[0]['t'].strip()):
+                st = C.get('edit_style', ('smallkai', 0, 2))        # a reviser's note at the end of its chapter, where the ebook has it:
+                rest = BT.fix_edges(BT.fix_runs(nr[1:]))            # small type, the label linking back to its mark
+                if rest and rest[0]['t'].startswith(('　', ' ')):
+                    rest = [dict(rest[0], t=rest[0]['t'].lstrip('　 '))] + rest[1:]
+                runs = [dict(nr[0], c=_cls_add(nr[0].get('c'), 'nomark')), run('\u3000')] + rest
+                els.append(dict(k='p', style=st[0], first=st[1], left=st[2], right=0, runs=latin_runs(runs, whole=False)
+                                if C.get('lat_apos') else runs, id='', src='edit_note', nomerge=True,
+                                before=0 if els and els[-1].get('src') == 'edit_note' else 1))
+                continue
             notes.append(dict(it, runs=latin_runs(nr, whole=False) if C.get('lat_apos') else nr))
             continue
         if k == 'img' and it['src'] in C.get('img_text', {}):        # a picture of a few characters standing alone: its transcription, centred
@@ -708,9 +783,12 @@ def elements(C, items, kaitext=False):
             b['style'] = 'kaibody'
         else:
             b['style'] = 'body'
-        cm = next((C['cls_map'][x] for x in cls.split() + (it.get('dcls') or '').split() if x in C.get('cls_map', {})), None)
-        if cm:                                              # (a class of this book with a style of its own: style, first, left)
+        cm = next((C['cls_map'][x] for x in cls.split() + (it.get('dcls') or '').split() if x in C.get('cls_map', {})), None) \
+            or next((v for pat, v in C.get('text_map', ()) if re.match(pat, plain(runs))), None)     # (or by the paragraph's first words)
+        if cm:                                              # (a class of this book with a style of its own: style, first, left[, run class])
             b.update(style=cm[0], first=cm[1], left=cm[2])
+            if len(cm) > 3 and cm[3]:
+                b['runs'] = [dict(r, c=((r.get('c') or '') + ' ' + cm[3]).strip()) if not r.get('i') else r for r in b['runs']]
             if cm[0] in ('quote', 'smallkai', 'verse'):
                 b['right'] = 0
         if c & _cs(C, 'cls_hang'):                         # '● item' paragraphs: hanging indent under the bullet
@@ -1348,6 +1426,49 @@ def notes_module(mid, groups, fmt, zone='body', title='注　释', toc_level=2, 
     return Mod(mid=mid, zone=zone, title=toc_title, blocks=blocks, grid='small1', toc_level=toc_level, toc_title=toc_title)
 
 
+def index_module(C, n):
+    """The ebook's index: letter heads, entries ('English words 中文词，12，34ff') and sub-entries (lower-case English)
+    with hanging indents, in two columns of the small grid.  The ebook breaks several entries inside one paragraph with
+    <br>: one block per entry.  C['index_map']: the printed page numbers are converted to pages of this PDF (exact,
+    from the markers of the printed pages kept in the text: indexmap.resolve_markers)."""
+    blocks, hn = [], 0
+    for it in BE.items(P(n)):
+        if it['k'] == 'h':
+            blocks.append(dict(k='h', style='h1', rank=1, runs=[run(plain(it['runs']))], id=f'{P(n)}#top'))
+            hn = len(blocks)
+            continue
+        if it['k'] != 'p' or not it.get('runs'):
+            continue
+        lines = [[]]
+        for r in BT.fix_runs(_img_text(C, it['runs'])):
+            if r['t'] == BR:
+                lines.append([])
+            else:
+                lines[-1].append(r)
+        for rs in lines:
+            rs = [dict(r, t=r['t'].replace('\xa0', ' ')) for r in rs]
+            rs = BT.fix_edges(merge_runs(rs))
+            t = plain(rs)
+            if not t:
+                continue
+            if t.startswith('（') and len(blocks) == hn:
+                blocks.append(dict(k='p', style='idxnote', runs=rs, id=it['id']))     # the line under the title
+                hn = len(blocks)
+            elif re.fullmatch(r'[A-Z]', t):
+                blocks.append(dict(k='p', style='idxhead', runs=rs, id=it['id']))
+            elif t[0].islower():
+                blocks.append(dict(k='p', style='indexc', runs=rs, id=it['id'], first=-1, left=2))
+            else:
+                blocks.append(dict(k='p', style='index', runs=rs, id=it['id']))
+    imap = dict(markers=C['index_map'], series={'': []}) if C.get('index_map') else None
+    title = plain(blocks[0]['runs']) if blocks and blocks[0]['k'] == 'h' else '索引'
+    mod = Mod(mid=P(n), zone='back', title=title, blocks=blocks, grid='small2', header_n=hn, idxmap=imap)
+    mod.top = True
+    mod.unnest = True
+    mod.src_parts = [n]
+    return mod
+
+
 def renumber(els, notes):
     """The ebooks restart note numbers in every file: number the notes of a unit 1.. in the order of their marks."""
     anchors = {}
@@ -1461,9 +1582,10 @@ def part_divider(C, els):
 
 
 def book(b):
-    global CIRC_LINK
+    global CIRC_LINK, PAGE_ANCHOR
     C = CFG[b]
     CIRC_LINK = C.get('circ_link')
+    PAGE_ANCHOR = C.get('page_anchor')
     m = meta(b)
     cover = C['cover']
     if C.get('cover_file'):                                          # a cover image supplied separately (source/covers/…) replaces the ebook's
@@ -1547,6 +1669,9 @@ def book(b):
                     if blocks[j + 1]['k'] == 'p' and not blocks[j + 1].get('before'):
                         blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0)]
                     break
+            for x in blocks:                                       # and an epigraph's '——name' may stand one line below it
+                if x['k'] == 'p' and x.get('style') == 'right' and plain(x.get('runs', [])).startswith('——') and not x.get('before'):
+                    x['bef_opts'] = [(0, 0.0), (1, 30.0)]
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(x['runs'], fmt)
@@ -1605,7 +1730,8 @@ def book(b):
         if kind == 'dedication':
             lines = [(99, plain(e['runs'])) for e in els if e['k'] == 'p']
             dm = page_module('dedication' if not any(x.mid == 'dedication' for x in front) else f'dedication{n}', 'front',
-                             special.divider_html(lines), toc=False, title='献词', folio=False, head=False)
+                             special.divider_html(lines, grid=C.get('dedication_grid', False)), toc=False, title='献词', folio=False,
+                             head=False)
             dm.lines = [t for _, t in lines]
             dm.src_parts = _parts(n)
             front.append(dm)
@@ -1655,16 +1781,36 @@ def book(b):
         if kind == 'notes':                                        # the ebook's own collection of notes (the translator's), in its place
             flush(back, 'back')
             title = next((plain(it['runs']) for it in BE.items(P(n)) if it['k'] == 'h'), '注释')
-            nts = [dict(it, k='note', runs=_img_text(C, it['runs'])) for it in BE.items(P(n)) if it['k'] in ('p', 'note') and it.get('runs')]
-            nm = notes_module(f'notes_p{n}', [(title, nts)], fmt, zone='back', title=C.get('endnotes_title', title),
+            groups, gcls = [], _cs(C, 'note_group_cls')            # (headings of its own between the notes: one group per part of the book)
+            for it in BE.items(P(n)):
+                if it['k'] == 'p' and set(it['cls'].split()) & gcls:
+                    groups.append((plain(regap_heading(it['runs'])), []))
+                elif it['k'] in ('p', 'note') and it.get('runs'):
+                    if not groups:
+                        groups.append((title, []))
+                    groups[-1][1].append(dict(it, k='note', runs=_img_text(C, it['runs'])))
+            nm = notes_module(f'notes_p{n}', groups, fmt, zone='back', title=C.get('endnotes_title', title),
                               toc_level=1, toc_title=C.get('endnotes_title', title))
             nm.top = True
             nm.unnest = True
             nm.src_parts = [n]
             back.append(nm)
             continue
+        if kind == 'index':                                        # an index in two columns, its page numbers turned into pages of this PDF
+            flush(back, 'back')
+            back.append(index_module(C, n))
+            continue
+        if kind == 'pagelinks':                                    # a list of links to the printed pages (bare numbers, not note marks)
+            els = [dict(e, runs=[dict(r, c=_cls_add(r.get('c'), 'nomark')) if r.get('h') else r for r in e['runs']])
+                   if e['k'] == 'p' else e for e in els]
+            if C.get('pagelinks_note'):
+                k = next(i for i, e in enumerate(els) if e['k'] == 'p')
+                els.insert(k + 1, dict(k='p', style='small', first=0, left=0, runs=[run(C['pagelinks_note'])], id='', src='pdf_note',
+                                       nomerge=True))
         if kind == 'noindent':
             els = [dict(e, style='noindent') if e['k'] == 'p' and e.get('style') == 'body' else e for e in els]
+        if kind == 'kaibody':
+            els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
         add_unit(n, back, 'back', els, notes, top=True)
         flush(back, 'back')
     for n in C.get('endnotes', ()):                            # notes of the whole book gathered in the last part of the ebook
@@ -1681,6 +1827,22 @@ def book(b):
     for x in toc_bl:
         if x.get('style', '').startswith('toc'):
             x['noshrink'] = True
+    if C.get('toc_even'):                                          # even spacing: fixed blank lines (one before a part, and where
+        zone_of = {m.mid: m.zone for m in allm}                    # the front matter, the text and the back matter begin), none else
+        prev = None
+        for x in toc_bl:
+            if x['k'] != 'p' or not x.get('toc_ref'):
+                continue
+            z = zone_of.get(x['toc_ref'][0])
+            if x['style'] == 'toc0':
+                n_ = 1
+            elif x['style'].startswith('toc1'):
+                n_ = 1 if prev is not None and z != prev else (0 if not C.get('toc_sections', True) else 1)
+            else:
+                n_ = 0
+            x['before'] = n_
+            x['bef_opts'] = [(n_, 0.0)]
+            prev = z
     toc = Mod(mid='toc', zone='front', title='目錄' if C.get('tc') else '目录', blocks=toc_bl, toc=False, head=True)
     toc.tail_min = 5
     tail = []

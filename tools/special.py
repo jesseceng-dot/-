@@ -161,12 +161,18 @@ def plate_size(img, extra=0.0):
     return w * s, h * s
 
 
-def divider_html(lines):
+KAI_SHIFT = 0.78      # (measured) the Kai face's baseline in a 17 pt line lies 0.78 pt above the Song face's
+
+
+def divider_html(lines, grid=False):
     """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
-    smaller underneath.  Long titles get balanced line breaks."""
+    smaller underneath.  Long titles get balanced line breaks.  grid=True (a dedication: small lines only): the lines
+    one body line apart, on the baselines of the text pages."""
     from . import normalize
     from .model import run, runs_html
     out, y = '', 176.0 * style.SY
+    if grid:
+        y = style.TOP + round((y - style.TOP) / style.LINE) * style.LINE + KAI_SHIFT
     first = True
     for lvl, text in lines:
         if lvl == 97:
@@ -191,7 +197,7 @@ def divider_html(lines):
         elif lvl < 50:
             fam, fs, wt, ls, lh, gap = 'KaiTi', 13.0, 700, 0.04, 21.0, 8.0
         else:
-            fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, 2.0
+            fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, (0.0 if grid else 2.0)
         cap = (style.TEXT_W - 20) * 0.92 / fs
         wtxt = sum(normalize._w(ch) for ch in text)
         if '\u3000' in text and wtxt > cap and text.index('\u3000') < len(text) - 2:

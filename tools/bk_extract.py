@@ -45,6 +45,8 @@ RUN_CLS = {
         'normal': (0, 'nohei'), 'preface_title1': (0, ''), 'view_title_span': (0, ''), 'geb-overview-label': (0, ''),
         'ed-figure-link': (0, 'nomark lnk'),                             # links to figures ('图10', '1．'): not note marks
     },
+    'q22': {'yanse': (0, 'hei')},                               # 心智社会: the ebook's coloured terms (agents' names, labels) in 黑体
+    'q23': {'jiacu': (0, 'hei')},                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
@@ -351,6 +353,7 @@ def _cls(c, add):
 def inline(el, part, mark_breaks=False):
     out = []
     pending = [None]
+    span_pend = [None]
 
     def emit(t, b, c, h, a, s=0):
         if not t:
@@ -388,6 +391,9 @@ def inline(el, part, mark_breaks=False):
                 rec(ch, b, _cls(c, 'it'), h, a, s)
             elif t == 'img':
                 out.append(run(OBJ, b, 0, h, a, i=os.path.basename(ch.get('src') or ''), c=ch.get('class') or ''))
+            elif t == 'svg':                                    # a formula drawn in the text itself: keyed by its <title> (its LaTeX)
+                title = next((''.join(x.itertext()).strip() for x in ch if isinstance(x.tag, str) and ln(x) == 'title'), '')
+                out.append(run(OBJ, b, 0, h, a, i='svg:' + title, c=ch.get('class') or ''))
             elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
                 m = re.search(r'(\d+)$', ch.get('id') or '')
                 if m and ch.get('href'):                          # an icon (image) as the note mark: the number comes from the id
@@ -433,6 +439,7 @@ def inline(el, part, mark_breaks=False):
                 aid = anchor_key(part, ch.get('id'))                # (a book whose cross-references target <span id=…>)
                 if not ''.join(ch.itertext()).strip():
                     pending[0] = aid
+                    span_pend[0] = aid
                 else:
                     rec(ch, b, c, h, a or aid, s)
             elif ch.get('id') and not a and any(isinstance(x.tag, str) and ln(x) == 'a' and x.get('href') for x in ch.iter() if x is not ch):
@@ -442,6 +449,8 @@ def inline(el, part, mark_breaks=False):
             emit(ch.tail, b, c, h, a, s)
 
     rec(el, 0, '', '', '')
+    if pending[0] and pending[0] == span_pend[0]:
+        out.append(run('\u2060', a=pending[0]))                # an anchor <span id> that ends its paragraph: kept on a word joiner
     return merge_runs(out)
 
 
@@ -536,7 +545,8 @@ def items(part):
             if t in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
                 imgs = [im for im in _imgs(el) if not set((im.get('class') or '').split()) & {'footnote', 'latex-inline'}]   # (a note icon is the mark, not a picture)
                 runs = clean_runs([r for r in inline(el, part, mark_breaks=True)
-                                   if not r.get('i') or 'latex-inline' in (r.get('c') or '').split()])   # (a letter set as a formula picture: '附录A')
+                                   if not r.get('i') or 'latex-inline' in (r.get('c') or '').split()
+                                   or r['i'].startswith('svg:')])   # (a letter set as a formula picture: '附录A', '6.4 B-脑')
                 if runs:
                     add('h', el, runs=runs, lvl=int(t[1]))
                 for im in imgs:
