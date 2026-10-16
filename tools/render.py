@@ -75,10 +75,10 @@ def baseline_dy(st):
     return body_last - ((n - 1) * st['pitch'] + BASE[key])
 
 
-def line_div(st, j, nlines_total, html, x, y, w, ls):
+def line_div(st, j, nlines_total, html, x, y, w, ls, forced=False):
     html = html.replace('\u2060', '')          # word joiners only steer the line breaking: in a printed line Chromium draws
     if st['align'] == 'j':                      # one as a space glyph, which pushed a note mark ~2 pt to the right
-        a = 'l' if j == nlines_total - 1 else 'j'
+        a = 'l' if j == nlines_total - 1 or forced else 'j'          # (a line that ends in a forced break is not spread)
     else:
         a = st['align']
     y += baseline_dy(st)
@@ -132,6 +132,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
         ends = starts[1:] + [None]
         ls = style.VARIANTS_ALL[vi]
         runs = lb.block['runs']
+        text = ''.join(r['t'] for r in runs)
         if lb.block['k'] == 'img':
             b = lb.block
             y = style.TOP + slot0 * st['pitch'] * k + lone
@@ -181,7 +182,8 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             slot = slot0 + (j - lo) * st['slots']
             y = style.TOP + slot * st['pitch'] * k
             h = runs_html(runs, starts[j], ends[j], final=True)
-            parts.append(line_div(st, j, len(starts), h, x0 + x, y, w, ls))
+            forced = j + 1 < len(starts) and '\n' in text[starts[j + 1] - 1:starts[j + 1] + 1]
+            parts.append(line_div(st, j, len(starts), h, x0 + x, y, w, ls, forced))
             if lb.block.get('rule') and j == 0 and slot0 > 0:
                 parts.append(f'<div class="rule" style="left:{x0:.2f}pt;width:{st["W"]:.2f}pt;top:{y - 9:.2f}pt"></div>')
             if lb.block.get('pg') is not None and j == len(starts) - 1:

@@ -232,6 +232,19 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
     gap = text.find('\u3000')
     if 0 < gap <= 8 and ORD_ALONE.match(text[:gap]) and sum(widths[gap + 1:]) <= cap:
         best = (0.0, (gap,))            # 'Ordinal　Title' too long for one line: the ordinal alone, the whole title under it
+    elif 0 < gap <= 8 and ORD_ALONE.match(text[:gap]):
+        rest = text[gap + 1:]           # the title itself too long as well: the ordinal alone, the title balanced under it
+        cuts, p = [gap], gap + 1
+        sub = balance_title([run(rest)], fs, avail_pt, slack)
+        for k, r in enumerate(sub):
+            if r['t'] == BR:
+                cuts.append(p)
+                nxt = sub[k + 1]['t'] if k + 1 < len(sub) else ''
+                if p < len(text) and text[p] in ' 　' and not nxt.startswith(text[p]):
+                    p += 1
+            else:
+                p += len(r['t'])
+        best = (0.0, tuple(cuts))
     from math import comb
     for k in (range(n_lines, n_lines + 3) if best is None else ()):
         if comb(len(idx), k - 1) > 150000:
@@ -265,6 +278,8 @@ def balance_title(runs, fs, avail_pt, slack=0.94):
                     score -= 1.2
                 if b_ in '的之而':
                     score += 2.5
+                elif b_ in '对从向' and a_ not in '：；，、':
+                    score -= 2.0                    # a line may start with a preposition phrase ('…条件 / 对能动主义…')
                 if a_ == ' ' or b_ == ' ':
                     score += 1.5
             if min(ws) < 3.5:

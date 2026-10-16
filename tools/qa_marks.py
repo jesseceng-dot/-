@@ -23,7 +23,7 @@ def check(b):
             if is_note:
                 if runs and runs[0].get('a'):
                     notes[runs[0]['a']] = (n, i, runs[0]['t'], runs[0].get('h'))
-                continue
+                runs = [r for r in runs[1:] if re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())]   # (marks inside a note)
             for r in runs:
                 if r.get('h') and (r.get('s') or BT.marker_text(r['t'], 'sq')):
                     if r.get('a') in marks:

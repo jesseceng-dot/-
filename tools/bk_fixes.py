@@ -18,7 +18,8 @@ DASH1 = re.compile(r'(?<=[%s%s])—(?![—\d])|(?<![—\d])—(?=[%s%s])' % (CJK
 
 # books whose cross-references point at <span id=…> anchors (captured as link targets)
 SPAN_ANCHORS = {'q15': r'^jz_\d+_\d+$'}
-SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN')   # mark/structure fixes (not text replacements)
+SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN',
+           'NOTELINK', 'MOVETAB')   # mark/structure fixes (not text replacements)
 
 ASCII_COMMA = re.compile(r'(?<=[%s）”])\s?,\s?(?=[%s“（])' % (CJK, CJK))
 ASCII_COLON = re.compile(r'(?<=[%s）])\s?:\s?(?=[%s“（])' % (CJK, CJK))
@@ -2172,5 +2173,11 @@ FIXES = {
         (2, 'circa100 B.C.', 'circa 100 B.C.', '排版：西文词与数字间漏空格'),
         (19, 'HEAD', '【注】', 2, '排版：第十六章末的“【注】关于中国人的民族观念”是一节的标题（电子书排成加粗正文）'),
         (26, 'MOVE', '这个序列可用所谓', '这个规律不仅适用于', '排版：“十二主卦”圆图移到引出它的“顺序如下（由中看起，顺时针方向）：”之后（电子书排在下一段之后）'),
+    ],
+    'q19': [                                                       # 退出、呼吁与忠诚（格致出版社 2015；全文通读修订版）
+        (18, re.compile('(?<=\0),(?=\0代表)'), '，', '标点：两个公式之间的半角逗号改全角（“成功概率为P，P代表……”）'),
+        (16, 'MOVETAB', '成员对组织衰减的反应方式', '绝大多数的组织恐怕都难以',
+         '排版：第九章第一个框图（表格）不拆页，连同表题移到下一段之后（相当于浮动到下页页首），以免上一页页底留白'),
+        (5, 'NOTELINK', 'divcontent-text_yinwen2', '排版：译者序的 12 条注释，电子书里正文“[n]”与注释都是纯文字；这里排成上标角标，与注释互相链接'),
     ],
 }

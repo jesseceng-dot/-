@@ -27,6 +27,7 @@ def fix_text(t):
     t = _RE_APOS.sub('’', t)
     t = _RE_SPACE_CLOSE.sub('', t)
     t = re.sub(r' {2,}', ' ', t)
+    t = re.sub(r'(?<=\d)([–—~～])(?=\d)', '\\1\u2060', t)          # a range of numbers (pp.123–132) is not broken after its dash
     return t
 
 
@@ -40,6 +41,8 @@ def fix_runs(runs):
         if t:
             out.append(dict(r, t=t))
     for i in range(len(out)):                            # a space at a run boundary before a closing mark
+        if i and out[i - 1]['t'].endswith(BR) and not out[i].get('i'):
+            out[i] = dict(out[i], t=out[i]['t'].lstrip(' '))           # (no space at the start of a line after a forced break)
         if i and out[i]['t'].startswith(' ') and out[i]['t'].lstrip(' ')[:1] in CLOSE and not out[i - 1].get('i') \
                 and not _word_space(out, i):
             out[i] = dict(out[i], t=out[i]['t'].lstrip(' '))

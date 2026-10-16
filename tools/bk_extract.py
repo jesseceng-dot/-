@@ -10,6 +10,7 @@ Item: dict(k, tag, cls, id, runs, ...)
 The four books use different markup (h1/h2, p.fnote, div.fnote, aside, blockquote, div.roundsolid ...): everything is
 flattened here, the meaning of the classes is decided per book in bk.py.
 """
+import copy
 import os
 import re
 from lxml import etree
@@ -24,6 +25,7 @@ ITALIC_CLS = ('italic', 'kindle-cn-italic')
 KAI_CLS = ('kaiti', 'kindle-cn-kai')
 BOLD_CLS = ('kindle-cn-bold', 'bold')
 SUP_CLS = ('math-super',)
+_BACK_WORDS = re.compile(r'\s*(?:↩\s*)?返回正文\s*')            # the words of a note's link back to its mark
 
 
 _FIX = None
@@ -249,8 +251,47 @@ def _apply_fixes(part, out):
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
             else:
                 out.insert(src[0], it)
+    for f in [f for f in fx if f[1] == 'MOVETAB']:              # (part, 'MOVETAB', table title, paragraph prefix): a table with its
+        src = [k for k, it in enumerate(out) if it['k'] == 'p' and _txt(it) == f[2]     # title goes after that paragraph (a float
+               and k + 1 < len(out) and out[k + 1]['k'] == 'table']                    # to the top of the next page)
+        if len(src) == 1:
+            grp = out[src[0]:src[0] + 2]
+            del out[src[0]:src[0] + 2]
+            dst = [k for k, x in enumerate(out) if x['k'] == 'p' and _txt(x).startswith(f[3])]
+            if len(dst) == 1:
+                out[dst[0] + 1:dst[0] + 1] = grp
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+            else:
+                out[src[0]:src[0]] = grp
     for f in [f for f in fx if f[1] in ('RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HREF', 'ANCHOR')]:
         _mark_fix(f, out)
+    for f in [f for f in fx if f[1] == 'NOTELINK']:             # (part, 'NOTELINK', note class, note): a part whose marks '[n]' and
+        have = set()                                            # note entries '[n]text' are plain text: linked both ways
+        for it in out:
+            r0 = it['runs'][0] if it.get('runs') else {}
+            m = re.match(r'\s*\[(\d+)\]', r0.get('t', '')) if f[2] in it['cls'].split() and not (r0.get('h') or r0.get('i')) else None
+            if m:
+                n = m.group(1)
+                have.add(n)
+                it['runs'][0:1] = [x for x in (run(f'[{n}]', 0, 0, f'{part}#nl-ref{n}', f'{part}#nl-note{n}'),
+                                                dict(r0, t=r0['t'][m.end():])) if x['t']]
+        seen = set()
+        for it in out:
+            if f[2] in it['cls'].split() or it['k'] not in ('p', 'li') or not it.get('runs'):
+                continue
+            new = []
+            for r in it['runs']:
+                pos = 0
+                for m in (re.finditer(r'\[(\d+)\]', r['t']) if not (r.get('h') or r.get('a') or r.get('i')) else ()):
+                    n = m.group(1)
+                    if n in have and n not in seen:
+                        seen.add(n)
+                        new += [dict(r, t=r['t'][pos:m.start()]), run(m.group(0), r.get('b', 0), 1, f'{part}#nl-note{n}', f'{part}#nl-ref{n}')]
+                        pos = m.end()
+                new.append(dict(r, t=r['t'][pos:]) if pos else r)
+            it['runs'] = [x for x in new if x['t'] or x.get('i')]
+        if have:
+            FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(seen)
     for f in [f for f in fx if f[1] == 'CELL']:                 # (part, 'CELL', first cell of the row, column, old, new): one table cell
         done = False
         for it in out:
@@ -404,6 +445,58 @@ def inline(el, part, mark_breaks=False):
     return merge_runs(out)
 
 
+def _drop(x):
+    """Remove an element from the tree, keeping the text that follows it."""
+    par, prev = x.getparent(), x.getprevious()
+    if prev is not None:
+        prev.tail = (prev.tail or '') + (x.tail or '')
+    else:
+        par.text = (par.text or '') + (x.tail or '')
+    par.remove(x)
+
+
+def _note_backlink(el):
+    """A note entry whose way back is a separate '返回正文' link and whose anchor (the target of the mark in the text) an
+    empty <span id>:  <p>[n]text<span id=x/><a href=#ref>返回正文</a></p>  or
+    <p><span id=x/><a href=#ref id=y>[n]</a>text<a href=#ref>返回正文</a></p>  is rebuilt in place as
+    <p><a href=#ref id=x>[n]</a>text</p>, the form of the other note entries: the number links back, the words go."""
+    backs = [a for a in el.iter() if isinstance(a.tag, str) and ln(a) == 'a' and a.get('href')
+             and not a.get('href').startswith(('http://', 'https://')) and _BACK_WORDS.fullmatch(''.join(a.itertext()))]
+    if len(backs) != 1:
+        return
+    href = backs[0].get('href')
+    _drop(backs[0])
+    span = next((x for x in el.iter() if isinstance(x.tag, str) and ln(x) == 'span' and x.get('id') and len(x) == 0
+                 and not (x.text or '').strip()), None)
+    sid = span.get('id') if span is not None else None
+    if span is not None:
+        _drop(span)
+    lead = el[0] if len(el) and isinstance(el[0].tag, str) and ln(el[0]) == 'a' and not (el.text or '').strip() else None
+    if lead is not None and re.fullmatch(r'\s*\[\d+\]\s*', ''.join(lead.itertext())):
+        lead.set('href', href)
+        if sid:
+            lead.set('id', sid)
+        return
+    m = re.match(r'\s*(\[\d+\])', el.text or '')
+    if m:
+        a = etree.Element('{%s}a' % etree.QName(el).namespace if etree.QName(el).namespace else 'a')
+        a.text, a.tail = m.group(1), el.text[m.end():]
+        a.set('href', href)
+        if sid:
+            a.set('id', sid)
+        el.text = ''
+        el.insert(0, a)
+
+
+def _inline_one(x, part):
+    """Runs of one element by itself (its tail left out): a link that sits beside the paragraph of an <aside>."""
+    w = etree.Element('span')
+    c = copy.deepcopy(x)
+    c.tail = None
+    w.append(c)
+    return inline(w, part)
+
+
 def plain(el):
     return re.sub(r'\s+', ' ', ''.join(el.itertext())).strip()
 
@@ -441,13 +534,15 @@ def items(part):
             t = ln(el)
             cls = (el.get('class') or '').split()
             if t in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-                imgs = [im for im in _imgs(el) if 'footnote' not in (im.get('class') or '')]   # (a note icon is the mark, not a picture)
-                runs = clean_runs([r for r in inline(el, part, mark_breaks=True) if not r.get('i')])
+                imgs = [im for im in _imgs(el) if not set((im.get('class') or '').split()) & {'footnote', 'latex-inline'}]   # (a note icon is the mark, not a picture)
+                runs = clean_runs([r for r in inline(el, part, mark_breaks=True)
+                                   if not r.get('i') or 'latex-inline' in (r.get('c') or '').split()])   # (a letter set as a formula picture: '附录A')
                 if runs:
                     add('h', el, runs=runs, lvl=int(t[1]))
                 for im in imgs:
                     add('img', el, src=os.path.basename(im.get('src') or ''), runs=[], orn=1)
             elif t == 'p':
+                _note_backlink(el)
                 imgs = _imgs(el)
                 txt = plain(el)
                 if imgs and not txt:
@@ -469,20 +564,26 @@ def items(part):
                     continue
                 kids = [x for x in el.iter() if isinstance(x.tag, str)]
                 num = next((x for x in kids if 'note-number' in (x.get('class') or '').split()), None)
-                back = next((x for x in kids if ln(x) == 'a' and 'backlink' in (x.get('class') or '').split()), None)
-                if num is not None and back is not None and el.get('id'):
-                    # <aside id=fn-n><p><span.note-number>[n]</span><span.note-text>…</span>[<a.evidence-link>…]<a.backlink>返回正文</a>:
+                back = next((x for x in kids if ln(x) == 'a' and ('backlink' in (x.get('class') or '').split()
+                             or _BACK_WORDS.fullmatch(''.join(x.itertext())) and not (x.get('href') or '').startswith('http'))), None)
+                para = next(x for x in kids if ln(x) == 'p')
+                m = re.match(r'\s*(\[[^\]\s]{1,6}\])', ''.join(para.itertext())) if num is None else None
+                if (num is not None or m) and back is not None and el.get('id'):
+                    # <aside id=fn-n><p><span.note-number>[n]</span><span.note-text>…</span>[<a.evidence-link>…]<a.backlink>返回正文</a>
+                    # or <aside id=edit-note-n><p>[校n] text</p><a href=http…>核查来源：…</a><a href=#ref>返回正文</a>:
                     # the number becomes the marker, linked back to the reference; the back-link's own words go
-                    label = ''.join(num.itertext()).strip()
+                    label = ''.join(num.itertext()).strip() if num is not None else m.group(1)
                     to = resolve_href(part, back.get('href'))
-                    runs = [r for r in clean_runs(inline(next(x for x in kids if ln(x) == 'p'), part))
+                    runs = [r for r in clean_runs(inline(para, part) + [x for a in el if isinstance(a.tag, str) and ln(a) == 'a'
+                                                                          for x in _inline_one(a, part)])
                             if not (r.get('h') == to and r['t'].strip() == ''.join(back.itertext()).strip())]
                     if runs and runs[0]['t'].lstrip().startswith(label):
                         runs[0] = dict(runs[0], t=runs[0]['t'].lstrip()[len(label):].lstrip())
                     rest = []
                     for r in runs:
                         if (r.get('h') or '').startswith('http'):            # the reviser's evidence: a link to its source
-                            rest += [run('　核查依据：'), dict(r, t=r['t'].strip(), c=_cls(r.get('c'), 'lnk'))]
+                            lead = '　' if r['t'].lstrip().startswith('核查') else '　核查依据：'
+                            rest += [run(lead), dict(r, t=r['t'].strip(), c=_cls(r.get('c'), 'lnk'))]
                         elif r['t']:
                             rest.append(r)
                     add('note', el, runs=[run(label, 0, 0, to, anchor_key(part, el.get('id')))] + rest, q=0, box=0)
@@ -531,6 +632,9 @@ def items(part):
                     add('img', el, src=f'snap_{part}_{k}.png', runs=[], fig=fig, snap=1)
                     grp[1] = outer
                     continue
+                cap = next((x for x in el if isinstance(x.tag, str) and ln(x) == 'caption'), None)
+                if cap is not None and clean_runs(inline(cap, part)):
+                    add('p', cap, runs=clean_runs(inline(cap, part)), q=q, box=box)['cls'] = 'table-caption'   # the table's title, above it
                 rows, spans, heads = [], [], []
                 for tr in el.iter():
                     if isinstance(tr.tag, str) and ln(tr) == 'tr':

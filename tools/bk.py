@@ -200,6 +200,58 @@ CFG = {
              front=[(2, 'text')], body=list(range(4, 32)), back=[], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题（标点的全角半角、西文姓名缩写里的全角句点、漏掉的空格），'
                          '以及一处排成正文的小标题和一幅排错位置的插图。'),
+    19: dict(scratch='q19', file='退出、呼吁与忠诚', title='退出、呼吁与忠诚', sub='对企业、组织和国家衰退的回应',
+             author='〔美〕艾伯特·O.赫希曼 著', credits=['卢昌崇　译'], publisher='格致出版社　上海人民出版社',
+             pdf_author='〔美〕艾伯特·O.赫希曼', series='世纪人文系列丛书　世纪前沿',
+             cover=None, cover_file='source/covers/19-退出、呼吁与忠诚.png', title_img=None, copyright=2, marker='sq', lat_apos=True,
+             note_cls=('divcontent-text_yinwen2', 'zhusi'), circ_link=r'#zs-bz\d+$', skip_text=('注释',),
+             cls_quote=('divcontent-text_yinwen',), cls_right=('divcontent-text_right',),
+             cls_center=('divcontent-text_center1', 'divcontent-text_center2'), cls_cap=('divcontent-text-tushuo', 'table-caption'),
+             head_cls={'divcontent-text1': 2, 'divcontent-text_yinwen1': (3, r'^(?!注释$)')},
+             fig_inline=True, fig_dpi=63, table2=True, table_keep=12, fig_join=[('ev_fig_13.svg', 'ev_fig_14.svg')], front_notes_each=True,
+             # the reviser's LaTeX pictures of formulas and of words with accents, read off one by one (italic variables,
+             # upright labels XAL ...; sub-scripts small and low; primes)
+             img_text={'ev_math_001.svg': '635×965', 'ev_math_002.svg': '1/16', 'ev_math_003.svg': '1/2', 'ev_math_004.svg': '1/4',
+                       'ev_math_005.svg': '3/4', 'ev_math_006.svg': '3×2', 'ev_math_007.svg': [('x', 'it'), '/5'],
+                       'ev_math_008.svg': 'Café', 'ev_math_009.svg': 'Bogotá', 'ev_math_010.svg': 'orientación',
+                       'ev_math_011.svg': 'Educação', 'ev_math_012.svg': 'François', 'ev_math_013.svg': 'Lainé',
+                       'ev_math_014.svg': 'réforme', 'ev_math_015.svg': 'glücklich', 'ev_math_016.svg': 'già',
+                       'ev_math_017.svg': 'XAL', 'ev_math_018.svg': 'XWL', 'ev_math_019.svg': 'XSI', 'ev_math_020.svg': 'ULB',
+                       'ev_math_021.svg': 'TX', 'ev_math_022.svg': '50%', 'ev_math_023.svg': '100%',
+                       'ev_math_024.svg': ['≥', ('Q', 'it'), ('x', 'it msub')], 'ev_math_025.svg': ['<', ('Q', 'it'), ('x', 'it msub')],
+                       'ev_math_031.svg': [('A–B', 'it')],
+                       'ev_math_032.svg': [('Q', 'it'), ('1', 'msub')], 'ev_math_033.svg': [('Q', 'it'), ('3', 'msub')],
+                       'ev_math_034.svg': [('Q', 'it'), ('2', 'msub')], 'ev_math_035.svg': [('Q', 'it'), ('n', 'it msub')],
+                       'ev_math_036.svg': [('Q', 'it'), ('0', 'msub')], 'ev_math_037.svg': [('Q', 'it'), ('E', 'it msub')],
+                       'ev_math_038.svg': [('Q', 'it'), ('L', 'it msub')], 'ev_math_039.svg': [('Q', 'it'), ('C', 'it msub')],
+                       'ev_math_043.svg': [('L', 'it'), ('0', 'msub')], 'ev_math_044.svg': [('L', 'it'), ('1', 'msub')],
+                       'ev_math_045.svg': [('V', 'it'), ('1', 'msub')], 'ev_math_046.svg': [('V', 'it'), ('2', 'msub')],
+                       'ev_math_047.svg': [('V', 'it'), ('3', 'msub')], 'ev_math_048.svg': [('P', 'it'), ('1', 'msub')],
+                       'ev_math_049.svg': [('P', 'it'), ('2', 'msub')], 'ev_math_050.svg': [('P', 'it'), ('a', 'it msub')],
+                       'ev_math_051.svg': [('P', 'it'), ('b', 'it msub')], 'ev_math_052.svg': [('P', 'it'), ('c', 'it msub')],
+                       'ev_math_053.svg': [('E', 'it'), ('A', 'it msub')], 'ev_math_054.svg': [('E', 'it'), ('B', 'it msub')],
+                       'ev_math_055.svg': [('P′', 'it')], 'ev_math_056.svg': [('P″', 'it')], 'ev_math_057.svg': [('Q′', 'it')],
+                       'ev_math_058.svg': [('AA′', 'it')], 'ev_math_059.svg': [('BB′', 'it')], 'ev_math_060.svg': [('ABC', 'it')],
+                       'ev_math_061.svg': [('CDA', 'it')], 'ev_math_062.svg': [('Q', 'it'), ('2', 'msub'), ('B', 'it')],
+                       'ev_math_063.svg': [('Q', 'it'), ('2', 'msub'), ('D', 'it')],
+                       'ev_math_064.svg': [('Q', 'it'), ('1', 'msub'), ('Q', 'it'), ('0', 'msub'), ('P′', 'it'), ('0', 'msub'), ('T′', 'it')],
+                       'ev_math_065.svg': [('OQ', 'it'), ('1', 'msub')],
+                       'ev_math_066.svg': [('L', 'it'), ('0', 'msub'), ('L', 'it'), ('1', 'msub')],
+                       'ev_math_067.svg': [('L', 'it'), ('0', 'msub'), ('TP', 'it'), ('1', 'msub'), ('L', 'it'), ('1', 'msub')],
+                       'ev_math_068.svg': [('ORT′Q', 'it'), ('1', 'msub')],
+                       'ev_math_069.svg': [('OQ', 'it'), ('0', 'msub'), ('Q', 'it'), ('n', 'it msub'), ('Q′', 'it'), ('n', 'it msub')],
+                       'ev_math_070.svg': [('Q', 'it'), ('E', 'it msub'), ('V', 'it'), ('2', 'msub')],
+                       'ev_math_071.svg': [('Q', 'it'), ('0', 'msub'), ('V', 'it'), ('1', 'msub')],
+                       'ev_math_072.svg': [('Q', 'it'), ('n', 'it msub'), ('Q′', 'it'), ('n', 'it msub')],
+                       'ev_math_073.svg': [('Q', 'it'), ('E', 'it msub'), ('Q', 'it'), ('C', 'it msub')],
+                       'ev_math_074.svg': [('A', 'it')], 'ev_math_075.svg': [('B', 'it')], 'ev_math_076.svg': [('C', 'it')],
+                       'ev_math_077.svg': [('D', 'it')], 'ev_math_078.svg': [('E', 'it')], 'ev_math_079.svg': [('V', 'it')],
+                       'ev_math_080.svg': [('P', 'it')], 'ev_math_084.svg': [('S', 'it')], 'ev_math_085.svg': [('x', 'it')]},
+             img_text_plain=[(r'附录', r''), (r'“', r' Mathematical')],      # '附录A', the article 'A' of an English title: upright
+             front=[(3, 'text'), (4, 'text'), (5, 'text'), (6, 'dedication'), (7, 'text')], body=list(range(8, 17)),
+             back=[17, 18, 19, 20, 21, 22, (23, 'notes'), 24], tail=[], inplace=set(),
+             errata_note='底本是一份已经通读修订过的个人校订本（书末“本次校订说明”：408 条文字修订，9 条“校订注”与核查依据链接，均照排）。'
+                         '按要求没有再全面校订；这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -251,12 +303,36 @@ def regap_heading(runs):
 
 
 # ---------------------------------------------------------------------------------------------- markers
+CIRC_LINK = None          # (set per book from C['circ_link']) marks and entries of a second series of notes, set as ①②③
+
+
+def circ_number(n):
+    n = int(n)
+    if 1 <= n <= 20:
+        return chr(0x2460 + n - 1)
+    if 21 <= n <= 35:
+        return chr(0x3251 + n - 21)
+    if 36 <= n <= 50:
+        return chr(0x32b1 + n - 36)
+    return f'({n})'
+
+
+def _marker(r, fmt):
+    """The printed note number of a mark or of a note entry's label: C['circ_link'] (a pattern of the link or anchor)
+    picks out the translator's notes of a book whose two series are both '[n]' in the ebook."""
+    mt = BT.marker_text(r['t'], fmt)
+    if mt and CIRC_LINK and mt.startswith('[') and '校' not in mt \
+            and any(re.search(CIRC_LINK, r.get(k) or '') for k in ('h', 'a')):
+        return circ_number(re.sub(r'\D', '', mt))
+    return mt
+
+
 def mark_runs(runs, fmt):
     """Note markers (linked runs whose text is a bare note number) -> superscript '[n]' / '(n)', never at the start of a line."""
     out = []
     for r in runs:
         if (r.get('h') or r.get('a')) and not r.get('i') and 'nomark' not in (r.get('c') or ''):
-            mt = BT.marker_text(r['t'], fmt)
+            mt = _marker(r, fmt)
             if mt:
                 r = repair_link(dict(r, t='⁠' + mt, s=1))
         out.append(r)
@@ -304,19 +380,26 @@ def _cs(C, key):
 
 
 def _img_text(C, runs):
-    """Inline images: those with a transcription (C['img_text']) become text, all others are dropped."""
+    """Inline images: those with a transcription (C['img_text']) become text, all others are dropped.  C['img_text_plain']
+    lists (text before, text after) patterns where a transcription is plain upright text instead (the letter of
+    '附录A', the article of an English title, set by the ebook with the same italic formula picture as a variable)."""
     m = C.get('img_text')
     if m is None or not any(r.get('i') for r in runs):
         return runs
-    def sub(r):
+    def sub(r, k):
         v = m[r['i']]
         pieces = v if isinstance(v, list) else [v]                     # text, (text, run class), or a list of those
+        if C.get('img_text_plain'):
+            before = ''.join(x['t'] for x in runs[:k] if not x.get('i'))
+            after = ''.join(x['t'] for x in runs[k + 1:] if not x.get('i'))
+            if any(re.search(b + '$', before) and re.match(a, after) for b, a in C['img_text_plain']):
+                pieces = [''.join(x[0] if isinstance(x, tuple) else x for x in pieces)]
         out = []
         for x in pieces:
             t, c = x if isinstance(x, tuple) else (x, '')
             out.append(dict({k: y for k, y in r.items() if k not in ('i', 'c')}, t=t, **({'c': c} if c else {})))
         return out
-    return [x for r in runs if not r.get('i') or r['i'] in m for x in (sub(r) if r.get('i') else [r])]
+    return [x for k, r in enumerate(runs) if not r.get('i') or r['i'] in m for x in (sub(r, k) if r.get('i') else [r])]
 
 
 def exp_sup(runs):
@@ -843,8 +926,34 @@ def fig_label(text, pat=r'^(图[^\s　]+)'):
 
 
 def join_images(srcs):
-    """Two or more images of one table (the ebook splits it with a '(continued)' line) stacked into one image file."""
+    """Two or more images of one table (the ebook splits it with a '(continued)' line) stacked into one image file;
+    SVG pictures (the panels of one figure) into one SVG."""
     from PIL import Image
+    if all(x.lower().endswith('.svg') for x in srcs):
+        from lxml import etree
+        name = 'join_' + '_'.join(os.path.splitext(x)[0] for x in srcs) + '.svg'
+        dst = os.path.join(special.IMG_DIR, name)
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        parts = [(etree.parse(os.path.join(special.IMG_DIR, x), parser).getroot(), special.img_size(x)) for x in srcs]
+        W = max(w for _, (w, _h) in parts)
+        gap = max(12.0, W / 40)
+        H = sum(h for _, (_w, h) in parts) + gap * (len(parts) - 1)
+        root = etree.Element('{http://www.w3.org/2000/svg}svg', nsmap={None: 'http://www.w3.org/2000/svg',
+                                                                      'xlink': 'http://www.w3.org/1999/xlink'})
+        root.set('version', '1.1')
+        root.set('width', f'{W:.3f}')
+        root.set('height', f'{H:.3f}')
+        root.set('viewBox', f'0 0 {W:.3f} {H:.3f}')
+        y = 0.0
+        for el, (w, h) in parts:                                 # each panel a nested <svg> at its own size, centred
+            el.set('x', f'{(W - w) / 2:.3f}')
+            el.set('y', f'{y:.3f}')
+            el.set('width', f'{w:.3f}')
+            el.set('height', f'{h:.3f}')
+            root.append(el)
+            y += h + gap
+        etree.ElementTree(root).write(dst, xml_declaration=True, encoding='utf-8')
+        return name
     name = 'join_' + '_'.join(re.sub(r'\D', '', x)[-5:] for x in srcs) + '.jpeg'
     dst = os.path.join(special.IMG_DIR, name)
     if not os.path.exists(dst):
@@ -941,6 +1050,11 @@ def fig_inline(C, els):
         while i < len(els) and els[i]['k'] == 'fig' and els[i].get('grp') == e.get('grp') and not e.get('snap'):
             srcs.append(els[i]['src'])
             i += 1
+        for g in C.get('fig_join', ()):                         # panels of one figure that the ebook puts in separate boxes
+            if srcs == [g[0]]:
+                while i < len(els) and els[i]['k'] == 'fig' and els[i]['src'] in g[1:]:
+                    srcs.append(els[i]['src'])
+                    i += 1
         caps = []
         while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
             caps.append(els[i])
@@ -1110,9 +1224,10 @@ def note_blocks(items, fmt):
             continue
         first = runs[0]
         if (first.get('h') or first.get('a')) and BT.marker_text(first['t'], fmt):
-            mt = BT.marker_text(first['t'], fmt)
+            mt = _marker(first, fmt)
             marks = [repair_link(dict(first, t=mt, s=0, c='nn'))]
-            rest = runs[1:]
+            rest = [mark_runs([r], fmt)[0] if (r.get('h') or r.get('a')) and re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())
+                    else r for r in runs[1:]]                        # (a mark inside a note: a note of the other series, a reviser's note)
             if rest:
                 rest[0] = dict(rest[0], t=rest[0]['t'].lstrip(' \u3000'))
                 if fmt == 'zhu':
@@ -1157,7 +1272,7 @@ def renumber(els, notes):
 
 
 # ---------------------------------------------------------------------------------------------- pages
-def copyright_module(n, skip=0):
+def copyright_module(n, skip=0, C=None):
     blocks = [dict(k='space', style='cip', runs=[], n=4)]
     items = []
     for it in BE.items(P(n))[skip:]:
@@ -1171,7 +1286,7 @@ def copyright_module(n, skip=0):
     for it in items:
         if it['k'] != 'p':
             continue
-        runs = BT.fix_edges(BT.fix_runs(it['runs']))
+        runs = BT.fix_edges(BT.fix_runs(_img_text(C, it['runs']) if C else it['runs']))
         if not runs:
             continue
         t = plain(runs)
@@ -1247,7 +1362,9 @@ def part_divider(C, els):
 
 
 def book(b):
+    global CIRC_LINK
     C = CFG[b]
+    CIRC_LINK = C.get('circ_link')
     m = meta(b)
     cover = C['cover']
     if C.get('cover_file'):                                          # a cover image supplied separately (source/covers/…) replaces the ebook's
@@ -1264,7 +1381,7 @@ def book(b):
     if C.get('copyright_img'):
         mods.append(page_module('copyright', 'front', special.cover_html(C['copyright_img']), folio=False))
     elif C.get('copyright') is not None:
-        mods.append(copyright_module(C['copyright'], C.get('copyright_skip', 0)))
+        mods.append(copyright_module(C['copyright'], C.get('copyright_skip', 0), C))
     fig_list = []
     plate_set = plate_figs(C) if C.get('fig_inline') else set()
 
@@ -1310,7 +1427,14 @@ def book(b):
                 blocks += [dict(k='img', style='orn', runs=[], src=special.img_url(e['src']), w=osz[0], h=osz[1],
                                 n=math.ceil(osz[1] / style.LINE))]
             elif e['k'] == 'table' and C.get('table2'):
-                blocks += table_blocks2(e['rows'], e.get('spans') or [[1] * len(r) for r in e['rows']], e.get('heads'))
+                tb = table_blocks2(e['rows'], e.get('spans') or [[1] * len(r) for r in e['rows']], e.get('heads'))
+                if C.get('table_keep') and len(tb) <= C['table_keep']:
+                    for x in tb[:-1]:
+                        x['keep'] = 1                               # a small table is not split over two pages
+                    if blocks and blocks[-1].get('style') in ('cap', 'ck'):
+                        blocks[-1].update(keep=1, before=tb[0].get('before', 0), nomerge=True)   # its title above it, kept with it
+                        tb[0]['before'] = 0
+                blocks += tb
             elif e['k'] == 'table':
                 blocks += table_blocks(e['rows'], C.get('table_head', True))
             else:
@@ -1372,6 +1496,8 @@ def book(b):
         if kind == 'kaibody':                                      # a whole page in the ebook's Kai type: full-width Kai body text
             els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
         add_unit(n, front, 'front', els, notes, top=True, kaitext=(kind == 'kaitext'))
+        if C.get('front_notes_each'):
+            flush(front, 'front')                                  # (the notes of a preface right after it, not after the next one)
     flush(front, 'front')
     for n in C['body']:
         els, notes = gather(n)
@@ -1400,6 +1526,17 @@ def book(b):
         if kind == 'figpages':                                     # pictures one to a page (a facsimile), the title on the first
             flush(back, 'back')
             back += figure_pages(n, els, zone='back')
+            continue
+        if kind == 'notes':                                        # the ebook's own collection of notes (the translator's), in its place
+            flush(back, 'back')
+            title = next((plain(it['runs']) for it in BE.items(P(n)) if it['k'] == 'h'), '注释')
+            nts = [dict(it, k='note', runs=_img_text(C, it['runs'])) for it in BE.items(P(n)) if it['k'] in ('p', 'note') and it.get('runs')]
+            nm = notes_module(f'notes_p{n}', [(title, nts)], fmt, zone='back', title=C.get('endnotes_title', title),
+                              toc_level=1, toc_title=C.get('endnotes_title', title))
+            nm.top = True
+            nm.unnest = True
+            nm.src_parts = [n]
+            back.append(nm)
             continue
         if kind == 'noindent':
             els = [dict(e, style='noindent') if e['k'] == 'p' and e.get('style') == 'body' else e for e in els]

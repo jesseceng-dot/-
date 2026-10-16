@@ -63,7 +63,7 @@ def dropped_pictures(b):
     C = bk.CFG[b]
     known = C.get('img_text', {})
     out = collections.Counter()
-    for n in book_parts(C):
+    for n in book_parts(C) + ([C['copyright']] if C.get('copyright') is not None else []):
         for it in BE.items(bk.P(n)):
             rows = [c for row in it.get('rows') or [] for c in row]
             for runs in [it.get('runs') or []] + rows:
@@ -81,7 +81,7 @@ def raw_missing(b):
     snap = BE.SNAP.get(os.path.basename(style.SCRATCH.rstrip('/')), ())
     if C.get('copyright') is not None:
         parts.append(C['copyright'])
-    ign = re.compile(r'[\s\u3000\u2028\u00a0\u200b\u2060]')
+    ign = re.compile(r'[\s\u3000\u2028\u00a0\u200b\u2060\ue000]')
     miss = collections.Counter()
     for n in parts:
         path = os.path.join(style.SCRATCH, 'unpack/x/mobi8/OEBPS/Text', bk.P(n) + '.xhtml')
@@ -94,14 +94,20 @@ def raw_missing(b):
             elif t.tail:
                 t.getparent().text = (t.getparent().text or '') + t.tail
             t.getparent().remove(t)
+        for a in [a for a in body.iter('{http://www.w3.org/1999/xhtml}a') if BE._BACK_WORDS.fullmatch(''.join(a.itertext()))]:
+            BE._drop(a)                                             # (a note's '返回正文' link: its words are left out on purpose)
+        for im in body.iter('{http://www.w3.org/1999/xhtml}img'):
+            im.tail = '\ue000' + (im.tail or '')                   # (an inline picture is '\0' in the text the corrections see)
         fx = BE._fixes(bk.P(n))                                    # (the corrections of bk_fixes are not losses)
         pats = [f for f in fx if not isinstance(f[1], str)]
         for el in list(body.iter()) if pats else ():               # a pattern applies to the text of a paragraph / table cell
             if isinstance(el.tag, str) and etree.QName(el).localname in BLOCK_TAGS and not any(
                     isinstance(c.tag, str) and etree.QName(c).localname in BLOCK_TAGS for c in el.iterdescendants()):
                 t = re.sub(r'[ \t\r\n\f]+', ' ', ''.join(el.itertext())).strip()
+                t = t.replace('\ue000', '\0')
                 for f in pats:
                     t = f[1].sub(lambda m: m.expand(f[2]), t)
+                t = t.replace('\0', '\ue000')
                 tail = el.tail
                 el.clear()
                 el.text, el.tail = t, tail
@@ -219,7 +225,10 @@ def book(b, m):
         for lb in mod.lbs:
             if lb.block['k'] == 'p' and lb.st['align'] == 'j':
                 vi = mod.plan['variants'][lb.idx]
+                txt = ''.join(r['t'] for r in lb.block['runs'])
                 for j in range(len(lb.starts[vi]) - 1):
+                    if '\n' in txt[lb.starts[vi][j + 1] - 1:lb.starts[vi][j + 1] + 1]:
+                        continue                                    # (a line ended by a forced break is not spread)
                     n_lines += 1
                     w = lb.st['W'] - (lb.st['left'] + lb.st['right'] + (lb.st['first'] if j == 0 else 0)) * lb.st['fs']
                     if (w - lb.nat[vi][j]) / lb.st['fs'] > 3.0:

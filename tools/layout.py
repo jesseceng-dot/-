@@ -89,6 +89,8 @@ STYLES_SMALL = {
 }
 
 
+KEEP_DEPTH = 12      # a chain of blocks kept together (a small table, its title above it) is looked ahead this far
+
 def sty(block, grid='body'):
     """Effective style dict of a block: grid style table, overridden by per-block props."""
     g = GRIDS[grid]
@@ -301,7 +303,7 @@ def solve(lbs, N=N, reserve=0, tail_min=2):
         depth[i] = 1
         if st['keep'] and i + 1 < nb and not lbs[i + 1].brk:
             nx = lbs[i + 1]
-            if nx.st['keep'] and depth[i + 1] < 4:
+            if nx.st['keep'] and depth[i + 1] < KEEP_DEPTH:
                 own += nx.st['before'] + need[i + 1]
                 depth[i] = depth[i + 1] + 1
             elif not nx.st['keep']:

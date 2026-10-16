@@ -52,7 +52,7 @@ def describe(f):
     """(where, old, new) of one correction."""
     kind = f[1]
     if not isinstance(kind, str):                                  # a regular expression
-        return '', code('/' + kind.pattern + '/'), code(f[2])
+        return '', code('/' + kind.pattern.replace('\0', '〔公式图〕') + '/'), code(f[2])      # (\0: an inline picture)
     if kind not in BF.SPECIAL:
         return '', code(kind), code(f[2])
     if kind == 'HEAD':
@@ -63,6 +63,10 @@ def describe(f):
         return '', code('…' + f[2]) + ' ⏎ ' + code(f[3] + '…'), '两段合为一段'
     if kind == 'CELL':
         return f'表格（首格为 {code(f[2])} 的一行）第 {f[3] + 1} 列', code(f[4]), code(f[5])
+    if kind == 'MOVETAB':
+        return '', '表格“' + f[2] + '”', f'连同表题移到 {code(f[3] + "…")} 一段之后'
+    if kind == 'NOTELINK':
+        return '', '正文 ' + code('[n]') + '、注释 ' + code('[n]…') + '（纯文字）', '上标角标，与注释互相链接'
     if kind == 'MOVE':
         return '', code(f[2] + '…'), f'这一段（或标题）移到 {code(f[3] + "…")} 之前'
     return '', ' '.join(code(x) for x in f[2:-1] if isinstance(x, (str, int))), kind

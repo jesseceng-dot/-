@@ -71,6 +71,7 @@ def corpus_codepoints():
     cps |= {0x7560}                       # 畠 (stands behind a private-use glyph of the ebook)
     cps |= set(range(0x1f00, 0x2000)) | set(range(0x2070, 0x20a0)) | set(range(0x2200, 0x2300)) | set(range(0x00c0, 0x0180))
     cps |= {0x03ca, 0x00bd, 0x2153}       # ϊ ½ ⅓ (transcribed formulas)
+    cps |= set(range(0x3251, 0x3260)) | set(range(0x32b1, 0x32c0))   # circled numbers 21-50 (translator's note marks)
     cps |= {0x9958}                       # 饘 (an inline glyph image of the ebook of 《叫魂》, transcribed to text)
     cps |= {0x2B695, 0x29F7E, 0x29F8C, 0x2B689}   # 𫚕 𩽾 𩾌 𫚉: fish characters behind the NFDA1-4 placeholders (Kant vol. 8)
     cps |= {0x9DC3}                       # 鷃: its left half 晏 builds 𮭨 (compose_yan)

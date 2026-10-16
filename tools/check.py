@@ -100,7 +100,7 @@ def pdf_checks(pdf, bb):
         ys = []
         for blk in page.get_text('dict')['blocks']:
             for l in blk.get('lines', []):
-                sp = [s for s in l['spans'] if s['text'].strip()]
+                sp = [s for s in l['spans'] if s['text'].strip() and s['size'] >= 8]      # (a sub-script of a formula is no line)
                 if sp and 56 < sp[0]['origin'][1] < style.PAGE_H - 50:
                     ys.append(round(sp[0]['origin'][1], 2))
         if ys:
