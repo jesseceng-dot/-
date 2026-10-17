@@ -1,0 +1,75 @@
+diff --git a/tools/render.py b/tools/render.py
+index b3c9425..ada1220 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -73,6 +73,7 @@ def baseline_dy(st):
+ 
+ 
+ def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
+     if st['align'] == 'j':
+         a = 'l' if j == nlines_total - 1 else 'j'
+     else:
+diff --git a/tools/special.py b/tools/special.py
+index 7735a33..5065add 100644
+--- a/tools/special.py
++++ b/tools/special.py
+@@ -1,4 +1,5 @@
+ """Static pages: covers, half-title, title page, image plates, advertisement page."""
++import math
+ import os
+ import html as _html
+ from PIL import Image
+@@ -133,16 +134,24 @@ def plate_divider_html(title, note):
+ PLATE_CAP, PLATE_LINK, PLATE_GAP = 18.0, 16.0, 14.0
+ 
+ 
+-def plate_size(img):
+-    """Scaled size (pt) of a plate image: as wide as the text block, at most 388 pt high, small figures magnified a little."""
++def plate_size(img, extra=0.0):
++    """Scaled size (pt) of a plate image: as wide as the text block, at most 388 pt high, small figures magnified a little.
++    `extra` is the height taken by a long caption above the figure."""
+     if img.startswith('table:'):
+         from . import kant_tables
+         return kant_tables.size(img)
+     w, h = Image.open(os.path.join(IMG_DIR, img)).size
+-    s = min(style.TEXT_W / w, 388.0 / h, 1.6 if w < 300 else 1.0)
++    s = min(style.TEXT_W / w, (388.0 - extra) / h, 1.6 if w < 300 else 1.0)
+     return w * s, h * s
+ 
+ 
++def _caption_height(text, fs=9.5, width=None):
++    """Estimated height (pt) of a wrapped caption: CJK glyph = 1 em, Latin = 0.5 em."""
++    width = width or (style.TEXT_W - 30)
++    w = sum(fs if ord(c) > 0x2e80 else fs * 0.5 for c in text)
++    return max(1, math.ceil(w / width * 1.06)) * 14.0
++
++
+ def divider_html(lines):
+     """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
+     smaller underneath.  Long titles get balanced line breaks."""
+@@ -185,11 +194,21 @@ def plates_page_html(k, img, builder, page, caption=''):
+     right below it, and the return link to the reference in the text at the foot of the text block.  The plate anchor
+     (plate-N) is registered here so that the link in the text lands on this page."""
+     from .style import LINK_BASE
+-    iw, ih = plate_size(img)
++    head = f'插图 {k}' + (f'　{caption}' if caption else '')
++    long_cap = sum(1.0 if ord(c) > 0x2e80 else 0.55 for c in head) * 10.5 * 1.12 > style.TEXT_W
++    # (a caption wider than the text block: a wrapped block under the 'Plate N' line, the figure lower; shorter ones as before)
++    extra = (_caption_height(caption) + 6.0) if long_cap else 0.0
++    iw, ih = plate_size(img, extra)
+     x = style.LEFT + (style.TEXT_W - iw) / 2
+-    y = style.TOP + 34
++    y = style.TOP + 34 + extra
+     builder.anchors[f'plate-{k}'] = (page.index, style.TOP)
+-    out = _center(_html.escape(f'插图 {k}' + (f'　{caption}' if caption else '')), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
++    if long_cap:
++        out = _center(_html.escape(f'插图 {k}'), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
++        out += (f'<div style="position:absolute;left:0;top:0;width:{style.TEXT_W - 30}pt;text-align:justify;'
++                f'font-family:KaiTi;font-size:9.5pt;line-height:14pt;transform:translate({style.LEFT + 15}pt,{style.TOP + 26}pt)">'
++                f'{_html.escape(caption)}</div>')
++    else:
++        out = _center(_html.escape(f'插图 {k}' + (f'　{caption}' if caption else '')), style.TOP + 6, 10.5, 'HeiTi', 700, 0.12)
+     if img.startswith('table:'):
+         from . import kant_tables
+         for a in kant_tables.anchors(img):
