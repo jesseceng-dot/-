@@ -75,6 +75,25 @@ def title_text(runs):
     return t
 
 
+_SCRIPTS = {'msub': str.maketrans('0123456789+−', '₀₁₂₃₄₅₆₇₈₉₊₋'), 'msup': str.maketrans('0123456789+−', '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻')}
+
+
+def _script(r):
+    return next((c for c in (r.get('c') or '').split() if c in _SCRIPTS), None)
+
+
+def outline_text(runs):
+    """A bookmark: the title, its lowered and raised digits as Unicode sub- and superscripts (CO₂)."""
+    return ''.join(r['t'].translate(_SCRIPTS[_script(r)]) if _script(r) else r['t'] for r in runs if not r.get('s')).replace(BR, '')
+
+
+def toc_runs(runs, h):
+    """The runs of a contents line: the plain title, or (a title with lowered or raised digits, CO₂) its runs."""
+    if not any(_script(r) for r in runs):
+        return [run(title_text(runs), h=h)]
+    return [run(r['t'].replace(BR, ''), h=h, **({'c': _script(r)} if _script(r) else {})) for r in runs if not r.get('s')]
+
+
 @dataclass
 class Page:
     mod: Mod
@@ -341,10 +360,8 @@ def make_toc(mods, title='目　录', levels=(1, 2, 3)):
                 if b['k'] == 'h' and b.get('rank', 9) in (2, 3) and b.get('rank', 9) in levels and not b.get('notoc'):
                     if not b.get('id'):
                         b['id'] = f'{mod.mid}#h{bi}'
-                    txt = title_text(b['runs']).replace('\u3000', '\u3000')
                     blocks.append(dict(k='p', style=f'toc{b["rank"] + 0}' if b['rank'] > 1 else 'toc2',
-                                       runs=[run(re.sub(r'\s+', ' ', txt) if False else txt, h=b['id'])],
-                                       h=b['id'], toc_ref=(mod.mid, bi)))
+                                       runs=toc_runs(b['runs'], b['id']), h=b['id'], toc_ref=(mod.mid, bi)))
     return blocks
 
 

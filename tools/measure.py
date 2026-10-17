@@ -33,8 +33,25 @@ async (specs) => {
     const box = d.getBoundingClientRect();
     const top0 = box.top, left0 = box.left;
     const starts = [0], nat = [], lineMin = [], lineMax = [];
-    let cur = 0, unit = 0, forced = false, minL = 1e9, maxR = -1e9;
+    let cur = 0, unit = 0, forced = false, minL = 1e9, maxR = -1e9, anchor = null;
     const flush = () => { nat.push(maxR > -1e8 ? (maxR - minL) / PX : 0); minL = 1e9; maxR = -1e9; };
+    // the line of a character: counted from the first character of the current line, not from the top of the block, so
+    // that a taller line box (emphasis dots under a line add a third of a line) does not carry a lowered subscript of a
+    // later line into the next line.  The letter after a break at a soft hyphen reports a box over both lines (the
+    // hyphen's and its own): its middle is taken from the bottom of that box.
+    let hText = 0.85 * lhpx;
+    const midOf = (rc, text) => {
+      const h = rc.bottom - rc.top;
+      if (!text) return (rc.top + rc.bottom) / 2;
+      if (h > 1.5 * lhpx) return rc.bottom - hText / 2;
+      if (h > 0) hText = h;
+      return (rc.top + rc.bottom) / 2;
+    };
+    const lineOf = (mid) => {
+      if (anchor === null) { anchor = mid; return Math.max(cur, Math.floor((mid - top0) / lhpx)); }
+      const d = Math.floor((mid - anchor) / lhpx + 0.5);
+      return d > 0 ? cur + d : cur;
+    };
     const walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
     let n;
     while ((n = walker.nextNode())) {
@@ -42,8 +59,8 @@ async (specs) => {
         if (n.tagName === 'BR') { unit += 1; forced = true; continue; }
         if (n.tagName === 'IMG') {
           const rc = n.getBoundingClientRect();
-          const ln = Math.floor(((rc.top + rc.bottom) / 2 - top0) / lhpx);
-          if (ln > cur || forced) { flush(); starts.push(unit); cur = Math.max(ln, cur + (forced ? 1 : 0)); forced = false; }
+          const mid = midOf(rc, false), ln = lineOf(mid);
+          if (ln > cur || forced) { flush(); starts.push(unit); cur = Math.max(ln, cur + (forced ? 1 : 0)); forced = false; anchor = mid; }
           minL = Math.min(minL, rc.left - (cur === 0 ? left0 + s.indent * PX : left0)); maxR = Math.max(maxR, rc.right - left0);
           unit += 1; continue;
         }
@@ -56,9 +73,9 @@ async (specs) => {
         range.setStart(tn, i); range.setEnd(tn, i + w);
         const rc = range.getBoundingClientRect();
         if (rc.width > 0 || rc.height > 0) {
-          const ln = Math.floor(((rc.top + rc.bottom) / 2 - top0) / lhpx);
+          const mid = midOf(rc, true), ln = lineOf(mid);
           if (ln > cur || (forced && ln >= cur)) {
-            if (ln > cur) { flush(); starts.push(unit); cur = ln; }
+            if (ln > cur) { flush(); starts.push(unit); cur = ln; anchor = mid; }
             forced = false;
           }
           if (str[i] !== ' ') { minL = Math.min(minL, rc.left); maxR = Math.max(maxR, rc.right); }

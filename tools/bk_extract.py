@@ -48,6 +48,9 @@ RUN_CLS = {
     },
     'q22': {'yanse': (0, 'hei')},                               # 心智社会: the ebook's coloured terms (agents' names, labels) in 黑体
     'q23': {'jiacu': (0, 'hei')},
+    'q30': {'i': (0, 'it')},                                     # 病毒星球: titles of works in the references in italics
+    'q31': {'sbiao2': (0, 'msup')},                              # 知识的错觉: the exponent of '1GB=2³⁰字节' in two notes
+    'q32': {'dian': (0, 'emp')},                                 # 气候赌场: the author's emphasis dots (着重号) under terms
     'q24': {'italic': (0, 'it')},                               # 理性之谜: titles of works in italics                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
@@ -466,6 +469,15 @@ def inline(el, part, mark_breaks=False):
             c_ = ' '.join(x for x in r['c'].split() if x != 'msup')
             rest = {key: v for key, v in r.items() if key not in ('h', 'a')}
             out[k:k + 1] = [dict(r, t=m.group(1), s=1, c=c_), dict(rest, t=m.group(2), c=c_)]
+        elif r.get('h') and re.search(r'#notes?\d', r['h']) and not r.get('i'):
+            m = re.match(r'^(\d{1,3})\s+(\S.{3,})$', r['t'], re.S)      # (book 31) a bare note number whose link took the next
+            if m:                                                   #  sentence with it: '3 2010年，他直接…' -> '3' + the text
+                rest = {key: v for key, v in r.items() if key not in ('h', 'a')}
+                out[k:k + 1] = [dict(r, t=m.group(1)), dict(rest, t=m.group(2))]
+                j = k + 2
+                while j < len(out) and out[j].get('h') == r['h'] and not out[j].get('a'):
+                    out[j] = {key: v for key, v in out[j].items() if key != 'h'}
+                    j += 1
         k += 1
     k = 0
     while k < len(out) - 1:                                     # a mark split into links of its own: '[' '1' ']' -> '[1]'
@@ -572,10 +584,10 @@ def items(part):
             t = ln(el)
             cls = (el.get('class') or '').split()
             if t in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-                imgs = [im for im in _imgs(el) if not set((im.get('class') or '').split()) & {'footnote', 'latex-inline'}]   # (a note icon is the mark, not a picture)
+                imgs = [im for im in _imgs(el) if not set((im.get('class') or '').split()) & {'footnote', 'latex-inline', 'manual-latex-formula'}]   # (a note icon is the mark, not a picture)
                 runs = clean_runs([r for r in inline(el, part, mark_breaks=True)
-                                   if not r.get('i') or 'latex-inline' in (r.get('c') or '').split()
-                                   or r['i'].startswith('svg:')])   # (a letter set as a formula picture: '附录A', '6.4 B-脑')
+                                   if not r.get('i') or set((r.get('c') or '').split()) & {'latex-inline', 'manual-latex-formula'}
+                                   or r['i'].startswith('svg:')])   # (a letter set as a formula picture: '附录A', '6.4 B-脑'; book 32: 'CO₂')
                 if runs:
                     add('h', el, runs=runs, lvl=int(t[1]))
                 for im in imgs:

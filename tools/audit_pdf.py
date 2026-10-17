@@ -15,6 +15,9 @@
   head_bottom  a heading in the last two lines of a page with no text under it
   markstart  a raised note mark at the very start of a line
   numbreak a number broken at a dash or after 'p.' ('1797—' / '1798', 'pp.355—' / '361', '图7-' / '2'): not an error, a nicety
+  split    a Latin word broken without a hyphen one letter after a hyphenation point ('Indiv' / 'idual'): the measuring
+           of a line broken at a soft hyphen put the next letter on the line before (fixed in tools/measure.py); two
+           words broken at their space can show up here too ('sensus' / 'communis'), look at each
   links    internal links whose target page does not exist
   joiner   word joiners drawn with a width (a gap before a note mark)
   empty    pages with neither text nor pictures
@@ -31,6 +34,9 @@ NO_START = set('，。、；：！？）》」』”’】〕…,.;:!?)')
 NO_END = set('（《「『“‘【〔(')
 MARK = re.compile(r'(?:[\[［(（]?[\d注校]+[\]］)）]?)+')
 NUM_END = re.compile(r'(\d[-–—~～－])$|(\bpp?\.)$')
+FUNC = set('a and as at by de del der des di die das dem den du e el en et for from in is la le les of on or than the to und '
+           'van von with zu'.split())                  # (a line broken before one of these is two words broken at their space)
+URLISH = re.compile(r'https?:|www\.|\.(com|org|net|edu|gov|html?)\b|/')
 LONE = re.compile(r'[^\w\s]+|[^\w\s]*[\[［(（]\d+[\]］)）][^\w\s]*|[①-⑳]+[^\w\s]*|\d{1,4}[)）\]］][^\w\s]*')
 
 
@@ -90,6 +96,9 @@ def audit(path):
     lmin = min((x for x, c in left.items() if c >= max(5, sum(left.values()) // 200)), default=0)
     serif = lambda l: any(k in l['font'] for k in ('Serif', 'WenKai', 'Song', 'Kai'))
     rep = collections.defaultdict(list)
+    words = collections.Counter(w.lower() for p in d for w in re.findall(r'[A-Za-zÀ-ÿ]{2,}', p.get_text()))
+    import pyphen
+    hyph = [pyphen.Pyphen(lang=x) for x in ('en_US', 'de_DE', 'it')]
 
     def opens(i):                                      # does page i open a section?
         if i >= n:
@@ -141,7 +150,18 @@ def audit(path):
                     and any(is_body(m) and 1 < m['y'] - l['y'] < 7 for m in ls):
                 rep['markstart'].append((i + 1, l['text'].strip()))     # a raised note mark that opens a line
         seq = sorted((l for l in ls if l['size'] >= body - 2.5), key=lambda l: l['y'])
+        spaced = None
         for a, c in zip(seq, seq[1:]):
+            m1, m2 = re.search(r'([A-Za-zÀ-ÿ]+)$', a['text']), re.match(r'\s*([a-zà-ÿ]+)', c['text'])
+            if m1 and m2 and spaced is None:               # lines whose last character is a space (broken at a space)
+                spaced = {round(ln['spans'][0]['origin'][1]) for bl in d[i].get_text('rawdict')['blocks'] for ln in bl.get('lines', [])
+                          if ln['spans'] and [ch for sp in ln['spans'] for ch in sp['chars']][-1:] and
+                          [ch for sp in ln['spans'] for ch in sp['chars']][-1]['c'].isspace()}
+            if m1 and m2 and 5 < c['y'] - a['y'] < 25 and round(a['y']) not in spaced \
+                    and not (URLISH.search(a['text'][-40:]) or URLISH.search(c['text'][:40])):
+                w1, w2 = m1.group(1), m2.group(1)
+                if w2 not in FUNC and not (words[w1.lower()] >= 2 and words[w2.lower()] >= 2) and any(len(w1) - 1 in h.positions(w1 + w2) for h in hyph):
+                    rep['split'].append((i + 1, w1 + '|' + w2))
             if NUM_END.search(a['text'].replace('\u2060', '').strip()) and re.match(r'\d', c['text'].strip()) and 5 < c['y'] - a['y'] < 25:
                 rep['numbreak'].append((i + 1, a['text'].strip()[-8:], c['text'].strip()[:6]))   # '1797—' / '1798', 'p.' / '264'
         heads = [l for l in inside if l['size'] >= body + 1]
@@ -174,7 +194,7 @@ def main(args):
     for p in [a for a in args if a != '-v']:
         r = audit(p)
         rep = r['rep']
-        keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'links', 'joiner',
+        keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
                 'empty', 'type3')
         print(f"{p.split('/')[-1]}: {r['pages']} pp, sizes {list(r['sizes'])}, body {r['body']}, bottom {r['ref']}, pitch {r['pitch']} | "
               + ' '.join(f'{k} {len(rep.get(k, []))}' for k in keys))

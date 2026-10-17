@@ -26,9 +26,10 @@ def check(b):
     parts += list(C.get('endnotes', ()))
     marks, notes, dup = {}, {}, []
     noteish = set(C.get('note_cls', ()))
+    sections = {p for x in C['back'] if isinstance(x, tuple) and x[1] == 'notes' for p in bk._parts(x[0])}   # (the ebook's notes in place)
     for n in parts:
         for i, it in enumerate(BE.items(bk.P(n))):
-            is_note = it['k'] == 'note' or set(it['cls'].split()) & noteish or n in C.get('endnotes', ())
+            is_note = it['k'] == 'note' or set(it['cls'].split()) & noteish or n in C.get('endnotes', ()) or n in sections and it['k'] == 'p'
             runs = it.get('runs', [])
             if C.get('note_by_marker') and it['k'] == 'p' and len(runs) > 1 and runs[0].get('h') and BT.marker_text(runs[0]['t'], 'sq'):
                 is_note = True                            # (as bk.elements: a paragraph that starts with a linked number is a note)

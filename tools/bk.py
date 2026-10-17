@@ -8,7 +8,7 @@ import os
 import re
 import shutil
 from . import bk_extract as BE, bk_text as BT, kant_struct as KS, normalize, special, style
-from .book import Mod, title_text
+from .book import Mod, title_text, toc_runs
 from .kant import finish_blocks, balance_headings, wrap_lines, repair_link
 from .dewey import make_toc as toc_blocks
 from .model import run, merge_runs, runs_text, BR
@@ -477,6 +477,66 @@ CFG = {
                    list(range(66, 73)), list(range(73, 80)), 80, list(range(81, 85))],
              back=[(85, 'figpages')], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    30: dict(scratch='q30', file='病毒星球', title='病毒星球', sub='', author='〔美〕卡尔·齐默 著', credits=['刘旸　译'],
+             publisher='广西师范大学出版社', pdf_author='〔美〕卡尔·齐默', cover='00017.jpeg', title_img=None,
+             front_flaps=['00001.jpeg', '00002.jpeg'], backcover='00016.jpeg', tail=['00015.jpeg'], tail_w=300.0,   # (the imprint's two pages; its QR page last)
+             copyright=2, marker='sq', renum=True, note_cls=('noteContent',), notes_end=True,   # (10 notes in all: one module after the text)
+             lat_apos=True, toc_even=True, open_air=True, dedication_grid=True, url_break=True, cls_refhead=('zh',),
+             cls_map={'center': ('center', 0, 0, 'kai'), 'yinwen0': ('noindent', -2, 2), 'yinwen': ('noindent', 0, 0, 'kai')},
+             part_re=r'^(老朋友|无处不在|与病毒共赴未来)$', cls_cap=('tuzhu-center',), fig_inline=True, fig_dpi=110,
+             # the reviser's LaTeX pictures (names with accents, percentages, fractions, ranges, the CIP's numbering), each drawn as
+             # its alt text says (checked against the drawings); ranges with '～' throughout, the 32-digit number without the stray gap
+             img_text={'b24_abrahao.svg': 'Abrahão', 'b24_alonso.svg': 'Á.', 'b24_andre.svg': 'André',
+                       'b24_bookformat.svg': '850mm×1168mm　1/32', 'b24_brussow.svg': 'Brüssow', 'b24_bullet.svg': '•',
+                       'b24_circle1.svg': '①', 'b24_circle2.svg': '②', 'b24_copyright.svg': '©', 'b24_delbruck.svg': 'Delbrück',
+                       'b24_felix.svg': 'Félix', 'b24_frac13.svg': '1/3', 'b24_frac14.svg': '1/4', 'b24_frac23.svg': '2/3',
+                       'b24_garciaruiz.svg': 'García-Ruiz', 'b24_garciavallve.svg': 'García-Vallvé', 'b24_genecount.svg': '1×10²⁴',
+                       'b24_lopezgarcia.svg': 'López-García', 'b24_marinecount.svg': '1×10³¹',
+                       'b24_marineinteger.svg': '1' + '0' * 31, 'b24_menage.svg': 'Ménage à trois', 'b24_onehundredth.svg': '1/100',
+                       'b24_percent10.svg': '10%', 'b24_percent1_2.svg': '1.2%', 'b24_percent2.svg': '2%', 'b24_percent25.svg': '25%',
+                       'b24_percent26_3.svg': '26.3%', 'b24_percent30.svg': '30%', 'b24_percent35.svg': '35%', 'b24_percent40.svg': '40%',
+                       'b24_percent43.svg': '43%', 'b24_percent5.svg': '5%', 'b24_percent57.svg': '57%', 'b24_percent69.svg': '69%',
+                       'b24_percent70.svg': '70%', 'b24_percent8.svg': '8%', 'b24_percent90.svg': '90%', 'b24_percent95.svg': '95%',
+                       'b24_percent99_975.svg': '99.975%', 'b24_percent99_997.svg': '99.997%', 'b24_permil1_8.svg': '1.8‰',
+                       'b24_permil6_7.svg': '6.7‰', 'b24_philomene.svg': 'Philomène', 'b24_range10_20.svg': '10%～20%',
+                       'b24_range15_40.svg': '15%～40%', 'b24_range20_30.svg': '20%～30%', 'b24_range5_10.svg': '5%～10%',
+                       'b24_roman1.svg': 'Ⅰ', 'b24_roman2.svg': 'Ⅱ', 'b24_roman3.svg': 'Ⅲ', 'b24_roman4.svg': 'Ⅳ',
+                       'b24_tilderange.svg': '～'},
+             front=[(4, 'figure'), (5, 'text'), (6, 'dedication'), (7, 'text')], body=list(range(8, 20)),   # (彩插: a plate a page)
+             back=[20, (21, 'hang')], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    31: dict(scratch='q31', file='知识的错觉', title='知识的错觉', sub='', author='〔美〕史蒂文·斯洛曼　〔美〕菲利普·费恩巴赫 著',
+             credits=['祝常悦　译'], publisher='中信出版社', pdf_author='〔美〕史蒂文·斯洛曼、菲利普·费恩巴赫', cover='00008.jpeg',
+             title_img=None, copyright=20, marker='sq', renum=True, lat_apos=True, toc_even=True, open_air=True, url_break=True,
+             # two series: the editor's footnotes ([n] in the ebook, the notes in <div.fnote> at the end of each chapter) as ①②③
+             # in a 编者注 section at the end, one group per chapter; the authors' notes (bare numbers, the chapter's own
+             # numbering) in the ebook's 注释 after it, one group per chapter (its <h3> headings)
+             circ_link=r'#note\d+n?$', notes_title='编者注', notes_toc='编者注', note_group_h=True,
+             head_sub=[(r'^(第[一二三四五六七八九十]+章|前言|结语|推荐序)[\s\u3000]+', '\\1\u3000')],
+             cls_right=('right',), fig_inline=True, fig_dpi=150,
+             front=[(3, 'text')], body=list(range(4, 18)), back=[18, (19, 'notes')], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # the book once planned as 15 (CFG[15], an earlier ebook, dropped with 11–15); now from the revised ebook (the reviser's
+    # 263 LaTeX pictures of quantities, chemical formulas and equations, tools/bk_img32.py)
+    32: dict(scratch='q32', file='气候赌场', title='气候赌场', sub='全球变暖的风险、不确定性与经济学', author='〔美〕威廉·诺德豪斯 著',
+             credits=['梁小民　译'], publisher='东方出版中心', pdf_author='〔美〕威廉·诺德豪斯', series='威廉·诺德豪斯著作系列',
+             cover='cover00313.jpeg', title_img='image00246.jpeg', copyright=2, marker='paren', renum=True, lat_apos=True,
+             toc_even=True, open_air=True, dedication_grid=True, url_break=True, head_clean=True,
+             head_sub=[(r'^(第\d+章)[|｜]?[\s\u3000]*', '\\1\u3000')],
+             note_cls=('fnContent-1', 'fnContent-2', 'noindent-fnContent-2-c'), notel_vary=True,
+             cls_cap=('tuti', 'tuzhu', 'biaoti', 'biaozhu'), cap_mode='tabfig', cap_top_re=r'^表', label_re=r'^([图表][^\s　]+)',
+             cls_right=('signContent-1-kaiti', 'signContent-1-kaiti-top'), cls_quote=('bodyContent-2-kaiti', 'bodyContent-2-kaiti-top'),
+             cls_center=('bodyContent-1-c-3',), cls_map={'noindent-bodyContent-1': ('noindent', 0, 0),
+                                                       'noindent-bodyContent-1-top': ('noindent', 0, 0)},
+             part_re=r'^PART', part_split=r'^(PART \d+) ([^A-Za-z]+?) ([A-Z].*)$',
+             part_epi_cls=('bodyContent-1-kaiti', 'signContent-1-kaiti', 'bodyContent-1'), part_grid=True,
+             fig_inline=True, fig_dpi=300, table_keep=12,
+             img_text=__import__('tools.bk_img32', fromlist=['IMG_TEXT']).IMG_TEXT,
+             front=[(3, 'text'), (4, 'text'), (5, 'dedication'), (6, 'text'), (7, 'text'), (8, 'text')],
+             body=[[10, 11]] + list(range(12, 17)) + [[17, 18]] + list(range(19, 26)) + [[26, 27]] + list(range(28, 32)) + [[32, 33]]
+                  + list(range(34, 41)) + [[41, 42]] + list(range(43, 46)),
+             back=[], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -553,7 +613,7 @@ def _marker(r, fmt):
     return mt
 
 
-URL_RE = re.compile(r'(?:https?://|www\.)[^\s，。；：、）】\]”]+[^\s，。；：、）】\]”.,;:]')
+URL_RE = re.compile(r'(?:(?:https?|ftp)://|www\.)[^\s，。；：、）】\]”]+[^\s，。；：、）】\]”.,;:]')
 
 
 def url_runs(runs):
@@ -687,6 +747,12 @@ def _head_runs(C, runs, keep=None):
     return BT.fix_edges(merge_runs(out))
 
 
+def _head_sub(C, runs):
+    for pat, repl in C.get('head_sub', ()) if runs else ():
+        runs = [dict(runs[0], t=re.sub(pat, repl, runs[0]['t']))] + runs[1:]
+    return runs
+
+
 def _cls_add(c, x):
     return x if not c else (c if x in c.split() else c + ' ' + x)
 
@@ -812,9 +878,8 @@ def elements(C, items, kaitext=False):
             runs = _head_runs(C, runs)
             if not runs:
                 continue
-        if k == 'h' and C.get('head_sub'):
-            for pat, repl in C['head_sub']:
-                runs = [dict(runs[0], t=re.sub(pat, repl, runs[0]['t']))] + runs[1:]
+        if k == 'h':
+            runs = _head_sub(C, runs)
         if k == 'h' and plain(runs) in C.get('head_demote', {}):
             els.append(dict(k='p', style=C['head_demote'][plain(runs)], runs=runs, id=it['id'], src=f'h.{cls}', nomerge=True))
             continue
@@ -1647,11 +1712,15 @@ def index_module(C, n):
 
 def renumber(els, notes):
     """The ebooks restart note numbers in every file: number the notes of a unit 1.. in the order of their marks."""
-    anchors = {}
+    anchors, lead, cur = {}, [], None
     for it in notes:
-        r0 = it['runs'][0] if it['runs'] else {}
+        r0 = it['runs'][0] if it.get('runs') else {}
         if r0.get('a'):
-            anchors[r0['a']] = it
+            cur = anchors[r0['a']] = [it]
+        elif cur is not None:
+            cur.append(it)                                   # a note's further paragraphs (and tables) stay with it
+        else:
+            lead.append(it)
     order = {}
     for e in els:
         for r in e.get('runs') or []:
@@ -1662,9 +1731,9 @@ def renumber(els, notes):
     els = [dict(e, runs=[dict(r, t=str(order[r['h']])) if r.get('h') in anchors and not r.get('i') else r for r in e['runs']])
            if e.get('runs') else e for e in els]
     out = []
-    for a, it in anchors.items():
-        out.append((order[a], dict(it, runs=[dict(it['runs'][0], t=str(order[a]))] + it['runs'][1:])))
-    return els, [it for _, it in sorted(out, key=lambda x: x[0])]
+    for a, (it, *more) in anchors.items():
+        out.append((order[a], [dict(it, runs=[dict(it['runs'][0], t=str(order[a]))] + it['runs'][1:])] + more))
+    return els, lead + [it for _, g in sorted(out, key=lambda x: x[0]) for it in g]
 
 
 # ---------------------------------------------------------------------------------------------- pages
@@ -1826,7 +1895,7 @@ def book(b):
         if pend:
             counter[0] += 1
             zone_list.append(notes_module(f'notes{counter[0]}', pend, fmt, zone=zone, title=C.get('notes_title', '注　释'),
-                                          toc_title=C.get('notes_toc', '注释')))
+                                          toc_title=C.get('notes_toc', '注释'), toc_level=1 if C.get('notes_end') else 2))
             pend, pend_chars = [], 0
 
     def gather(ns, kaitext=False):
@@ -1975,14 +2044,15 @@ def book(b):
             div.part = True
             div.lines = [t for lv, t in lines if lv != 98]
             div.src_parts = _parts(n)
-            flush(body, 'body')
+            if not C.get('notes_end'):
+                flush(body, 'body')
             body.append(div)
             if not els:
                 continue
         add_unit(n, body, 'body', els, notes)
-        if pend_chars >= NOTE_MIN:
+        if pend_chars >= NOTE_MIN and not C.get('notes_end'):
             flush(body, 'body')
-    flush(body, 'body')
+    flush(body, 'body')                                            # (notes_end: the few notes of all chapters in one module here)
     for n in C['back']:
         kind = 'text'
         if isinstance(n, tuple):
@@ -2002,8 +2072,9 @@ def book(b):
             title = next((plain(it['runs']) for it in BE.items(P(n)) if it['k'] == 'h'), '注释')
             groups, gcls = [], _cs(C, 'note_group_cls')            # (headings of its own between the notes: one group per part of the book)
             for it in BE.items(P(n)):
-                if it['k'] == 'p' and set(it['cls'].split()) & gcls:
-                    groups.append((plain(regap_heading(it['runs'])), []))
+                if it['k'] == 'p' and set(it['cls'].split()) & gcls or C.get('note_group_h') and it['k'] == 'h' \
+                        and it['lvl'] > 1:                         # (book 31: the headings are <h3>, one per chapter)
+                    groups.append((_head_sub(C, [run(plain(regap_heading(it['runs'])))])[0]['t'], []))
                 elif it['k'] in ('p', 'note') and it.get('runs'):
                     if not groups:
                         groups.append((title, []))
@@ -2028,6 +2099,8 @@ def book(b):
                                        nomerge=True))
         if kind == 'noindent':
             els = [dict(e, style='noindent') if e['k'] == 'p' and e.get('style') == 'body' else e for e in els]
+        if kind == 'hang':                                         # a list of references set as body paragraphs: hanging indent
+            els = [dict(e, style='noindent', first=-2, left=2) if e['k'] == 'p' and e.get('style') == 'body' else e for e in els]
         if kind == 'kaibody':
             els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
         add_unit(n, back, 'back', els, notes, top=True)
@@ -2043,6 +2116,10 @@ def book(b):
     plates = plate_modules(fig_list, PLATES_NOTE_INLINE if C.get('fig_inline') else PLATES_NOTE)
     allm = front + body + back + plates
     toc_bl = toc_blocks(allm, '目　錄' if C.get('tc') else '目　录', sections=C.get('toc_sections', True))
+    by_mid = {m_.mid: m_ for m_ in allm}
+    for x in toc_bl:                                               # (book 32: 'CO₂' in a section title keeps its subscript)
+        if x.get('toc_ref') and x['toc_ref'][1] is not None:
+            x['runs'] = toc_runs(by_mid[x['toc_ref'][0]].blocks[x['toc_ref'][1]]['runs'], x['h'])
     for x in toc_bl:
         if x.get('style', '').startswith('toc'):
             x['noshrink'] = True
@@ -2075,4 +2152,9 @@ def book(b):
     if C.get('backcover'):
         tail.append(page_module('backcover', 'back', special.cover_html(C['backcover']), folio=False))
     mods += [toc] + allm + tail
+    if C.get('notel_vary'):                                        # (book 32: chapters of notes that are mostly references, set
+        for m_ in mods:                                            #  ragged: the letter-spacing steps too, or a page cannot be filled)
+            for x in getattr(m_, 'blocks', None) or ():
+                if x.get('style') == 'notel':
+                    x['vary'] = True
     return dict(id=f'b{b}', title=C['title'], meta=dict(m, author=C['pdf_author']), modules=mods, toc=toc, vol=b)

@@ -30,7 +30,8 @@ def outline_for(bb):
         pgs = bb.pages_of(mod)
         first = pgs[0].index + 1
         if mod.zone == 'cover':
-            out.append([1, '封面', first])
+            if not (out and out[-1][1] == '封面'):            # (the flaps after the cover: no bookmark of their own)
+                out.append([1, '封面', first])
             continue
         vol_page_only = mod.kind == 'page' and mod.volume and not mod.toc and mod.mid.find('v') > 0
         if mod.volume and mod.volume != last_vol:
@@ -62,7 +63,7 @@ def outline_for(bb):
                 blk = mod.blocks[bi]
                 pg = bb.block_pages.get((mod.mid, bi))
                 if pg is not None:
-                    out.append([lv + max(rk, 2) - 1, B.title_text(blk['runs']), pg + 1])
+                    out.append([lv + max(rk, 2) - 1, B.outline_text(blk['runs']), pg + 1])
     fixed, last = [], 0
     for lv, t, p in out:
         lv = max(1, min(lv, last + 1))

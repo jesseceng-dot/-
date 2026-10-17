@@ -220,6 +220,17 @@ def compose_gu(font, cp=0x2E774):
     return _add_glyph(font, cp, left)
 
 
+def compose_corner(font, cp=0x231F):
+    """U+231F ⌟ (《气候赌场》 “悬崖形的或⌟形损失函数”, a picture in the ebook) is in no font here: the family's own 」, its
+    corner on the baseline, centred in a narrower advance like a letter."""
+    p = _outline(font, '」')
+    x0, y0, x1, _ = p.bounds
+    p = p.transform(1, 0, 0, 1, 150 - x0, -y0)
+    name = _add_glyph(font, cp, p)
+    font['hmtx'].metrics[name] = (int(300 + x1 - x0), 150)
+    return name
+
+
 def build(name):
     path, idx = FACES[name]
     out = os.path.join(FONT_DIR, name + '.ttf')
@@ -238,6 +249,7 @@ def build(name):
         compose_xi(font)
         compose_yan(font)
         compose_gu(font)
+        compose_corner(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 

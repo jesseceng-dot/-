@@ -38,9 +38,10 @@ def fidelity(bb, pdf):
         if mod.kind != 'text' or mod.mid == 'toc':
             continue
         exp = collections.Counter()
-        shy = 0
+        shy = dots = 0
         for b in mod.blocks:
             shy += runs_text(b.get('runs', [])).count('\u00ad')
+            dots += sum(len(r['t'].strip()) for r in b.get('runs', []) if 'emp' in (r.get('c') or '').split())
             for _, runs in (b.get('cap') or []) + (b.get('cap_top') or []):                    # the caption of an in-text figure
                 exp += norm_counter(runs_text(runs))
             if b['k'] in ('img', 'space'):
@@ -51,6 +52,8 @@ def fidelity(bb, pdf):
         extra = got - exp
         if 0 < extra.get('-', 0) <= shy:
             del extra['-']                               # (a soft hyphen at the end of a line is printed as '-')
+        if 0 < extra.get('•', 0) <= dots:
+            del extra['•']                               # (the emphasis dots under a text-emphasis run are printed as '•')
         if miss or extra:
             problems.append((mod.mid, dict(miss.most_common(8)), dict(extra.most_common(8)), sum(miss.values()), sum(extra.values())))
     return problems
