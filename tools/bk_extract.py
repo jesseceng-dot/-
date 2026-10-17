@@ -688,7 +688,7 @@ def items(part):
                         rows.append([cell_runs(td) for td in tds])
                         spans.append([int(td.get('colspan') or 1) for td in tds])
                         heads.append(bool(tds) and all(ln(td) == 'th' for td in tds))
-                add('table', el, rows=rows, runs=[], spans=spans, heads=heads)
+                add('table', el, rows=rows, runs=[], spans=spans, heads=heads, **({'innote': 1} if note else {}))   # (a table inside a note stays with it)
             elif t == 'img':
                 add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig)
             elif t in ('hr', 'nav', 'svg', 'br'):

@@ -1,0 +1,56 @@
+diff --git a/tools/kant.py b/tools/kant.py
+index 83c7362..a91bfd3 100644
+--- a/tools/kant.py
++++ b/tools/kant.py
+@@ -85,6 +85,8 @@ def balance_headings(blocks):
+         avail = 294 - (st['left'] + st['right']) * st['fs']
+         if st['align'] == 'c' or b['rank'] <= 2:
+             b['runs'] = normalize.balance_title(b['runs'], st['fs'], avail)
++        b['runs'] = [dict(r, t='\u2060' + r['t']) if (r.get('h') or r.get('a')) and KE.MARK_RE.match(r['t'].strip())
++                     and not r['t'].startswith('\u2060') else r for r in b['runs']]   # (after the balancing) a marker never opens a line
+     return blocks
+ 
+ 
+diff --git a/tools/kant_tables.py b/tools/kant_tables.py
+index f22a86d..46b6652 100644
+--- a/tools/kant_tables.py
++++ b/tools/kant_tables.py
+@@ -20,14 +20,14 @@ TABLES = {
+                             [L('没有对象的空直观'), L('ens imaginarium［想象的存在者］')],
+                             [L('没有概念的空对象'), L('nihil negativum［否定性的无］')]]),
+     'table:12:600': dict(part=12, first=600, last=607, title=[],
+-                         q=[[L('灵魂是实体'), [run('⁠(115)', s=1, h='part0012#m115', a='part0012#w115')]],
++                         q=[[L('灵魂是实体'), [run('(115)', s=1, h='part0012#m115', a='part0012#w115')]],
+                             [L('灵魂在其质上是单纯的')],
+                             [L('灵魂就其所在的不同时间'), L('而言是数目上同一的，亦即'), L('单一性（非复多性）')],
+-                            [L('灵魂处于同空间中可能的对象的关系中'), [run('⁠(116)', s=1, h='part0012#m116', a='part0012#w116')]]]),
++                            [L('灵魂处于同空间中可能的对象的关系中'), [run('(116)', s=1, h='part0012#m116', a='part0012#w116')]]]),
+     'table:12:744': dict(part=12, first=744, last=761, title=[],
+                          q=[[L('关系的无条件的统一性'), L('亦即'), L('自身不是依存的'), L('而是'), L('自存的')],
+                             [L('质的无条件的统一性'), L('亦即'), L('不是实在的整体'), L('而是'), L('单纯的'),
+-                             [run('⁠(125)', s=1, h='part0012#m125', a='part0012#w125')]],
++                             [run('(125)', s=1, h='part0012#m125', a='part0012#w125')]],
+                             [L('时间中的复多性中的无条件的统一性'), L('亦即'), L('不是在不同的时间里数目上不同的'), L('而是'), L('作为同一个主体')],
+                             [L('空间中的存在的无条件的统一性'), L('亦即不是作为对它外面的诸多事物的意识'), L('而是'),
+                              L('仅仅对它自己的存在的意识'), L('对其他事物的意识纯然是对它的表象的意识')]]),
+diff --git a/tools/render.py b/tools/render.py
+index b3c9425..a81775f 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -73,6 +73,7 @@ def baseline_dy(st):
+ 
+ 
+ def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
+     if st['align'] == 'j':
+         a = 'l' if j == nlines_total - 1 else 'j'
+     else:
+@@ -147,7 +148,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
+ def toc_tail(st, nat, x, right, y, label, href, plain=False):
+     """Dot leader and right-aligned page number of a table-of-contents line.  With `plain` the label is a small
+     right-aligned note (a book's page count) without leader."""
+-    nw = 30.0
++    nw = 30.0 if len(label) <= 5 else 6.0 * len(label)     # (a long roman number, 'xxxviii', stays inside the text block)
+     if plain:
+         st2 = dict(st, cls='s-mnote')
+         y2 = y + baseline_dy(st2)

@@ -10,11 +10,17 @@
   kinsoku  a line of body text that starts with a closing mark or ends with an opening one
   over     text beyond the common right edge of the text block (an overfull line, a table cell pushing out)
   overlap  two lines of text drawn over each other
+  lone     a line of nothing but punctuation or a note mark
+  short    a page with only one or two lines that runs on from the page before (not a new section)
+  head_bottom  a heading in the last two lines of a page with no text under it
+  markstart  a raised note mark at the very start of a line
+  numbreak a number broken at a dash or after 'p.' ('1797—' / '1798', 'pp.355—' / '361', '图7-' / '2'): not an error, a nicety
   links    internal links whose target page does not exist
   joiner   word joiners drawn with a width (a gap before a note mark)
   empty    pages with neither text nor pictures
 """
 import collections
+import re
 import sys
 
 import pymupdf
@@ -23,6 +29,9 @@ from .qa_pdf import joiners
 
 NO_START = set('，。、；：！？）》」』”’】〕…,.;:!?)')
 NO_END = set('（《「『“‘【〔(')
+MARK = re.compile(r'(?:[\[［(（]?[\d注校]+[\]］)）]?)+')
+NUM_END = re.compile(r'(\d[-–—~～－])$|(\bpp?\.)$')
+LONE = re.compile(r'[^\w\s]+|[^\w\s]*[\[［(（]\d+[\]］)）][^\w\s]*|[①-⑳]+[^\w\s]*|\d{1,4}[)）\]］][^\w\s]*')
 
 
 def _lines(pg):
@@ -119,6 +128,27 @@ def audit(path):
                 rep['kinsoku'].append((i + 1, t[:14]))       # (only at the edges of the text block: a line after a raised mark starts mid-line)
             if rmax and l['x1'] > rmax + 3 and _ink_x1(d[i], l) > rmax + 3:
                 rep['over'].append((i + 1, t[:14], round(_ink_x1(d[i], l) - rmax, 1)))
+        inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
+        for l in inside:
+            t = l['text'].replace('\u2060', '').strip()
+            if t and len(t) <= 5 and LONE.fullmatch(t) and not any(m is not l and abs(m['y'] - l['y']) < 0.8 * body for m in ls):
+                rep['lone'].append((i + 1, t, round(l['y'])))               # a line of nothing but punctuation or a note mark (a raised mark beside its line is not one)
+        if not imgs[i] and inside and all(abs(l['size'] - body) < 1.6 for l in inside) and len({round(l['y']) for l in inside}) <= 2 \
+                and i > 0 and pages[i - 1] and not opens(i):
+            rep['short'].append((i + 1, inside[0]['text'][:12]))     # a page with one or two lines, run on from the page before
+        for l in ls:
+            if l['size'] < body - 2 and MARK.fullmatch(l['text'].strip()) and abs(l['x0'] - lmin) < 1.5 \
+                    and any(is_body(m) and 1 < m['y'] - l['y'] < 7 for m in ls):
+                rep['markstart'].append((i + 1, l['text'].strip()))     # a raised note mark that opens a line
+        seq = sorted((l for l in ls if l['size'] >= body - 2.5), key=lambda l: l['y'])
+        for a, c in zip(seq, seq[1:]):
+            if NUM_END.search(a['text'].replace('\u2060', '').strip()) and re.match(r'\d', c['text'].strip()) and 5 < c['y'] - a['y'] < 25:
+                rep['numbreak'].append((i + 1, a['text'].strip()[-8:], c['text'].strip()[:6]))   # '1797—' / '1798', 'p.' / '264'
+        heads = [l for l in inside if l['size'] >= body + 1]
+        if heads and b:
+            h = max(heads, key=lambda l: l['y'])
+            if h['y'] > ref - 2.5 * pitch and not any(l['y'] > h['y'] + 1 for l in b):
+                rep['head_bottom'].append((i + 1, h['text'][:12]))   # a heading in the last lines with nothing under it
         for a in range(len(ls)):
             for c in range(a + 1, len(ls)):
                 p, q = ls[a], ls[c]
@@ -144,7 +174,8 @@ def main(args):
     for p in [a for a in args if a != '-v']:
         r = audit(p)
         rep = r['rep']
-        keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'links', 'joiner', 'empty', 'type3')
+        keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'links', 'joiner',
+                'empty', 'type3')
         print(f"{p.split('/')[-1]}: {r['pages']} pp, sizes {list(r['sizes'])}, body {r['body']}, bottom {r['ref']}, pitch {r['pitch']} | "
               + ' '.join(f'{k} {len(rep.get(k, []))}' for k in keys))
         if verbose:

@@ -1,0 +1,75 @@
+diff --git a/tools/bk.py b/tools/bk.py
+index fd8dfc7..e68e89e 100644
+--- a/tools/bk.py
++++ b/tools/bk.py
+@@ -622,7 +622,7 @@ def _slice_runs(runs, s, e):
+     return out
+ 
+ 
+-def _wrap_cell(runs, width, bold=False, code=False):
++def _wrap_cell(runs, width, bold=False, code=False, final=False):
+     """A line of a table cell broken into lines at most `width` em wide (greedy, with the line-start / line-end rules);
+     a line of code or a formula continues two em further in than it starts."""
+     t = ''.join(r['t'] if not r.get('i') else '￼' for r in runs)
+@@ -634,15 +634,26 @@ def _wrap_cell(runs, width, bold=False, code=False):
+     lines, start = [], 0
+     while start < len(t):
+         room = width - (hang if lines else 0.0)
+-        w, i, ok = 0.0, start, None
++        w, i, ok, opps = 0.0, start, None, []
+         while i < len(t) and w + ws[i] <= room + 1e-6:
+             w += ws[i]
+             i += 1
+             if i < len(t) and i > start and _can_break(t, i):
+                 ok = i
++                opps.append(i)
+         if i >= len(t):
+             lines.append((start, len(t)))
+             break
++        rest = t[ok:].strip(' \u3000') if ok is not None else ''
++        if final and rest and len(rest) <= 3 and all(c in '＞>)）]］}」』”’。，、；：！？…—' for c in rest):
++            # what is left is punctuation only: break earlier -- after an operator of a formula ('→', '='), or at the
++            # opportunity before if that keeps most of the line (only in the lines as set: the column widths stay as they were)
++            fits = lambda k: sum(ws[k:]) <= width - hang + 1e-6
++            ops = [k for k in range(start + 1, ok) if t[k - 1] in '→=∧∨⊃' and t[k] not in _NO_START and fits(k)]
++            if ops:
++                ok = ops[-1]
++            elif len(opps) > 1 and opps[-2] - start >= 0.6 * (ok - start) and fits(opps[-2]):
++                ok = opps[-2]
+         if ok is None:                                           # one word longer than the line: after a hyphen, comma or slash,
+             ok = next((k for k in range(i, start, -1) if (t[k - 1] in '-,/' or t[k] in '([')        # or before a bracket
+                        and t[k] not in _NO_START and t[k - 1] not in _NO_END), None) or max(i, start + 1)
+@@ -772,7 +783,7 @@ def table_blocks2(rows, spans, heads, center=True):
+         g, bold = cells[gi], bolds[gi]
+         gi += 1
+         if wrap:
+-            g = [[x for l in g[j] for x in (_wrap_cell(l, widths[j] - (pad if j < ncol - 1 else 0.0), bold, code[j]) if l else [l])]
++            g = [[x for l in g[j] for x in (_wrap_cell(l, widths[j] - (pad if j < ncol - 1 else 0.0), bold, code[j], final=True) if l else [l])]
+                  for j in range(ncol)]
+         nl = max(len(c) for c in g)
+         for li in range(nl):
+diff --git a/tools/layout.py b/tools/layout.py
+index 166de9d..e34e926 100644
+--- a/tools/layout.py
++++ b/tools/layout.py
+@@ -157,6 +157,8 @@ def variant_penalty(block, st, starts, nat, vi):
+         # never leave a lone punctuation mark / footnote marker as a last line
+         if len(tail) <= 1 and (not tail or tail in LONE):
+             return INF
++        if tail and len(tail) <= 6 and all(c in LONE for c in tail.replace('\u2060', '').replace(' ', '')):
++            return INF                                   # (nor of punctuation only: '——”', a broken-off dash)
+         if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
+             return INF
+         if len(tail) == 1:
+diff --git a/tools/render.py b/tools/render.py
+index 3267583..5f7fb0f 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -76,6 +76,7 @@ def baseline_dy(st):
+ 
+ 
+ def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
+     if st['align'] == 'j':
+         a = 'l' if j == nlines_total - 1 else 'j'
+     else:

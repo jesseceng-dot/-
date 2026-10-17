@@ -541,6 +541,9 @@ def mark_markers(blocks):
                 r = dict(r, s=1, t='\u2060' + r['t'] if not r['t'].startswith('\u2060') else r['t'])
                 if r.get('h') and not r.get('a') and re.search(r'#b-\d+$', r['h']):
                     r['a'] = r['h'].replace('#b-', '#a-')      # some markers lost their anchor id in the source
+            elif (r.get('h') or r.get('a')) and MARKER_RE.match(r['t'].strip()) and r.get('s') and not r['t'].startswith('\u2060') \
+                    and not (idx == 0 and is_note_start(b)):
+                r = dict(r, t='\u2060' + r['t'])               # a marker span of the source (黑格尔第 1、3 卷): kept on the character before it too
             runs.append(r)
         b['runs'] = runs
     return blocks
@@ -614,13 +617,23 @@ TYPOS = {
 }
 
 
+# a paragraph that ends in a dash the line breaking would leave alone on its last line (黑格尔第 4 卷): the dash and the
+# character before it are set as one unbreakable box (the text itself is unchanged, so the index page conversion is not affected)
+KEEP_TAIL = {'第三个著名的人物是——': 3}
+
+
 def fix_typos(runs):
     out = []
     for r in runs:
         t = r['t']
         for k, v in TYPOS.items():
             t = t.replace(k, v)
-        out.append(dict(r, t=t) if t != r['t'] else r)
+        r = dict(r, t=t) if t != r['t'] else r
+        n = next((n for k, n in KEEP_TAIL.items() if t.endswith(k)), 0)
+        if n:
+            out += [dict(r, t=t[:-n]), dict(r, t=t[-n:], c=((r.get('c') or '') + ' tw').strip())]
+            continue
+        out.append(r)
     return out
 
 

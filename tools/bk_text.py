@@ -27,7 +27,7 @@ def fix_text(t):
     t = _RE_APOS.sub('’', t)
     t = _RE_SPACE_CLOSE.sub('', t)
     t = re.sub(r' {2,}', ' ', t)
-    t = re.sub(r'(?<=\d)([–—~～])(?=\d)', '\\1\u2060', t)          # a range of numbers (pp.123–132) is not broken after its dash
+    t = re.sub(r'(?<=\d)([-–—~～－])(?=\d)', '\\1\u2060', t)        # a range of numbers (pp.123–132), a figure number (图7-2): not broken after the dash
     t = re.sub(r'(?<![A-Za-z])(pp?\.) (?=\d)', '\\1\u00a0', t)                  # 'p. 60': the page number stays with its 'p.'
     return t
 

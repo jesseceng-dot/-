@@ -78,6 +78,7 @@ STYLES_SMALL = {
     'notec':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
     'notel':   dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'notev':   dict(cls='s-note', fs=8.5, first=0, left=6, right=0, align='l', slots=1, before=0, after=0, keep=0),
+    'notet':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),   # rows of a table inside a note
     'noter':   dict(cls='s-note', fs=8.5, first=0, left=3, right=1, align='r', slots=1, before=0, after=0, keep=0),
     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'indexc':  dict(cls='s-index', fs=8.5, first=0, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
@@ -163,6 +164,8 @@ def variant_penalty(block, st, starts, nat, vi):
             return INF
         if tail and len(tail) <= 6 and tail.replace('\u2060', '').strip('0123456789[]［］()（）') == '':
             return INF                                   # (nor a last line of a year and a bracket: '2006）' -- check.module_report)
+        if tail and len(tail) <= 6 and all(c in LONE for c in tail.replace('\u2060', '').replace(' ', '')):
+            return INF                                   # (nor of punctuation only: '——”', a broken-off dash)
         if len(tail) == 1:
             pen += 10.0
         elif len(tail) == 2 and st['align'] != 'j':

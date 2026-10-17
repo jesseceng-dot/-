@@ -1,0 +1,77 @@
+diff --git a/tools/bk.py b/tools/bk.py
+index bf9d029..18ee151 100644
+--- a/tools/bk.py
++++ b/tools/bk.py
+@@ -112,7 +112,7 @@ def elements(C, items, kaitext=False):
+     gap_before = False
+     for it in items:
+         k = it['k']
+-        if k == 'note':
++        if k == 'note' or k == 'table' and it.get('innote'):
+             notes.append(it)
+             continue
+         if k == 'img':
+@@ -277,9 +277,17 @@ def plate_modules(figs):
+ 
+ 
+ # ---------------------------------------------------------------------------------------------- notes
++def note_table_blocks(rows):
++    """A table inside a note: one small line per row under the note's text, cells as fixed-width boxes."""
++    return [dict(b, style='notet', left=b['left'] + 3, before=0, after=0) for b in table_blocks(rows)]
++
++
+ def note_blocks(items, fmt):
+     out = []
+     for it in items:
++        if it['k'] == 'table':
++            out += note_table_blocks(it['rows'])
++            continue
+         runs = BT.fix_edges(BT.fix_runs(it['runs']))
+         if not runs:
+             continue
+diff --git a/tools/bk_extract.py b/tools/bk_extract.py
+index cf8c8b3..c61f339 100644
+--- a/tools/bk_extract.py
++++ b/tools/bk_extract.py
+@@ -168,7 +168,7 @@ def items(part):
+                     if isinstance(tr.tag, str) and ln(tr) == 'tr':
+                         cells = [clean_runs(inline(td, part)) for td in tr if isinstance(td.tag, str) and ln(td) in ('td', 'th')]
+                         rows.append(cells)
+-                add('table', el, rows=rows, runs=[])
++                add('table', el, rows=rows, runs=[], **({'innote': 1} if note else {}))   # (a table inside a note stays with it)
+             elif t == 'img':
+                 add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig)
+             elif t in ('hr', 'nav', 'svg', 'br'):
+diff --git a/tools/layout.py b/tools/layout.py
+index aec04a6..6150828 100644
+--- a/tools/layout.py
++++ b/tools/layout.py
+@@ -73,6 +73,7 @@ STYLES_SMALL = {
+     'notec':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='j', slots=1, before=0, after=0, keep=0),
+     'notel':   dict(cls='s-note', fs=8.5, first=-3, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),
+     'notev':   dict(cls='s-note', fs=8.5, first=0, left=6, right=0, align='l', slots=1, before=0, after=0, keep=0),
++    'notet':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),
+     'noter':   dict(cls='s-note', fs=8.5, first=0, left=3, right=1, align='r', slots=1, before=0, after=0, keep=0),
+     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
+     'indexc':  dict(cls='s-index', fs=8.5, first=0, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
+@@ -152,6 +153,8 @@ def variant_penalty(block, st, starts, nat, vi):
+         # never leave a lone punctuation mark / footnote marker as a last line
+         if len(tail) <= 1 and (not tail or tail in LONE):
+             return INF
++        if tail and len(tail) <= 6 and all(c in LONE for c in tail.replace('\u2060', '').replace(' ', '')):
++            return INF                                   # (nor of punctuation only: '——”', a broken-off dash)
+         if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
+             return INF
+         if len(tail) == 1:
+diff --git a/tools/render.py b/tools/render.py
+index b3c9425..ada1220 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -73,6 +73,7 @@ def baseline_dy(st):
+ 
+ 
+ def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
+     if st['align'] == 'j':
+         a = 'l' if j == nlines_total - 1 else 'j'
+     else:

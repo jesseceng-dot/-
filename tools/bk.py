@@ -726,6 +726,9 @@ def elements(C, items, kaitext=False):
                 and len(it['runs']) > 1:
             it = dict(it, k='note')                         # a paragraph that starts with a linked note number is a note entry
             k = 'note'
+        if k == 'table' and it.get('innote'):
+            notes.append(it)                                # a table inside a note (第 2 册注释 11): set under the note's text
+            continue
         if k == 'note':
             if ''.join(r['t'] for r in it['runs']).strip('\u3000 ') in C.get('skip_text', ()):
                 continue                                    # a 'notes' label that the ebook sets as a note entry
@@ -906,7 +909,7 @@ def elements(C, items, kaitext=False):
         else:
             b['style'] = 'body'
         cm = next((C['cls_map'][x] for x in cls.split() + (it.get('dcls') or '').split() if x in C.get('cls_map', {})), None) \
-            or next((v for pat, v in C.get('text_map', ()) if re.match(pat, plain(runs))), None)     # (or by the paragraph's first words)
+            or next((v for pat, v in C.get('text_map', ()) if re.match(pat, plain(runs).replace('\u2060', ''))), None)   # (or by its first words)
         if cm:                                              # (a class of this book with a style of its own: style, first, left[, run class])
             b.update(style=cm[0], first=cm[1], left=cm[2])
             if len(cm) > 3 and cm[3]:
@@ -1051,7 +1054,7 @@ def _slice_runs(runs, s, e):
     return out
 
 
-def _wrap_cell(runs, width, bold=False, code=False):
+def _wrap_cell(runs, width, bold=False, code=False, final=False):
     """A line of a table cell broken into lines at most `width` em wide (greedy, with the line-start / line-end rules);
     a line of code or a formula continues two em further in than it starts."""
     t = ''.join(r['t'] if not r.get('i') else '￼' for r in runs)
@@ -1063,15 +1066,26 @@ def _wrap_cell(runs, width, bold=False, code=False):
     lines, start = [], 0
     while start < len(t):
         room = width - (hang if lines else 0.0)
-        w, i, ok = 0.0, start, None
+        w, i, ok, opps = 0.0, start, None, []
         while i < len(t) and w + ws[i] <= room + 1e-6:
             w += ws[i]
             i += 1
             if i < len(t) and i > start and _can_break(t, i):
                 ok = i
+                opps.append(i)
         if i >= len(t):
             lines.append((start, len(t)))
             break
+        rest = t[ok:].strip(' \u3000') if ok is not None else ''
+        if final and rest and len(rest) <= 3 and all(c in '＞>)）]］}」』”’。，、；：！？…—' for c in rest):
+            # what is left is punctuation only: break earlier -- after an operator of a formula ('→', '='), or at the
+            # opportunity before if that keeps most of the line (only in the lines as set: the column widths stay as they were)
+            fits = lambda k: sum(ws[k:]) <= width - hang + 1e-6
+            ops = [k for k in range(start + 1, ok) if t[k - 1] in '→=∧∨⊃' and t[k] not in _NO_START and fits(k)]
+            if ops:
+                ok = ops[-1]
+            elif len(opps) > 1 and opps[-2] - start >= 0.6 * (ok - start) and fits(opps[-2]):
+                ok = opps[-2]
         if ok is None:                                           # one word longer than the line: after a hyphen, comma or slash,
             ok = next((k for k in range(i, start, -1) if (t[k - 1] in '-,/' or t[k] in '([')        # or before a bracket
                        and t[k] not in _NO_START and t[k - 1] not in _NO_END), None) or max(i, start + 1)
@@ -1201,7 +1215,7 @@ def table_blocks2(rows, spans, heads, center=True):
         g, bold = cells[gi], bolds[gi]
         gi += 1
         if wrap:
-            g = [[x for l in g[j] for x in (_wrap_cell(l, widths[j] - (pad if j < ncol - 1 else 0.0), bold, code[j]) if l else [l])]
+            g = [[x for l in g[j] for x in (_wrap_cell(l, widths[j] - (pad if j < ncol - 1 else 0.0), bold, code[j], final=True) if l else [l])]
                  for j in range(ncol)]
         nl = max(len(c) for c in g)
         for li in range(nl):
@@ -1319,13 +1333,13 @@ def fig_paragraphs(C, els, fig_no):
         above = lambda x: plain(x['runs']).startswith(('表', '（', '('))   # table titles and '(continued)' lines stand above their image
         if mode in ('before', 'tabfig'):
             while out and is_cap(out[-1]) and (mode == 'before' or above(out[-1])):
-                caps.insert(0, re.sub(r'\s+', ' ', runs_text(out.pop()['runs'])).strip())
+                caps.insert(0, re.sub(r'\s+', ' ', runs_text(out.pop()['runs']).replace('\u2060', '')).strip())
         while mode != 'before' and i < len(els) and is_cap(els[i]) and (mode == 'after' or not above(els[i])):
-            caps.append(re.sub(r'\s+', ' ', runs_text(els[i]['runs'])).strip())
+            caps.append(re.sub(r'\s+', ' ', runs_text(els[i]['runs']).replace('\u2060', '')).strip())
             i += 1
         if C.get('cap_after_re'):                                    # source / note lines right under a figure belong to it
             while i < len(els) and els[i]['k'] == 'p' and re.match(C['cap_after_re'], plain(els[i]['runs'])):
-                caps.append(re.sub(r'\s+', ' ', runs_text(els[i]['runs'])).strip())
+                caps.append(re.sub(r'\s+', ' ', runs_text(els[i]['runs']).replace('\u2060', '')).strip())
                 i += 1
         text = '　'.join(caps)
         if b['src'] in C['inplace']:
@@ -1547,9 +1561,17 @@ def plate_modules(figs, note=PLATES_NOTE):
 
 
 # ---------------------------------------------------------------------------------------------- notes
+def note_table_blocks(rows):
+    """A table inside a note: one small line per row under the note's text, cells as fixed-width boxes."""
+    return [dict(b, style='notet', left=b['left'] + 3, before=0, after=0) for b in table_blocks(rows)]
+
+
 def note_blocks(items, fmt):
     out = []
     for it in items:
+        if it['k'] == 'table':
+            out += note_table_blocks(it['rows'])
+            continue
         runs = BT.fix_edges(BT.fix_runs(it['runs']))
         if not runs:
             continue

@@ -1,0 +1,76 @@
+diff --git a/tools/layout.py b/tools/layout.py
+index 3948faa..4ca475c 100644
+--- a/tools/layout.py
++++ b/tools/layout.py
+@@ -139,6 +139,8 @@ def variant_penalty(block, st, starts, nat, vi):
+         # never leave a lone punctuation mark / footnote marker as a last line
+         if len(tail) <= 1 and (not tail or tail in LONE):
+             return INF
++        if tail and len(tail) <= 6 and all(c in LONE for c in tail.replace('\u2060', '').replace(' ', '')):
++            return INF                                   # (nor of punctuation only: '——”', a broken-off dash)
+         if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
+             return INF
+         if len(tail) == 1:
+diff --git a/tools/normalize.py b/tools/normalize.py
+index e6c527c..1256153 100644
+--- a/tools/normalize.py
++++ b/tools/normalize.py
+@@ -520,6 +520,9 @@ def mark_markers(blocks):
+                 r = dict(r, s=1, t='\u2060' + r['t'] if not r['t'].startswith('\u2060') else r['t'])
+                 if r.get('h') and not r.get('a') and re.search(r'#b-\d+$', r['h']):
+                     r['a'] = r['h'].replace('#b-', '#a-')      # some markers lost their anchor id in the source
++            elif (r.get('h') or r.get('a')) and MARKER_RE.match(r['t'].strip()) and r.get('s') and not r['t'].startswith('\u2060') \
++                    and not (idx == 0 and is_note_start(b)):
++                r = dict(r, t='\u2060' + r['t'])               # a marker span of the source: kept on the character before it too
+             runs.append(r)
+         b['runs'] = runs
+     return blocks
+@@ -593,13 +596,23 @@ TYPOS = {
+ }
+ 
+ 
++# a paragraph that ends in a dash the line breaking would leave alone on its last line: the dash and the character before
++# it are set as one unbreakable box (the text itself is unchanged, so the index page conversion is not affected)
++KEEP_TAIL = {'第三个著名的人物是——': 3}
++
++
+ def fix_typos(runs):
+     out = []
+     for r in runs:
+         t = r['t']
+         for k, v in TYPOS.items():
+             t = t.replace(k, v)
+-        out.append(dict(r, t=t) if t != r['t'] else r)
++        r = dict(r, t=t) if t != r['t'] else r
++        n = next((n for k, n in KEEP_TAIL.items() if t.endswith(k)), 0)
++        if n:
++            out += [dict(r, t=t[:-n]), dict(r, t=t[-n:], c=((r.get('c') or '') + ' kt').strip())]
++            continue
++        out.append(r)
+     return out
+ 
+ 
+diff --git a/tools/render.py b/tools/render.py
+index ca6edff..daff89d 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -73,6 +73,7 @@ def baseline_dy(st):
+ 
+ 
+ def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
+     if st['align'] == 'j':
+         a = 'l' if j == nlines_total - 1 else 'j'
+     else:
+diff --git a/tools/style.py b/tools/style.py
+index abdf694..2bff024 100644
+--- a/tools/style.py
++++ b/tools/style.py
+@@ -57,6 +57,7 @@ body{{margin:0;padding:0;font-family:{BODY_FAMILY};font-size:{FONT}pt;color:#000
+   transform-origin:0 0}}
+ .meas{{position:absolute;left:0;top:0;line-height:{LINE}pt;text-align:left;visibility:hidden}}
+ b,.b{{font-weight:700}}
++.kt{{white-space:nowrap}}
+ .sup{{font-size:7pt;line-height:0;position:relative;top:-3.4pt;color:#1f3a93}}
+ .sup a,a.mk{{color:#1f3a93}}
+ a{{color:inherit;text-decoration:none}}

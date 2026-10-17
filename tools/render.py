@@ -208,7 +208,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
 def toc_tail(st, nat, x, right, y, label, href, plain=False):
     """Dot leader and right-aligned page number of a table-of-contents line.  With `plain` the label is a small
     right-aligned note (a book's page count) without leader."""
-    nw = 30.0
+    nw = 30.0 if len(label) <= 5 else 6.0 * len(label)     # (a long roman number, 'xxxviii', stays inside the text block)
     if plain:
         st2 = dict(st, cls='s-mnote')
         y2 = y + baseline_dy(st2)

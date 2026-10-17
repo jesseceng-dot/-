@@ -85,6 +85,8 @@ def balance_headings(blocks):
         avail = 294 - (st['left'] + st['right']) * st['fs']
         if st['align'] == 'c' or b['rank'] <= 2:
             b['runs'] = normalize.balance_title(b['runs'], st['fs'], avail)
+        b['runs'] = [dict(r, t='\u2060' + r['t']) if (r.get('h') or r.get('a')) and KE.MARK_RE.match(r['t'].strip())
+                     and not r['t'].startswith('\u2060') else r for r in b['runs']]   # (after the balancing) a marker never opens a line
     return blocks
 
 

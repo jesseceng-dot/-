@@ -64,6 +64,8 @@ def module_report(mod):
                 rep['lone'].append(text[-10:])
             if tail and len(tail) <= 6 and tail.strip('0123456789[]［］()（）') == '':
                 rep['lone'].append(text[-10:])
+            elif 1 < len(tail) <= 6 and all(c in '。，、；：！？）】〕」』”’…—,.;:!?)]' for c in tail.replace('\u2060', '').replace(' ', '')):
+                rep['lone'].append(text[-10:])
             for j in range(len(starts) - 1):
                 w = lb.st['W'] - (lb.st['left'] + lb.st['right'] + (lb.st['first'] if j == 0 else 0)) * lb.st['fs']
                 if (w - lb.nat[vi][j]) / lb.st['fs'] > 1.6:
