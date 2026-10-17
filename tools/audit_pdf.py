@@ -21,6 +21,7 @@
   links    internal links whose target page does not exist
   joiner   word joiners drawn with a width (a gap before a note mark)
   empty    pages with neither text nor pictures
+  apos     an apostrophe inside a Latin word drawn in a CJK face, whose ’ is full width ('Nature’ s')
 """
 import collections
 import re
@@ -182,6 +183,14 @@ def audit(path):
             if lk.get('kind') == pymupdf.LINK_GOTO and not 0 <= lk.get('page', -1) < n:
                 rep['links'].append((i + 1, lk.get('page')))
     rep['type3'] = sorted({f[3] for pn in range(n) for f in d.get_page_fonts(pn) if f[2] == 'Type3'})
+    for i in range(n):
+        for b in d[i].get_text('rawdict')['blocks']:
+            for l in b.get('lines', []):
+                chars = [(c['c'], sp['font']) for sp in l['spans'] for c in sp['chars']]
+                for k in range(1, len(chars) - 1):
+                    if chars[k][0] == '’' and re.match(r'[A-Za-z]', chars[k - 1][0]) and re.match(r'[A-Za-z]', chars[k + 1][0]) \
+                            and re.search(r'CJK|SC-|Han', chars[k][1]):
+                        rep['apos'].append((i + 1, ''.join(x for x, _ in chars[max(0, k - 6):k + 4])))
     try:
         rep['joiner'] = [x for x in joiners(d) if x[1]] if callable(joiners) else []
     except Exception:
@@ -195,7 +204,7 @@ def main(args):
         r = audit(p)
         rep = r['rep']
         keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
-                'empty', 'type3')
+                'empty', 'apos', 'type3')
         print(f"{p.split('/')[-1]}: {r['pages']} pp, sizes {list(r['sizes'])}, body {r['body']}, bottom {r['ref']}, pitch {r['pitch']} | "
               + ' '.join(f'{k} {len(rep.get(k, []))}' for k in keys))
         if verbose:

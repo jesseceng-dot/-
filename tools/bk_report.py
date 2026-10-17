@@ -108,6 +108,10 @@ def raw_missing(b):
             t.getparent().remove(t)
         for a in [a for a in body.iter('{http://www.w3.org/1999/xhtml}a') if BE._BACK_WORDS.fullmatch(''.join(a.itertext()))]:
             BE._drop(a)                                             # (a note's '返回正文' link: its words are left out on purpose)
+        for sec in body.iter('{http://www.w3.org/1999/xhtml}section'):  # (book 34) a footnote's heading '注1': its number is the marker
+            if sec.get(BE.EPUB_TYPE) == 'footnote':
+                for hd in [x for x in sec if isinstance(x.tag, str) and re.fullmatch(r'h[1-6]', etree.QName(x).localname)]:
+                    BE._drop(hd)
         for im in body.iter('{http://www.w3.org/1999/xhtml}img'):
             im.tail = '\ue000' + (im.tail or '')                   # (an inline picture is '\0' in the text the corrections see)
         for sv in list(body.iter('{http://www.w3.org/2000/svg}svg')):
@@ -118,13 +122,16 @@ def raw_missing(b):
                 sv.text = None
         fx = BE._fixes(bk.P(n))                                    # (the corrections of bk_fixes are not losses)
         pats = [f for f in fx if not isinstance(f[1], str)]
-        for el in list(body.iter()) if pats else ():               # a pattern applies to the text of a paragraph / table cell
+        fwp = [f for f in fx if f[1] == 'FWPAREN']                 # (after the patterns, as in bk_extract)
+        for el in list(body.iter()) if pats or fwp else ():        # a pattern applies to the text of a paragraph / table cell
             if isinstance(el.tag, str) and etree.QName(el).localname in BLOCK_TAGS and not any(
                     isinstance(c.tag, str) and etree.QName(c).localname in BLOCK_TAGS for c in el.iterdescendants()):
                 t = re.sub(r'[ \t\r\n\f]+', ' ', ''.join(el.itertext())).strip()
                 t = t.replace('\ue000', '\0')
                 for f in pats:
                     t = f[1].sub(lambda m: m.expand(f[2]), t)
+                for f in fwp:
+                    t = BE.fw_parens_text(t, f[2])[1]
                 t = t.replace('\0', '\ue000')
                 tail = el.tail
                 el.clear()

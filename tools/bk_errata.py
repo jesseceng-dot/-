@@ -67,6 +67,12 @@ def describe(f):
         return '', '表格“' + f[2] + '”', f'连同表题移到 {code(f[3] + "…")} 一段之后'
     if kind == 'NOTELINK':
         return '', '正文 ' + code('[n]') + '、注释 ' + code('[n]…') + '（纯文字）', '上标角标，与注释互相链接'
+    if kind == 'FWPAREN':
+        return '', code('(…)'), code('（…）')
+    if kind == 'PARATABLE':
+        return '', code(f[2] + '…') + f' 起 {f[3]} 行（用空格对齐的文字）', '排成表格，第一行为表头'
+    if kind == 'XNOTELINK':
+        return '', '正文 ' + code('[n]') + '（纯文字上标）、书末注释 ' + code('[n]…'), '角标与书末注释互相链接（按章对应）'
     if kind == 'MOVE':
         return '', code(f[2] + '…'), f'这一段（或标题）移到 {code(f[3] + "…")} 之前'
     return '', ' '.join(code(x) for x in f[2:-1] if isinstance(x, (str, int))), kind
@@ -81,7 +87,7 @@ def part_titles(b):
     groups = [n for n, _ in C['front']] + list(C['body']) + [x[0] if isinstance(x, tuple) else x for x in C['back']]
     for g in groups:
         ns = list(g) if isinstance(g, (list, tuple)) else [g]
-        t = title.get(bk.P(ns[0]), '')
+        t = title.get(bk.P(ns[0])) or title.get(f'notes_p{ns[0]}', '')     # (the ebook's notes in place: its own module)
         for n in ns:
             out[n] = t
     order = [n for g in groups for n in (list(g) if isinstance(g, (list, tuple)) else [g])]
@@ -93,8 +99,8 @@ def part_titles(b):
 
 
 def parts_of(spec, order):
-    if spec == '*':
-        return None
+    if spec == '*' or not isinstance(spec, int) and len(set(spec)) > 4:
+        return None                                             # (a rule of most chapters: with the rules of the whole book)
     if isinstance(spec, int):
         return [spec]
     return [n for n in order if n in set(spec)] or list(spec)
@@ -112,7 +118,7 @@ def write(b):
         grouped[group(k)] += v
         labels[group(k)].append(f'{k} {v}')
     groups = collections.OrderedDict()
-    for f in sorted(fixes, key=lambda f: -1 if f[0] == '*' else min(rank.get(n, 999) for n in parts_of(f[0], order))):
+    for f in sorted(fixes, key=lambda f: -1 if parts_of(f[0], order) is None else min(rank.get(n, 999) for n in parts_of(f[0], order))):
         ps = parts_of(f[0], order)
         key = '全书（各章通用的统一改法）' if ps is None else '、'.join(dict.fromkeys(titles.get(n, f'part{n:04d}') for n in ps))
         groups.setdefault(key, []).append(f)

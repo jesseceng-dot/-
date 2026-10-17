@@ -537,6 +537,58 @@ CFG = {
                   + list(range(34, 41)) + [[41, 42]] + list(range(43, 46)),
              back=[], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # two series of notes: the author's and the translator's footnotes ([n] linked, at the end of each chapter in the ebook)
+    # as ①②③ after the chapters; the sources (the chapters' plain superscript [n], linked here to the entries of 注释及出处,
+    # one group per chapter: bk_fixes XNOTELINK) in the ebook's place at the end.  The two plate sections the ebook binds
+    # inside chapters 7 and 18 (插图列表 calls them 第一部分 and 第二部分) follow those chapters, a picture a page.
+    33: dict(scratch='q33', file='人体简史', title='人体简史', sub='你的身体30亿岁了', author='〔英〕比尔·布莱森 著',
+             credits=['闾　佳　译'], publisher='文汇出版社', pdf_author='〔英〕比尔·布莱森', cover='00070.jpeg',
+             title_img='00001.jpeg', copyright_img='00069.jpeg', tail=['00068.jpeg'], tail_w=300.0,
+             marker='sq', renum=True, note_cls=('noteContent',), circ_link=r'#note(Back)?_\d+$', note_group_re=r'^第[一二三四五六七八九十]+章',
+             lat_apos=True, toc_even=True, open_air=True, dedication_grid=True, url_break=True, table2=True, table_keep=12,
+             head_sub=[(r'^(第[一二三四五六七八九十]+章)[\s\u3000]+', '\\1\u3000')],
+             cls_quote=('conQuot',), cls_cap=('imgDescript',), cls_sep=('center',), fig_inline=True, fig_dpi=300,
+             insert_plates={9: '插图　第一部分', 20: '插图　第二部分'},
+             img_text=__import__('tools.bk_img33', fromlist=['IMG_TEXT']).IMG_TEXT,
+             front=[(1, 'dedication')], body=list(range(3, 26)), back=[(26, 'notes'), (27, 'hang')], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # the notes of the print edition (编者注、译者注, icons as marks in the ebook) and the reviser's three 校订注, both at the
+    # end of the ebook (notes.xhtml): one 注释 section at the end, a group each; the reviser's marks '〔校订注1〕' raised as
+    # the ebook sets them.  The 系统之思 / THINKING IN SYSTEMS labels close the key-point paragraphs (Hei) they follow.
+    34: dict(scratch='q34', file='系统之美', title='系统之美', sub='决策者的系统思考（全新升级版）', author='〔美〕德内拉·梅多斯 著',
+             credits=['邱昭良　译'], publisher='浙江教育出版社', pdf_author='〔美〕德内拉·梅多斯', cover='img001.jpg', title_img=None,
+             copyright=1, marker='sq', note_group_h='all', endnotes_title='注　释',
+             lat_apos=True, toc_even=True, open_air=3, epi_name_air=True, url_break=True, table2=True, table_keep=12,
+             part_re=r'^第[一二三]部分', part_split=r'^(第[一二三]部分)[\s\u3000]+(.+)$',
+             head_cls={'content-b': (5, r'^(?!系统之思$|THINKING IN SYSTEMS$)')},
+             cls_kai=('quotation',), cls_right=('content-right',), cls_cap=('imgtitle', 'imgdescript'),
+             cls_map={'quotation-right': ('right', 0, 0, 'kai'), 'content-noindent': ('noindent', 0, 0, 'hei'),
+                      'formula-block': ('left', -2, 2)},
+             text_map=[(r'^(系统之思|THINKING IN SYSTEMS)$', ('right', 0, 0, 'hei'))],
+             fig_inline=True, fig_dpi=300, fig_scale={'img002.jpg': 0.6, 'img034.jpg': 0.92}, fig_air={'img003.jpg': 3},   # (the author's card under its heading)
+             img_text=__import__('tools.bk_img34', fromlist=['IMG_TEXT']).IMG_TEXT,
+             front=[(n, 'text') for n in range(2, 8)], body=list(range(8, 16)), back=[16, 17, (18, 'notes')], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    35: dict(scratch='q35', file='卓有成效的管理者', title='卓有成效的管理者', sub='珍藏版', author='〔美〕彼得·德鲁克 著',
+             credits=['许是祥　译', '那国毅　审订'], publisher='机械工业出版社', pdf_author='〔美〕彼得·德鲁克', series='德鲁克管理经典',
+             cover='00041.jpeg', title_img=None, copyright=3, marker='sq', renum=True, notes_end=True, note_li=True,
+             lat_apos=True, toc_even=True, open_air=True, url_break=True,
+             # the series banner at the head of every section is the ebook's decoration, not the book's
+             img_drop={'00004.jpeg'}, head_cls={'p2': 3, 'p3': 3}, cls_quote=('ziti1',), cls_right=('you',), cls_center=('middle-img',),
+             cls_map={'yanse': ('noindent', 0, 0, 'hei'), 'nrjj1': ('center', 0, 0, 'hei')}, fig_inline=True, fig_dpi=150,
+             fig_right={'00006.jpeg'},
+             # the catalogue at the end ('精品推荐' in the ebook's contents): the series banners as pictures, each cover small
+             orn={f'{n:05d}.jpeg' for n in list(range(9, 25)) + list(range(26, 33)) + list(range(34, 41))}, orn_size=(60.0, 80.0),
+             orn_air=True, insert_head={43: '精品推荐'}, text_map=[(r'^978-', ('center', 0, 0))],
+             img_text={'latex_b09_commutative_example.svg': '4×6=6×4', 'latex_b09_one_fifth.svg': '1/5',
+                       'latex_b09_one_fourth.svg': '1/4', 'latex_b09_one_tenth.svg': '1/10', 'latex_b09_one_third.svg': '1/3',
+                       'latex_b09_three_fourths.svg': '3/4'},
+             # the ebook's own pages before the title (a promotion page, Drucker's letter to Chinese readers, the centenary page)
+             front_flaps=['00001.jpeg', '00002.jpeg', '00003.jpeg'], front=[(n, 'text') for n in range(5, 15)],
+             body=[list(range(15, 20)), list(range(20, 25)), list(range(25, 30)), list(range(30, 33)), list(range(33, 36)),
+                   list(range(36, 39)), list(range(39, 42)), 42],
+             back=[list(range(43, 74))], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -792,6 +844,10 @@ def elements(C, items, kaitext=False):
                 and len(it['runs']) > 1:
             it = dict(it, k='note')                         # a paragraph that starts with a linked note number is a note entry
             k = 'note'
+        if k == 'li' and C.get('note_li') and it['runs'] and (it['runs'][0].get('h') or it['runs'][0].get('a')) \
+                and BT.marker_text(it['runs'][0]['t'], 'sq'):
+            it = dict(it, k='note')                         # (book 35) a note set as a list item: '1.' linking back to its mark
+            k = 'note'
         if k == 'table' and it.get('innote'):
             notes.append(it)                                # a table inside a note (第 2 册注释 11): set under the note's text
             continue
@@ -817,6 +873,8 @@ def elements(C, items, kaitext=False):
                 continue
             notes.append(dict(it, runs=latin_runs(nr, whole=False) if C.get('lat_apos') else nr))
             continue
+        if k == 'img' and it['src'] in C.get('img_drop', ()):
+            continue                                        # (book 35) the ebook's decoration repeated at the head of every section
         if k == 'img' and it['src'] in C.get('img_text', {}):        # a picture of a few characters standing alone: its transcription, centred
             els.append(dict(k='p', style='center', runs=_img_text(C, [dict(run('\ufffc'), i=it['src'])]), id='', src='img_text',
                             nomerge=True, novary=True))
@@ -955,6 +1013,8 @@ def elements(C, items, kaitext=False):
             b.update(style='right', nomerge=True)
         elif c & ({'center', 'kindle-cn-para-center'} | _cs(C, 'cls_center')):
             b.update(style='center', nomerge=True)
+            if c & _cs(C, 'cls_sep'):                       # (book 33) a section number ('I', 'II'): a blank line above and
+                b.update(before=1, after=1, keep=1, minbefore=1)   # below, never the last line of a page
         elif it.get('box'):
             b['style'] = 'quote'
         elif it.get('q'):
@@ -1510,11 +1570,16 @@ def fig_block(C, e, fmt):
         sc = 72.0 / C['fig_dpi']                                # (book 18) the printed size: the scans' resolution (an SVG redrawing: its units as their pixels)
     else:
         sc = FIG_SCALE
+    sc = C.get('fig_scale', {}).get(e['src'], 1.0) * sc
     sc = min(sc, style.TEXT_W / w, max_h / h)
     iw, ih = round(w * sc, 2), round(h * sc, 2)
     flt = bool(caps) and plain(caps[0][1]).startswith('图') or bool(tops) or ih > 6 * style.LINE   # numbered figures and tables, tall pictures may float
     b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw,
              fig_src=e['src'])
+    if e['src'] in C.get('fig_air', {}):
+        b['air'] = C['fig_air'][e['src']]                       # (book 34) more air around this picture may spare a widow
+    if e['src'] in C.get('fig_right', ()):
+        b['align'] = 'right'                                    # (book 35) a signature above the signer's name: flush right like the name
     if caps or tops:
         b['cap'] = caps
         if tops:
@@ -1641,9 +1706,11 @@ def note_blocks(items, fmt):
         if not runs:
             continue
         first = runs[0]
-        if (first.get('h') or first.get('a')) and BT.marker_text(first['t'], fmt):
-            mt = _marker(first, fmt)
-            marks = [repair_link(dict(first, t=mt, s=0, c='nn'))]
+        label = re.fullmatch(r'〔[^〕\d]{1,6}\d+〕', first['t'].strip().replace('\u2060', ''))    # (book 34: a reviser's note '〔校订注1〕', as its mark reads)
+        if (first.get('h') or first.get('a')) and (BT.marker_text(first['t'], fmt) or label):
+            mt = _marker(first, fmt) or first['t'].strip()
+            marks = [repair_link(dict(first, t=mt, s=0, c='nn'))] if not label else \
+                [repair_link(dict(first, t=mt, s=0)), run('\u3000')]       # (a label wider than the number column: in the line)
             rest = [mark_runs([r], fmt)[0] if (r.get('h') or r.get('a')) and re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())
                     else r for r in runs[1:]]                        # (a mark inside a note: a note of the other series, a reviser's note)
             if rest:
@@ -1661,7 +1728,7 @@ def note_blocks(items, fmt):
 def notes_module(mid, groups, fmt, zone='body', title='注　释', toc_level=2, toc_title='注释'):
     blocks = [dict(k='h', style='h1', rank=1, runs=[run(title)], id=mid + '#top')]
     for gtitle, items in groups:
-        if len(groups) > 1:
+        if len(groups) > 1 and gtitle:
             blocks.append(dict(k='p', style='idxhead', runs=[run(gtitle)], nostart=False))
         blocks += note_blocks(items, fmt)
     return Mod(mid=mid, zone=zone, title=toc_title, blocks=blocks, grid='small1', toc_level=toc_level, toc_title=toc_title)
@@ -1905,6 +1972,8 @@ def book(b):
             if n in C.get('short_right', {}):                     # (book 26) the names and titles under endorsements and prefaces
                 its = short_right(its, C['short_right'][n])
             e, nt = elements(C, its, kaitext=kaitext)
+            if n in C.get('insert_head', {}):                     # (book 35) a part with no heading of its own: the name the ebook's contents give it
+                e = [dict(k='h', lvl=1.0, runs=[run(C['insert_head'][n])], id=P(n) + '#head', src='insert_head', cls='')] + e
             els += e
             notes += nt
         return els, notes
@@ -1952,12 +2021,21 @@ def book(b):
                         blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0), (2, 150.0), (3, 300.0)][:int(C['open_air']) + 1]
                     break
             for j, x in enumerate(blocks):                         # and an epigraph's '——name' may stand one line below it
-                if x['k'] == 'p' and x.get('style') == 'right' and plain(x.get('runs', [])).startswith('——') and not x.get('before'):
-                    nx = blocks[j + 1] if j + 1 < len(blocks) else {}
+                after_epi = C.get('epi_name_air') and j and blocks[j - 1].get('style') in ('kaibody', 'quote', 'verse')   # (book 34: names without '——')
+                if x['k'] == 'p' and x.get('style') == 'right' and (plain(x.get('runs', [])).startswith('——') or after_epi) \
+                        and not x.get('before'):
+                    k_ = j
+                    while after_epi and k_ + 1 < len(blocks) and blocks[k_ + 1].get('style') == 'right':
+                        k_ += 1                                    # (the name's further lines: the air goes below them all)
+                    nx = blocks[k_ + 1] if k_ + 1 < len(blocks) else {}
                     if not two:
                         x['bef_opts'] = [(0, 0.0), (1, 30.0)]
                     elif nx.get('k') == 'p' and nx.get('style') == 'body' and not nx.get('before') and not nx.get('bef_opts'):
                         nx['bef_opts'] = [(0, 0.0), (1, 10.0), (2, 25.0)]   # (open_air=2: the name under its quotation, the air below the pair)
+        if C.get('orn_air'):                                       # (book 35) a list of entries each under a small picture: a blank
+            for j, x in enumerate(blocks):                         # line before each entry, which the page breaks may drop or double
+                if j and x['k'] == 'img' and x.get('style') == 'orn':
+                    x['bef_opts'] = [(1, 0.0), (0, 20.0), (2, 20.0)]
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)
@@ -2035,6 +2113,20 @@ def book(b):
     flush(front, 'front')
     for n in C['body']:
         els, notes = gather(n)
+        plates = []
+        if isinstance(n, int) and n in C.get('insert_plates', {}):                       # (book 33) a plate section bound inside a chapter: its pictures
+            runs_, cur = [], []                                    # (the longest run of pictures and captions) set after the chapter,
+            for k_, e in enumerate(els + [dict(k='end')]):        # a picture a page, its title on the first
+                if e['k'] == 'fig' or cur and e['k'] == 'p' and e.get('style') == 'cap':
+                    cur.append(k_)
+                else:
+                    if cur:
+                        runs_.append(cur)
+                    cur = []
+            ks = max(runs_, key=lambda r: sum(els[k_]['k'] == 'fig' for k_ in r))
+            plates = [dict(k='h', lvl=1.0, runs=[run(C['insert_plates'][n])], id=f'{P(_parts(n)[0])}#plates', src='insert_plates', cls='')]
+            plates += [els[k_] for k_ in ks]
+            els = [e for k_, e in enumerate(els) if k_ not in set(ks)]
         pd = part_divider(C, els)
         if pd:
             lines, title_s, els = pd
@@ -2052,6 +2144,8 @@ def book(b):
         add_unit(n, body, 'body', els, notes)
         if pend_chars >= NOTE_MIN and not C.get('notes_end'):
             flush(body, 'body')
+        if plates:
+            body += figure_pages(f'{_parts(n)[0]}x', plates, zone='body')
     flush(body, 'body')                                            # (notes_end: the few notes of all chapters in one module here)
     for n in C['back']:
         kind = 'text'
@@ -2073,12 +2167,14 @@ def book(b):
             groups, gcls = [], _cs(C, 'note_group_cls')            # (headings of its own between the notes: one group per part of the book)
             for it in BE.items(P(n)):
                 if it['k'] == 'p' and set(it['cls'].split()) & gcls or C.get('note_group_h') and it['k'] == 'h' \
-                        and it['lvl'] > 1:                         # (book 31: the headings are <h3>, one per chapter)
+                        and (it['lvl'] > 1 or C['note_group_h'] == 'all') or C.get('note_group_re') and it['k'] == 'p' \
+                        and re.match(C['note_group_re'], plain(it['runs'])):   # (book 31: <h3> headings; book 33: '第一章　…' paragraphs)
                     groups.append((_head_sub(C, [run(plain(regap_heading(it['runs'])))])[0]['t'], []))
                 elif it['k'] in ('p', 'note') and it.get('runs'):
-                    if not groups:
-                        groups.append((title, []))
-                    groups[-1][1].append(dict(it, k='note', runs=_img_text(C, it['runs'])))
+                    if not groups:                                 # (book 33: the note on the sources before the first chapter's)
+                        groups.append(('' if C.get('note_group_re') else title, []))
+                    runs_ = _img_text(C, it['runs'])
+                    groups[-1][1].append(dict(it, k='note', runs=latin_runs(runs_, whole=False) if C.get('lat_apos') else runs_))
             nm = notes_module(f'notes_p{n}', groups, fmt, zone='back', title=C.get('endnotes_title', title),
                               toc_level=1, toc_title=C.get('endnotes_title', title))
             nm.top = True

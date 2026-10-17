@@ -299,6 +299,44 @@ def _apply_fixes(part, out):
             it['runs'] = [x for x in new if x['t'] or x.get('i')]
         if have:
             FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(seen)
+    for f in [f for f in fx if f[1] == 'PARATABLE']:            # (part, 'PARATABLE', start of the first paragraph, number of paragraphs,
+        for k, it in enumerate(out):                            #  note): a table the ebook sets as lines padded with spaces -> a
+            if it['k'] != 'p' or not _txt(it).startswith(f[2]):  # table, the first line its heading row
+                continue
+            grp = out[k:k + f[3]]
+            if len(grp) < f[3] or any(x['k'] != 'p' or any(r.get('i') for r in x['runs']) for x in grp):
+                break
+            rows = [[[run(c)] for c in re.split(r'[\s\u3000]{2,}', _txt(x).strip())] for x in grp]
+            out[k:k + f[3]] = [dict(k='table', tag='table', cls='', id=grp[0]['id'], rows=rows, runs=[],
+                                    spans=[[1] * len(r) for r in rows], heads=[j == 0 for j in range(len(rows))])]
+            FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+            break
+    for f in [f for f in fx if f[1] == 'XNOTELINK']:            # (parts, 'XNOTELINK', notes part, group heading pattern, note): the
+        notes_p, pno = f[2], int(part[4:]) if part[4:].isdigit() else -1   # chapters' plain superscript marks '[n]' and the entries '[n]text'
+        chaps = sorted(x for x in f[0] if x != notes_p)        # of the notes part, under one heading per chapter, linked both ways
+        if pno == notes_p:                                      # (the k-th heading is the k-th chapter part)
+            k = -1
+            for it in out:
+                if it['k'] != 'p' or not it.get('runs') or it['runs'][0].get('i'):
+                    continue
+                r0 = it['runs'][0]
+                if re.match(f[3], r0['t']):
+                    k += 1
+                    continue
+                m = re.match(r'\s*\[(\d+)\][\s\u3000]*', r0['t'])
+                if m and 0 <= k < len(chaps) and not (r0.get('h') or r0.get('a')):
+                    n, c = m.group(1), chaps[k]
+                    it['runs'][0:1] = [x for x in (run(f'[{n}]', 0, 0, f'part{c:04d}#xr{n}', f'{part}#xn{c}-{n}'),
+                                                    dict(r0, t=r0['t'][m.end():])) if x['t']]
+                    FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+        elif pno in chaps:
+            for it in out:
+                for r in it.get('runs') or []:
+                    m = re.fullmatch(r'\[(\d+)\]', r['t'].strip()) if r.get('s') and not (r.get('h') or r.get('a') or r.get('i')) else None
+                    if m:
+                        r['t'] = m.group(0)
+                        r['h'], r['a'] = f'part{notes_p:04d}#xn{pno}-{m.group(1)}', f'{part}#xr{m.group(1)}'
+                        r.pop('s', None)
     for f in [f for f in fx if f[1] == 'CELL']:                 # (part, 'CELL', first cell of the row, column, old, new): one table cell
         done = False
         for it in out:
@@ -340,13 +378,57 @@ def _apply_fixes(part, out):
                 out[k] = dict(it, k='h', lvl=f[3], runs=[dict(r, b=0) for r in it['runs']])
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
                 break
+    fwp = [f for f in fx if f[1] == 'FWPAREN']
     fx = [f for f in fx if f[1] not in BF_SPECIAL]
     for it in out:
         if it.get('runs'):
             it['runs'] = fix_runs(it['runs'], fx)
         if it.get('rows'):
             it['rows'] = [[fix_runs(c, fx) for c in row] for row in it['rows']]
+    for f in fwp:                                               # (parts, 'FWPAREN', pattern of the character before, note): the
+        for it in out:                                          # half-width parentheses of the Chinese text, character by character
+            if it.get('runs'):                                  # (a pattern replacing whole spans would merge the marks and
+                fw_parens(it['runs'], f)                        #  styles inside them into one run)
     return out
+
+
+def fw_parens_text(t, before):
+    """The positions of the half-width parentheses in `t` that become full width (see fw_parens), and the new text."""
+    stack, edits = [], {}
+    for i, ch in enumerate(t):
+        if ch == '(':
+            stack.append(i)
+        elif ch == ')' and stack:
+            a = stack.pop()
+            if a and re.match(before, t[a - 1]) or re.search(r'[\u4e00-\u9fff]', t[a + 1:i]):
+                edits[a], edits[i] = '（', '）'
+    return edits, ''.join(edits.get(i, ch) for i, ch in enumerate(t))
+
+
+def fw_parens(runs, f):
+    """A pair '(…)' becomes '（…）' when the character before it matches f[2] or the text inside has a Chinese
+    character; pictures count as one character, the runs keep their bounds."""
+    pos, text = [], []                                          # (run index, offset) of every character, pictures as '\0'
+    for k, r in enumerate(runs):
+        if r.get('i'):
+            pos.append((k, None))
+            text.append('\0')
+            continue
+        for o, ch in enumerate(r['t']):
+            pos.append((k, o))
+            text.append(ch)
+    edits, _ = fw_parens_text(''.join(text), f[2])
+    if edits:
+        FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(edits) // 2
+    by_run = {}
+    for i, ch in edits.items():
+        k, o = pos[i]
+        by_run.setdefault(k, []).append((o, ch))
+    for k, es in by_run.items():
+        chars = list(runs[k]['t'])
+        for o, ch in es:
+            chars[o] = ch
+        runs[k] = dict(runs[k], t=''.join(chars))
 
 
 def _cls(c, add):
@@ -404,7 +486,8 @@ def inline(el, part, mark_breaks=False):
                 frag = href.split('#')[-1]                          # numbered later (renum); the note links back to this anchor
                 if out and not out[-1].get('s') and out[-1]['t'] != OBJ:
                     out[-1] = dict(out[-1], t=out[-1]['t'].rstrip())    # (the ebook's line break before the icon: no space before the mark)
-                out.append(run('0', b, 1, href, anchor_key(part, 'ref-' + frag), c=c))
+                num = re.search(r'(\d+)$', frag) if not href.startswith(part + '#') else None   # (book 34: notes of the whole
+                out.append(run(str(int(num.group(1))) if num else '0', b, 1, href, anchor_key(part, 'ref-' + frag), c=c))   # book in another file, N01..: their number)
             elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
                 m = re.search(r'(\d+)$', ch.get('id') or '')
                 if m and ch.get('href'):                          # an icon (image) as the note mark: the number comes from the id
@@ -419,7 +502,7 @@ def inline(el, part, mark_breaks=False):
                             c2 = _cls(c2, y)
                     if href.startswith(('http://', 'https://')):
                         c2 = _cls(c2, 'lnk')                          # a web address: blue, as it can be clicked
-                    rec(ch, b, c2, href or h, aid, s)
+                    rec(ch, b, c2, href or h, aid, 1 if 'editorial-ref' in cls else s)   # (book 34: '〔校订注1〕' set raised)
                 elif ch.get('id'):
                     aid = anchor_key(part, ch.get('id'))
                     if len(ch) == 0 and not (ch.text or '').strip():
@@ -596,7 +679,7 @@ def items(part):
                 _note_backlink(el)
                 imgs = _imgs(el)
                 txt = plain(el)
-                if imgs and not txt:
+                if imgs and not txt and 'formula-block' not in cls:    # (book 34: a line of formula pictures is a paragraph)
                     for im in imgs:
                         add('img', el, src=os.path.basename(im.get('src') or ''), runs=[], fig=fig)
                     continue
@@ -610,6 +693,25 @@ def items(part):
                 add('note' if (note or set(cls) & set(NOTE_CLS)) else 'p', el, runs=runs, q=q, box=box)
             elif t == 'blockquote':
                 walk(el, q=1, box=box, fig=fig, note=note)
+            elif t == 'section' and el.get(EPUB_TYPE) == 'footnote' and el.get('id'):
+                # (book 34) <section id=N01 epub:type=footnote><h2>注1</h2><p>text</p><a.backlink href=#ref-N01>返回正文</a>:
+                # one note entry, its label ('注1' -> 1; '校订注1' -> 〔校订注1〕, the reviser's mark as the text writes it)
+                # linked back to the mark; the heading and the words of the back-link go
+                kids = [x for x in el.iter() if isinstance(x.tag, str)]
+                head = next((x for x in kids if ln(x) in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')), None)
+                back = next((x for x in kids if ln(x) == 'a' and ('backlink' in (x.get('class') or '').split()
+                             or _BACK_WORDS.fullmatch(''.join(x.itertext())))), None)
+                paras = [x for x in kids if ln(x) == 'p']
+                label = re.sub(r'\s+', '', ''.join(head.itertext())) if head is not None else ''
+                m = re.fullmatch(r'注(\d+)', label)
+                label = m.group(1) if m else f'〔{label}〕'
+                to = resolve_href(part, back.get('href')) if back is not None else ''
+                for k, para in enumerate(paras):
+                    runs = clean_runs(inline(para, part))
+                    if k == 0:
+                        runs = [run(label, 0, 0, to, anchor_key(part, el.get('id')))] + runs
+                    if runs:
+                        add('note', para, runs=runs, q=0, box=0)
             elif t == 'aside':
                 lis = [x for x in el.iter() if isinstance(x.tag, str) and ln(x) == 'li' and 'duokan-footnote-item' in (x.get('class') or '')]
                 if lis and el.get('id'):                            # an EPUB3 footnote in the duokan form: its mark is an icon

@@ -163,7 +163,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             if anchors is not None and b.get('id') and b['id'] not in anchors:
                 anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'
-                         f'transform:translate({x0 + (st["W"] - iw) / 2:.2f}pt,{y:.2f}pt)">')
+                         f'transform:translate({x0 + ((st["W"] - iw - 2 * style.FONT) if b.get("align") == "right" else (st["W"] - iw) / 2):.2f}pt,{y:.2f}pt)">')
             capsets = []
             if b.get('cap_top_lines'):
                 from .typeset import CAP_PITCH

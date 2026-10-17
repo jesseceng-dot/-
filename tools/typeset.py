@@ -39,7 +39,8 @@ def make_lbs(blocks, measurer, grid='body', variants=None, vary_min_chars=18):
             n = int(b.get('n', 1))
             lb.nl, lb.pen, lb.starts, lb.nat = [n], [0.0], [[0] * n], [[0.0] * n]
             if b['k'] == 'img' and b.get('cap_lines') is not None:     # an in-text figure: a slot or two more air around it
-                for more, pen in ((1, 8.0), (2, 18.0))[:2 if n >= 8 else 1]:   # rather than a short page or a widow
+                for more, pen in ((1, 8.0), (2, 18.0), (3, 30.0))[:b.get('air') or (2 if n >= 8 else 1)]:   # rather than a short page or a widow
+                                                                                            # (b['air']: C['fig_air'], up to 3 slots)
                     lb.nl.append(n + more)
                     lb.pen.append(pen)
                     lb.starts.append([0] * (n + more))

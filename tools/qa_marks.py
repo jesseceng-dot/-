@@ -33,6 +33,8 @@ def check(b):
             runs = it.get('runs', [])
             if C.get('note_by_marker') and it['k'] == 'p' and len(runs) > 1 and runs[0].get('h') and BT.marker_text(runs[0]['t'], 'sq'):
                 is_note = True                            # (as bk.elements: a paragraph that starts with a linked number is a note)
+            if C.get('note_li') and it['k'] == 'li' and runs and (runs[0].get('h') or runs[0].get('a')) and BT.marker_text(runs[0]['t'], 'sq'):
+                is_note = True                            # (as bk.elements: a list item that starts with a linked number)
             if is_note:
                 if runs and runs[0].get('a'):
                     notes[runs[0]['a']] = (n, i, runs[0]['t'], runs[0].get('h'))
