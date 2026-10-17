@@ -201,7 +201,7 @@ def _para_lines(text, cap, indent):
 KAI_SHIFT = 0.78      # (measured) the Kai face's baseline in a 17 pt line lies 0.78 pt above the Song face's
 
 
-def divider_html(lines, grid=False):
+def divider_html(lines, grid=False, snap=False):
     """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
     smaller underneath.  Long titles get balanced line breaks.  grid=True (a dedication: small lines only): the lines
     one body line apart, on the baselines of the text pages."""
@@ -247,7 +247,9 @@ def divider_html(lines, grid=False):
         elif lvl < 50:
             fam, fs, wt, ls, lh, gap = 'KaiTi', 13.0, 700, 0.04, 21.0, 8.0
         else:
-            fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, (0.0 if grid else 2.0)
+            fam, fs, wt, ls, lh, gap = 'KaiTi', 10.5, 400, 0.02, 17.0, (0.0 if grid or snap else 2.0)
+            if snap:                                      # (snap: the epigraph lines of a part page on the text grid)
+                y = style.TOP + math.ceil((y - style.TOP - KAI_SHIFT - 0.01) / style.LINE) * style.LINE + KAI_SHIFT
         cap = (style.TEXT_W - 20) * 0.92 / fs
         wtxt = sum(normalize._w(ch) for ch in text)
         if '\u3000' in text and wtxt > cap and text.index('\u3000') < len(text) - 2:
@@ -259,6 +261,21 @@ def divider_html(lines, grid=False):
         else:
             runs = normalize.balance_title([run(text)], fs, style.TEXT_W - 20, slack=0.92)
         n = 1 + sum(1 for r in runs if r['t'] == '\n')
+        if snap and lvl >= 50:                            # each line a box of its own, its baseline on the grid (as level 96)
+            pieces, cur = [], []
+            for r in runs:
+                if r['t'] == '\n':
+                    pieces.append(cur)
+                    cur = []
+                else:
+                    cur.append(r)
+            pieces.append(cur)
+            for k, pc in enumerate(pieces):
+                out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
+                        f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;white-space:nowrap;'
+                        f'transform:translate(0pt,{y + k * lh:.2f}pt)"><span style="line-height:0">{runs_html(pc)}</span></div>')
+            y += n * lh + gap
+            continue
         body = runs_html(runs)
         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                 f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
@@ -267,18 +284,21 @@ def divider_html(lines, grid=False):
     return out
 
 
-def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None):
+def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, sub=()):
     """A picture that is a page of the book by itself (a frontispiece, a page of a facsimile): fitted into the text block
     -- under the section title when the page carries one (set like a chapter heading) -- with its caption lines under it,
     picture and caption centred together in the room left."""
-    im = Image.open(os.path.join(IMG_DIR, img))
-    w, h = im.size
+    w, h = img_size(img)                                 # (an SVG redrawing too)
     out = ''
     top = style.TOP
     if title:
         out += (f'<div class="ln s-h1 c" style="width:{style.TEXT_W:.3f}pt;height:{2 * style.LINE}pt;line-height:{2 * style.LINE}pt;'
                 f'transform:translate({style.LEFT:.3f}pt,{style.TOP + 3 * style.LINE:.3f}pt)">{_html.escape(title)}</div>')
         top = style.TOP + 7 * style.LINE
+    for k, t in enumerate(sub):                           # (a note on the title, under it)
+        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:KaiTi;'
+                f'font-size:9.5pt;line-height:{style.LINE}pt;transform:translate(0pt,{top - 2 * style.LINE + k * style.LINE:.2f}pt)">'
+                f'{_html.escape(t)}</div>')
     room = style.TOP + style.TEXT_H - top
     cap_h = (8.0 + 15.0 * len(lines)) if lines else 0.0
     s = min(style.TEXT_W / w, (room - cap_h) / h)

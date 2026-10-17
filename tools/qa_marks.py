@@ -8,6 +8,12 @@ import sys
 from . import bk, bk_extract as BE, bk_text as BT
 
 
+def _num(t):
+    """The number of a note entry: its leading digits (an entry that is all one back-link carries its whole text)."""
+    m = re.match(r'\s*[\[［(（〔]?(\d+)', t)
+    return m.group(1) if m else re.sub(r'\D', '', t)
+
+
 def check(b):
     C = bk.CFG[b]
     parts = [x for n, _ in C['front'] for x in bk._parts(n)]
@@ -39,7 +45,7 @@ def check(b):
     for a, (n, i, t, h) in marks.items():
         if h not in notes:
             bad.append(('角标指向不存在的注释', n, i, t, h))
-        elif re.sub(r'\D', '', notes[h][2]) != re.sub(r'\D', '', t):
+        elif _num(notes[h][2]) != re.sub(r'\D', '', t):
             bad.append(('角标与注释编号不同', n, i, t, notes[h][2]))
     for a, (n, i, t, h) in notes.items():
         if h not in marks:

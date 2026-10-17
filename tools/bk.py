@@ -439,6 +439,44 @@ CFG = {
              front=[(3, 'dedication'), (4, 'text'), (5, 'text'), (6, 'text'), (7, 'text')], body=list(range(8, 32)),
              back=[32], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    27: dict(scratch='q27', file='置身事内', title='置身事内', sub='中国政府与经济发展', author='兰小欢 著', credits=[],
+             publisher='上海人民出版社', pdf_author='兰小欢', cover='00030.jpeg', title_img='00001.jpeg',
+             copyright=2, copyright_imgs={'00002.jpeg': 26.0}, tail=['00003.jpeg'], tail_w=320.0,   # (the publisher's page of QR codes: the last page)
+             marker='paren', note_cls=('fnContent-1',), lat_apos=True, toc_even=True, open_air=True, dedication_grid=True,
+             cls_cap=('tuti', 'tuzhu-8'), cls_right=('signContent-1-kaiti',), cls_quote=('bodyContent-2-kaiti', 'bodyContent-2-kaiti-top'),
+             cls_kai=('bodyContent-1-kaiti', 'bodyContent-1-kaiti-top-1', 'bodyContent-1-kaiti-top-6'),
+             cls_map={'hang-bodyContent-1': ('noindent', -2, 2)},          # (the references: hanging indent)
+             part_re=r'^[上下]篇', part_split=r'^([上下]篇)\s+(.*)$', part_epi_cls=('bodyContent-1-kaiti',), part_epi_para=True,
+             fig_inline=True, fig_dpi=300, table2=True, table_keep=12, table_head_keep=True,
+             front=[(4, 'dedication'), (5, 'text'), (6, 'text')], body=list(range(7, 17)), back=[17, 18], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    28: dict(scratch='q28', file='风险认知', title='风险认知', sub='如何精准决策', author='〔德〕格尔德·吉仁泽 著', credits=['王晋　译'],
+             publisher='中信出版集团', pdf_author='〔德〕格尔德·吉仁泽', cover='00050.jpeg', title_img=None, copyright=88,
+             marker='sq', renum=True, lat_apos=True, toc_even=True, open_air=True, dedication_grid=True,
+             cls_quote=('kaiti',), cls_cap=('tushuo', 'tushuo1'), part_epi_cls=('kaiti',),
+             part_re=r'^第[一二三]部分', part_split=r'^(第[一二三]部分)\s+(.*)$', part_grid=True,
+             fig_inline=True, fig_dpi=150, table2=True, table_keep=12, table_head_keep=True,
+             img_text={'svg:20³': '20³'},                       # (the reviser's formula picture in the text: 8000（20³）种组合)
+             # one chapter = its title part and its section parts (the ebook has a file for every section)
+             front=[(3, 'dedication')],
+             body=[4, list(range(5, 11)), list(range(11, 20)), list(range(20, 28)), list(range(28, 32)), 32, list(range(33, 41)),
+                   list(range(41, 48)), list(range(48, 52)), list(range(52, 60)), list(range(60, 69)), list(range(69, 79)),
+                   list(range(79, 82)), 82, list(range(83, 88))],
+             back=[], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    29: dict(scratch='q29', file='超越智商', title='超越智商', sub='为什么聪明人也会做蠢事', author='〔加〕基思·斯坦诺维奇 著',
+             credits=['张斌　译'], publisher='机械工业出版社', pdf_author='〔加〕基思·斯坦诺维奇', cover='00078.jpeg', title_img=None,
+             copyright=1, marker='sq', renum=True, lat_apos=True, toc_even=True, open_air=True, url_break=True,
+             cls_right=('you1',), epi_quote=True, cls_cap=('middle-img',), cap_mode='tabfig', cap_top_re=r'^表',
+             part_epi_cls=('ziti1',), part_epi_para=True, part_re=r'^第[一二三四]部分', part_split=r'^(第[一二三四]部分)\s+(.*)$',
+             fig_inline=True, fig_dpi=120, table2=True, table_keep=12, table_head_keep=True,
+             img_text={'00003.jpeg': '⑪', '00004.jpeg': '⑫', '00005.jpeg': '⑬'},   # (the guide's list: ⑩ is a character, ⑪–⑬ pictures)
+             front=[(3, 'text'), (4, 'text'), (5, 'text'), (6, 'text')],
+             body=[7, [8, 9, 10], list(range(11, 16)), list(range(16, 24)), list(range(24, 31)), list(range(31, 36)), 36,
+                   list(range(37, 44)), list(range(44, 48)), list(range(48, 52)), list(range(52, 56)), 56, list(range(57, 66)),
+                   list(range(66, 73)), list(range(73, 80)), 80, list(range(81, 85))],
+             back=[(85, 'figpages')], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -886,6 +924,16 @@ def elements(C, items, kaitext=False):
             b['runs'] = pg_pend + b['runs']
             pg_pend = []
         els.append(b)
+    if C.get('epi_quote'):                                  # (book 29) an epigraph under a title, set as plain text in the ebook:
+        for k in range(2, len(els)):                       # the lines between the heading and the '——name' are a quotation
+            x = els[k]
+            if x['k'] == 'p' and x.get('style') == 'right' and plain(x['runs']).startswith('——'):
+                j = k - 1
+                while j > 0 and els[j]['k'] == 'p' and els[j].get('style') in ('body', 'noindent') and k - j <= 4:
+                    j -= 1
+                if els[j]['k'] == 'h' and j < k - 1:
+                    for y in els[j + 1:k]:
+                        y.update(style='quote', right=0)
     return els, notes
 
 
@@ -1409,12 +1457,16 @@ def image_blocks(src, max_h, width=None, max_scale=None):
             dict(k='space', style='center', runs=[], n=1)]
 
 
-def figure_pages(n, els, zone='front', ids=(), cap_before=False):
+def figure_pages(n, els, zone='front', ids=(), cap_before=False, notes=()):
     """Page modules for a part made of pictures: each picture a page of its own, fitted into the text block with its
     caption lines; the part's heading (if any) titles the first page, which then carries the bookmark and the contents line.
     `cap_before`: the caption line stands before the picture in the ebook (a page label); `ids`: anchors of the first page
     (links to the part from elsewhere in the book)."""
     title = next((plain(e['runs']) for e in els if e['k'] == 'h'), '')
+    sub = []
+    if notes:                                                    # (book 29) a note on the title ('参考文献[1]'): its text under the title
+        title = re.sub(r'\s*[\[［]\d+[\]］]$', '', title)
+        sub = [re.sub(r'^\s*[\[［]\d+[\]］]\s*', '', plain(nt['runs'])) for nt in notes]
     figs, i = [], 0
     pre = []
     while i < len(els):
@@ -1440,11 +1492,12 @@ def figure_pages(n, els, zone='front', ids=(), cap_before=False):
     mods = []
     for k, (src, lines) in enumerate(figs):
         head = title if k == 0 else ''
-        def html(bb, page, src=src, lines=lines, head=head, a=tuple(ids) if k == 0 else ()):
-            return special.figure_page_html(src, lines, head, ids=a, builder=bb, page=page)
+        sub_k = sub if k == 0 else []
+        def html(bb, page, src=src, lines=lines, head=head, a=tuple(ids) if k == 0 else (), sub_k=sub_k):
+            return special.figure_page_html(src, lines, head, ids=a, builder=bb, page=page, sub=sub_k)
         m = page_module(f'figpage{n}-{k}', zone, html, toc=bool(head), toc_title=head, toc_level=1, title=head or title,
                         folio=True, head=True)
-        m.lines = ([head] if head else []) + lines                 # (for the text-fidelity report)
+        m.lines = ([head] if head else []) + sub_k + lines         # (for the text-fidelity report)
         mods.append(m)
     return mods
 
@@ -1643,11 +1696,10 @@ def part_first_img(n):
     raise KeyError(n)
 
 
-def qr_html(imgs):
-    """Publisher's QR codes of the last page (kept from the ebook): the images side by side."""
+def qr_html(imgs, w=130.0):
+    """Publisher's QR codes of the last page (kept from the ebook): the images side by side (each w pt wide)."""
     from PIL import Image
     out = ''
-    w = 130.0
     gap = 34.0
     x0 = (style.PAGE_W - len(imgs) * w - (len(imgs) - 1) * gap) / 2
     for k, name in enumerate(imgs):
@@ -1896,7 +1948,7 @@ def book(b):
         if pd:
             lines, title_s, els = pd
             n0 = _parts(n)[0]
-            div = page_module(f'div{n0}', 'body', special.divider_html(lines), toc=True, toc_title=title_s,
+            div = page_module(f'div{n0}', 'body', special.divider_html(lines, snap=C.get('part_grid', False)), toc=True, toc_title=title_s,
                               toc_level=0, title=title_s, folio=False, head=False)
             div.part = True
             div.lines = [t for lv, t in lines if lv != 98]
@@ -1921,7 +1973,7 @@ def book(b):
                     e_, _ = gather(p_)
                     back += figure_pages(p_, e_, zone='back', ids=(P(p_),), cap_before=True)
             else:
-                back += figure_pages(n, els, zone='back')
+                back += figure_pages(n, els, zone='back', notes=notes)
             continue
         if kind == 'notes':                                        # the ebook's own collection of notes (the translator's), in its place
             flush(back, 'back')
@@ -1972,6 +2024,8 @@ def book(b):
     for x in toc_bl:
         if x.get('style', '').startswith('toc'):
             x['noshrink'] = True
+            if C.get('toc_even'):
+                x['nosplit'] = True                                # (an entry of two lines is not split over two pages)
     if C.get('toc_even'):                                          # even spacing: fixed blank lines (one before a part, and where
         zone_of = {m.mid: m.zone for m in allm}                    # the front matter, the text and the back matter begin), none else
         prev = None
@@ -1993,7 +2047,7 @@ def book(b):
     toc.tail_min = 5
     tail = []
     if C['tail']:
-        tail.append(page_module('qr', 'back', qr_html(C['tail']), folio=False))
+        tail.append(page_module('qr', 'back', qr_html(C['tail'], C.get('tail_w', 130.0)), folio=False))
     for k_, im in enumerate(C.get('back_flaps', ())):              # the back flap, before the back cover
         tail.append(page_module(f'bflap{k_}', 'back', special.cover_html(im), folio=False))
     if C.get('backcover'):

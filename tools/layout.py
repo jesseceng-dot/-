@@ -161,6 +161,8 @@ def variant_penalty(block, st, starts, nat, vi):
             return INF
         if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
             return INF
+        if tail and len(tail) <= 6 and tail.replace('\u2060', '').strip('0123456789[]［］()（）') == '':
+            return INF                                   # (nor a last line of a year and a bracket: '2006）' -- check.module_report)
         if len(tail) == 1:
             pen += 10.0
         elif len(tail) == 2 and st['align'] != 'j':

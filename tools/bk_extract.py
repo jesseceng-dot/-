@@ -459,6 +459,15 @@ def inline(el, part, mark_breaks=False):
 
     rec(el, 0, '', '', '')
     k = 0
+    while k < len(out):                                         # (book 29) a linked superscript that took the next words with it:
+        r = out[k]                                              # '[4]。哪怕' -> the mark '[4]' and the text '。哪怕'
+        m = re.match(r'^([\[［]\d+[\]］])(\S.*)$', r['t']) if r.get('h') and 'msup' in (r.get('c') or '').split() else None
+        if m:
+            c_ = ' '.join(x for x in r['c'].split() if x != 'msup')
+            rest = {key: v for key, v in r.items() if key not in ('h', 'a')}
+            out[k:k + 1] = [dict(r, t=m.group(1), s=1, c=c_), dict(rest, t=m.group(2), c=c_)]
+        k += 1
+    k = 0
     while k < len(out) - 1:                                     # a mark split into links of its own: '[' '1' ']' -> '[1]'
         r, q = out[k], out[k + 1]
         if (r.get('s') or q.get('s')) and r.get('h') and r.get('h') == q.get('h') and not (r.get('i') or q.get('i')) \

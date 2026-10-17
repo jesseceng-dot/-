@@ -105,6 +105,8 @@ def pdf_checks(pdf, bb):
                 sp = [s for s in l['spans'] if s['text'].strip() and s['size'] >= 8]      # (a sub-script of a formula is no line)
                 if sp and 56 < sp[0]['origin'][1] < style.PAGE_H - 50:
                     ys.append(round(sp[0]['origin'][1], 2))
+        if ys and any(im['bbox'][3] > max(ys) + 2 for im in page.get_image_info()):
+            continue                                         # (the page ends with a picture, a formula drawn as one)
         if ys:
             per_page[p.index] = max(ys)
             bottoms[max(ys)] += 1
