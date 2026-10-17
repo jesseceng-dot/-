@@ -63,6 +63,20 @@ index aec04a6..6150828 100644
          if tail and len(tail) <= 8 and re.fullmatch(r'\u2060?[\[［]\d+[\]］]\u2060?', tail.replace(' ', '')):
              return INF
          if len(tail) == 1:
+diff --git a/tools/measure.py b/tools/measure.py
+index a4ae38f..fb28d62 100644
+--- a/tools/measure.py
++++ b/tools/measure.py
+@@ -56,7 +56,8 @@ async (specs) => {
+         range.setStart(tn, i); range.setEnd(tn, i + w);
+         const rc = range.getBoundingClientRect();
+         if (rc.width > 0 || rc.height > 0) {
+-          const ln = Math.floor(((rc.top + rc.bottom) / 2 - top0) / lhpx);
++          const hh = rc.bottom - rc.top;     // (the letter after a break at a soft hyphen: a box over both lines, its own the lower)
++          const ln = Math.floor(((hh > 1.5 * lhpx ? rc.bottom - (hh - lhpx) / 2 : (rc.top + rc.bottom) / 2) - top0) / lhpx);
+           if (ln > cur || (forced && ln >= cur)) {
+             if (ln > cur) { flush(); starts.push(unit); cur = ln; }
+             forced = false;
 diff --git a/tools/render.py b/tools/render.py
 index b3c9425..ada1220 100644
 --- a/tools/render.py
