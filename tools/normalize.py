@@ -92,6 +92,8 @@ def regap_heading(runs):
         if m:
             num = m.group(1)
             rest = t[m.end():]
+            if rest[:1] in ('：', ':', '、', '．'):
+                gap = ''                                   # ('第二期：独断主义和怀疑主义': the colon is the separator, no gap)
             new = prefix + num + gap + rest
             return [dict(first, t=new)] + runs[1:]
     return runs
