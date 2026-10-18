@@ -66,7 +66,7 @@ def book_parts(C):
     return out
 
 
-BLOCK_TAGS = {'p', 'td', 'th', 'li', 'dt', 'dd', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}
+BLOCK_TAGS = {'p', 'div', 'td', 'th', 'li', 'dt', 'dd', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}      # (div: a copyright page set as divs)
 
 
 def dropped_pictures(b):

@@ -333,6 +333,7 @@ SYSTEM_COPIES = {                                  # used whole (TrueType outlin
     'NotoSerif-Regular.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf',
     'NotoSerif-Bold.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Bold.ttf',
     'NotoSerif-Italic.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Italic.ttf',
+    'NotoSansSymbols2-Regular.ttf': '/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf',   # (❑ of book 39: .sym)
 }
 
 

@@ -45,7 +45,7 @@ def outline_for(bb):
                 under = False
             else:
                 base += 1
-        if vol_page_only:
+        if vol_page_only or getattr(mod, 'nobm', False):           # (a part's introduction: the part page carries the bookmark)
             continue
         if not mod.toc and mod.mid != 'toc' and not mod.title:
             continue
@@ -67,7 +67,7 @@ def outline_for(bb):
     fixed, last = [], 0
     for lv, t, p in out:
         lv = max(1, min(lv, last + 1))
-        fixed.append([lv, t, p])
+        fixed.append([lv, t.replace('\u2060', ''), p])            # (word joiners only steer the line breaking)
         last = lv
     return fixed
 

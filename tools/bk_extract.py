@@ -51,6 +51,9 @@ RUN_CLS = {
     'q30': {'i': (0, 'it')},                                     # 病毒星球: titles of works in the references in italics
     'q31': {'sbiao2': (0, 'msup')},                              # 知识的错觉: the exponent of '1GB=2³⁰字节' in two notes
     'q32': {'dian': (0, 'emp')},                                 # 气候赌场: the author's emphasis dots (着重号) under terms
+    'q37': {'kaiti4': (0, 'kai')},                               # 认知升级: the epigraphs under the chapter titles in Kai
+    'q39': {'yanse': (0, 'hei')},                                # 世界观: the terms the ebook colours (where they are introduced) in 黑体
+    'q40': {'heiti': (0, 'hei')},                                # 随机漫步的傻瓜: the names in the signatures of 各方赞誉
     'q24': {'italic': (0, 'it')},                               # 理性之谜: titles of works in italics                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images

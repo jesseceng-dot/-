@@ -589,6 +589,71 @@ CFG = {
                    list(range(36, 39)), list(range(39, 42)), 42],
              back=[list(range(43, 74))], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # 认知三部曲（全三册）: one ebook, three books (36–38), each its own PDF (its cover from the ebook, the set's ebook colophon
+    # as the copyright page) and a collection of the three (tools/bk_collection.py).  The scratch directories q36–q38 hold
+    # the same unpacked ebook.
+    36: dict(scratch='q36', file='思维版图', title='思维版图', sub='', author='〔美〕理查德·尼斯贝特 著', credits=['李秀霞　译'],
+             publisher='中信出版社', pdf_author='〔美〕理查德·尼斯贝特', series='认知三部曲', cover='image00418.jpeg', title_img=None,
+             copyright=90, marker='sq', note_cls=('calibre14',), notes_end='all', lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True,
+             head_sub=[(r'^(第\d+章)[\s\u3000]+', '\\1\u3000')], head_cls={'jz': 3},       # (a chapter: its opening part and a part per section)
+             cls_kai=('kaiti2',), cls_map={'kaiti3': ('right', 0, 0, 'kai')}, cls_cap=('tushuo', 'tushuo1', 'tushuo2'),
+             label_re=r'^(图\d+[–-]\d+)', fig_inline=True, fig_dpi=150,
+             front=[(4, 'text')], body=[list(range(5, 10)), list(range(10, 14)), list(range(14, 19)), list(range(19, 24)),
+                                       list(range(24, 29)), list(range(29, 34)), list(range(34, 38)), list(range(38, 42)),
+                                       list(range(42, 46))], back=[46], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # the chapter's opening picture (the ebook's decoration, ten times the same) is not set; the epigraph under each title
+    # (div.block: Kai quotation, bold Hei name) as the ebook has it
+    37: dict(scratch='q37', file='认知升级', title='认知升级', sub='', author='〔美〕理查德·尼斯贝特 著', credits=['仲田甜　译'],
+             publisher='中信出版社', pdf_author='〔美〕理查德·尼斯贝特', series='认知三部曲', cover='image00410.jpeg', title_img=None,
+             copyright=90, marker='sq', note_cls=('calibre14',), notes_end='all', lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True,
+             img_drop={'image00426.jpeg'},
+             head_sub=[(r'^(第\d+章|结语|附录[一二])[\s\u3000]+', '\\1\u3000')], head_as_p={'calibre22': 'cap', 'calibre23': 'cap'},
+             cls_quote=('calibre16',), cls_kai=('calibre19',), cls_right=('right', 'right1'), cls_cap=('tushuo', 'tushuo1', 'tushuo2'),
+             cap_top_re=r'^表', cap_after_re=r'^资料来源', label_re=r'^([图表]\d+[–-]\d+)', fig_inline=True, fig_dpi=150,
+             front=[], body=list(range(49, 60)), back=[60, 61, 62], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    38: dict(scratch='q38', file='逻辑思维', title='逻辑思维', sub='拥有智慧思考的工具', author='〔美〕理查德·尼斯贝特 著',
+             credits=['张　媚　译'], publisher='中信出版社', pdf_author='〔美〕理查德·尼斯贝特', series='认知三部曲',
+             cover='image00385.jpeg', title_img=None, copyright=90, marker='sq', note_cls=('calibre14',), notes_end='all', lat_apos=True, toc_even=True,
+             open_air=True, url_break=True, name_dot=True, head_sub=[(r'^(第\d+章|总结)[\s\u3000]+', '\\1\u3000')],
+             part_re=r'^第[一二三四五六]部分', part_split=r'^(第[一二三四五六]部分)[\s\u3000]+(.+)$', part_intro=True,
+             cls_kai=('kaiti2',), cls_map={'kaiti3': ('right', 0, 0, 'kai')}, cls_cap=('tushuo', 'tushuo1', 'tushuo2'),
+             fig_inline=True, fig_dpi=150,
+             front=[(65, 'text')], body=list(range(66, 88)), back=[88, 89], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # the formulas set as pictures (tools/bk_img39.py): the relativity chapter's fractions and roots in the lines, nine display
+    # formulas as centred lines; the examples, numbered theses and syllogisms in Kai (ziti4); the terms the ebook colours in Hei
+    39: dict(scratch='q39', file='世界观', title='世界观', sub='现代人必须要懂的科学哲学和科学史（原书第3版）',
+             author='〔美〕理查德·德威特 著', credits=['孙天　译'], publisher='机械工业出版社', pdf_author='〔美〕理查德·德威特',
+             cover='cover00295.jpeg', title_img=None, copyright=0, marker='sq', notes_end='all', lat_apos=True, toc_even=True,
+             open_air=2, open_air_cost=(30.0, 45.0),                   # (6 notes, one in 前言: one module at the end)
+             url_break=True, name_dot=True, head_sub=[(r'^(第\d+章)[\s\u3000]+', '\\1\u3000')], head_cls={'p4': 4},
+             part_re=r'^第[一二三]部分', part_split=r'^(第[一二三]部分)[\s\u3000]+(.+)$', part_epi_cls=('ziti4',), part_epi_para=True,
+             cls_kai=('ziti4',), cls_map={'you': ('right', 0, 0, 'kai')}, cls_cap=('middle-img',), label_re=r'^(图\d+-\d+)',
+             fig_inline=True, fig_dpi=150,
+             img_text=__import__('tools.bk_img39', fromlist=['IMG_TEXT']).IMG_TEXT,
+             img_para=__import__('tools.bk_img39', fromlist=['IMG_PARA']).IMG_PARA,
+             front=[(2, 'text'), (3, 'text')], body=list(range(4, 38)), back=[38], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # the headings carry the original title in grey (‘Fooled by Randomness’, the ebook's decoration) and a forced break
+    # between the label and the title; the 篇 pages open with an epigraph and a few paragraphs (modules of their own).
+    # heiti1: the titles under the sections, but for the few sentences (ending in 。) the ebook sets in Hei
+    40: dict(scratch='q40', file='随机漫步的傻瓜', title='随机漫步的傻瓜', sub='发现市场和人生中的隐藏机遇',
+             author='〔美〕纳西姆·尼古拉斯·塔勒布 著', credits=['盛逢时　译'], publisher='中信出版社',
+             pdf_author='〔美〕纳西姆·尼古拉斯·塔勒布', cover='cover00117.jpeg', title_img=None, copyright=[1, 2],
+             marker='sq', renum=True, lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True,
+             head_sub=[(r'[\s\u3000]*Fooled by Randomness$', ''), (r'太多[\s\u3000]+“', '太多“'),     # (第八章: a break in the title)
+                       (r'^(第[一二三四五六七八九十]+[篇章]|各方赞誉|专家推荐|自序|前言|后记)[\s\u3000]+', '\\1\u3000')],
+             part_re=r'^第[一二三]篇', part_split=r'^(第[一二三]篇)[\s\u3000]+(.+)$', part_sub_cls=('center',),
+             part_epi_cls=('calibre9',), part_epi_para=True, part_intro=True,   # (the part page: title, sub-title, epigraph; its introduction follows)
+             head_cls={'heiti1': (4, r'^(?!.*。$)')}, head_as_p={'sigil_not_in_toc': 'cap'},
+             cls_center=('center',), notes_end='all',                      # (4 notes in all, one in 前言: one module after the text)
+             cls_map={'heiti1': ('body', 2, 0, 'hei'), 'btx': ('body', 2, 0, 'hei'), 'right': ('right', 0, 0, 'kai'),
+                      'right2': ('right', 0, 0, 'kai'), 'right1': ('right', 0, 0, 'hei')},   # (the names in the signatures: Hei)
+             cap_mode='tabfig', cap_top_re=r'^表', label_re=r'^([图表][\d–-]+)', fig_inline=True, fig_dpi=150,
+             front=[(n, 'text') for n in range(4, 8)], body=list(range(8, 25)), back=[25], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -633,6 +698,8 @@ def regap_heading(runs):
         m = pat.match(t)
         if m:
             head, body = m.group(1) + gap, t[m.end():]
+            if body.lstrip(' \u3000')[:1] in ('：', ':', '、', '．'):
+                head, body = m.group(1), body.lstrip(' \u3000')     # ('第1章：世界观': the colon is the separator, no gap)
             break
     body = re.sub(' +', ' ', body)
     body = re.sub(r'\s+(?=——)', '', body)
@@ -684,6 +751,15 @@ def url_runs(runs):
         if pos < len(r['t']):
             out.append(dict(r, t=r['t'][pos:]))
     return out
+
+
+_NAME_DOT = re.compile(r'(?<=[^\s⁠])·(?=[^\s⁠])')
+
+
+def dot_runs(runs):
+    """(C['name_dot']) The interpunct inside a name (卡尔·皮尔逊, 《论语·子路》) neither starts nor ends a line: word joiners on
+    both sides.  (A '·' at the start of a paragraph, a list item's bullet, is left alone.)"""
+    return [r if r.get('i') or '·' not in r['t'] else dict(r, t=_NAME_DOT.sub('⁠·⁠', r['t'])) for r in runs]
 
 
 def mark_runs(runs, fmt):
@@ -1978,7 +2054,7 @@ def book(b):
             notes += nt
         return els, notes
 
-    def add_unit(ns, zone_list, zone, els, notes, top=False, kaitext=False, toc=True):
+    def add_unit(ns, zone_list, zone, els, notes, top=False, kaitext=False, toc=True, title_over=None):
         nonlocal pend_chars
         n = _parts(ns)[0]
         if C.get('renum') and notes:
@@ -2018,7 +2094,8 @@ def book(b):
             for j in range(len(blocks) - 1):                       # when that spares a page with an empty foot
                 if blocks[j]['k'] == 'h' and blocks[j].get('style') == 'h1':
                     if blocks[j + 1]['k'] == 'p' and not blocks[j + 1].get('before'):
-                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, 60.0), (2, 150.0), (3, 300.0)][:int(C['open_air']) + 1]
+                        c1, c2 = C.get('open_air_cost', (60.0, 150.0))     # (book 39: cheaper than a paragraph's first line at a page foot)
+                        blocks[j + 1]['bef_opts'] = [(0, 0.0), (1, c1), (2, c2), (3, 300.0)][:int(C['open_air']) + 1]
                     break
             for j, x in enumerate(blocks):                         # and an epigraph's '——name' may stand one line below it
                 after_epi = C.get('epi_name_air') and j and blocks[j - 1].get('style') in ('kaibody', 'quote', 'verse')   # (book 34: names without '——')
@@ -2039,9 +2116,15 @@ def book(b):
         for x in blocks:
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)
+            if C.get('name_dot') and x['k'] == 'p' and x.get('runs'):
+                x['runs'] = dot_runs(x['runs'])
         if C.get('url_break'):
             notes = [dict(it, runs=url_runs(it['runs'])) for it in notes]
+        if C.get('name_dot'):
+            notes = [dict(it, runs=dot_runs(it['runs'])) for it in notes]
         title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
+        if title_over is not None:
+            title = title_over                                     # (part_intro: the part's title for the running head)
         if C.get('head_split_join') is not None:
             title = title.replace(C['head_split'], C['head_split_join'])     # (contents, bookmark, running head: one line)
         if C.get('head_split'):                                    # 'Title／Sub-title' chapter headings: the sub-title on a line of its own
@@ -2085,6 +2168,7 @@ def book(b):
         mod.src_part = n
         mod.src_parts = _parts(ns)
         mod.top = top
+        mod.nobm = title_over is not None
         mod.unnest = zone == 'back'
         zone_list.append(mod)
         if notes:
@@ -2110,7 +2194,8 @@ def book(b):
         add_unit(n, front, 'front', els, notes, top=True, kaitext=(kind == 'kaitext'))
         if C.get('front_notes_each'):
             flush(front, 'front')                                  # (the notes of a preface right after it, not after the next one)
-    flush(front, 'front')
+    if C.get('notes_end') != 'all':
+        flush(front, 'front')                                      # (notes_end='all': the front matter's notes join the others)
     for n in C['body']:
         els, notes = gather(n)
         plates = []
@@ -2141,12 +2226,18 @@ def book(b):
             body.append(div)
             if not els:
                 continue
+            if C.get('part_intro') and els[0]['k'] != 'h':          # (book 40) the part's introduction after its page: not an entry of
+                add_unit(n, body, 'body', els, notes, toc=False, title_over=title_s)    # its own (its sub-titles are not chapters)
+                if pend_chars >= NOTE_MIN and not C.get('notes_end'):
+                    flush(body, 'body')
+                continue
         add_unit(n, body, 'body', els, notes)
         if pend_chars >= NOTE_MIN and not C.get('notes_end'):
             flush(body, 'body')
         if plates:
             body += figure_pages(f'{_parts(n)[0]}x', plates, zone='body')
-    flush(body, 'body')                                            # (notes_end: the few notes of all chapters in one module here)
+    if C.get('notes_end') != 'all':
+        flush(body, 'body')                                        # (notes_end: the few notes of all chapters in one module here)
     for n in C['back']:
         kind = 'text'
         if isinstance(n, tuple):
@@ -2200,7 +2291,10 @@ def book(b):
         if kind == 'kaibody':
             els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
         add_unit(n, back, 'back', els, notes, top=True)
-        flush(back, 'back')
+        if C.get('notes_end') != 'all':
+            flush(back, 'back')
+    if C.get('notes_end') == 'all':
+        flush(back, 'back')                                        # (notes_end='all': the notes of the front matter and the text, last)
     for n in C.get('endnotes', ()):                            # notes of the whole book gathered in the last part of the ebook
         notes = [dict(it, k='note') for it in BE.items(P(n)) if it['k'] in ('p', 'note') and it.get('runs')]     # (continuation paragraphs too)
         if notes:
