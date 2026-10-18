@@ -75,6 +75,74 @@ index a4ae38f..fb28d62 100644
            if (ln > cur || (forced && ln >= cur)) {
              if (ln > cur) { flush(); starts.push(unit); cur = ln; }
              forced = false;
+diff --git a/tools/model.py b/tools/model.py
+index 0103be6..75c736e 100644
+--- a/tools/model.py
++++ b/tools/model.py
+@@ -44,8 +44,54 @@ def _wrap(r, inner):
+     return inner
+ 
+ 
++APOS = re.compile(r'(?<=[A-Za-z\u00c0-\u024f])\u2019(?=[A-Za-z\u00c0-\u024f])')
++_APOS_MARK = '\ufdd0'
++_APOS_HTML = '<span style="font-family:var(--apos-ff,AposSerif,SongBody,serif);line-height:0">\u2019</span>'   # (style._apos_ff)
++
++
++_CONTR = re.compile(r'(?:s|t|d|ll|re|ve|m)(?![A-Za-z\u00c0-\u024f])')
++_WORD_END = re.compile(r'[A-Za-z\u00c0-\u024f]+$')
++
++
++def apostrophes(full):
++    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing). A ’ between letters that closes an open ‘
++    (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps the CJK glyph, whose blank half spaces it."""
++    hits, depth = set(), 0
++    for m in re.finditer('[‘’]', full):
++        k = m.start()
++        if m.group() == '‘':
++            depth += 1
++        elif APOS.match(full, k):
++            if depth and len(_WORD_END.search(full, 0, k).group()) > 2 and not _CONTR.match(full, k + 1):
++                depth -= 1
++            else:
++                hits.add(k)
++        elif depth:
++            depth -= 1
++    return hits
++
++
++def _latin_apostrophes(runs):
++    """An apostrophe inside a Latin word (Nature’s) in the Latin face: the CJK faces set ’ full width ('Nature’ s').
++    Marked here, replaced by a span in runs_html; runs already Latin or italic keep their own face."""
++    full = ''.join(r['t'] for r in runs)
++    hits = apostrophes(full)
++    if not hits:
++        return runs
++    out, pos = [], 0
++    for r in runs:
++        t = r['t']
++        if not r.get('i') and not set((r.get('c') or '').split()) & {'lat', 'it'} and any(pos <= h < pos + len(t) for h in hits):
++            r = dict(r, t=''.join(_APOS_MARK if pos + k in hits else ch for k, ch in enumerate(t)))
++        out.append(r)
++        pos += len(t)
++    return out
++
++
+ def runs_html(runs, start=0, end=None, strip=True, final=False):
+     """HTML for units [start, end) of a run list."""
++    if any('\u2019' in r['t'] for r in runs):
++        runs = _latin_apostrophes(runs)
+     out = []
+     pos = 0
+     total = runs_len(runs)
+@@ -89,7 +135,7 @@ def runs_html(runs, start=0, end=None, strip=True, final=False):
+             parts.append(_wrap(r, f'<img class="inl" src="{_html.escape(r["i"])}">'))
+         else:
+             parts.append(_wrap(r, _html.escape(seg, quote=False)))
+-    return ''.join(parts)
++    return ''.join(parts).replace(_APOS_MARK, _APOS_HTML)
+ 
+ 
+ def collapse_ws(s):
 diff --git a/tools/render.py b/tools/render.py
 index 3267583..5f7fb0f 100644
 --- a/tools/render.py
@@ -87,3 +155,36 @@ index 3267583..5f7fb0f 100644
      if st['align'] == 'j':
          a = 'l' if j == nlines_total - 1 else 'j'
      else:
+diff --git a/tools/style.py b/tools/style.py
+index 45c8bee..2dca94b 100644
+--- a/tools/style.py
++++ b/tools/style.py
+@@ -61,6 +61,8 @@ FONTS_CSS = """
+ @font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
+ @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
+ @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
++@font-face{font-family:"AposSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+2019}
++@font-face{font-family:"AposSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+2019}
+ @font-face{font-family:"GebRare";src:url("%(f)s/GebRare.ttf");unicode-range:U+AA9E-AAAF,U+E047}
+ @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
+ @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
+@@ -144,3 +146,19 @@ a{{color:inherit;text-decoration:none}}
+ import re as _re
+ # The coined characters of 《哥德尔、艾舍尔、巴赫》 (U+AA9E–AAAF, the inverted G at U+E047) come from the ebook's own font in every face.
+ STYLE_CSS = _re.sub(r'font-family:(?!"GebRare"|inherit)', 'font-family:"GebRare",', STYLE_CSS)
++
++
++# The face of an apostrophe inside a Latin word (model._APOS_HTML), set beside every font-family as --apos-ff: the CJK
++# faces set ’ full width ('Nature’ s'), so it comes from AposSerif; faces with a proportional ’ of their own keep it.
++_APOS_SKIP = {'GrkSerif', 'GebRare', 'HanExt', 'GuaSym', 'DroidHei'}       # (no ’ in these: the next face sets it)
++_APOS_OWN = {'KaiTi', 'ZhengHei', 'LatSerif', 'LatIt', 'Noto Serif', 'AposSerif'}
++
++
++def _apos_ff(m):
++    fams = m.group(1)
++    first = next((f for f in (x.strip().strip('"\'') for x in fams.split(',')) if f not in _APOS_SKIP), '')
++    return f'{m.group(0)};--apos-ff:{fams if first in _APOS_OWN else chr(34) + "AposSerif" + chr(34) + "," + fams}'
++
++
++import re as _re_apos
++STYLE_CSS = _re_apos.sub(r'font-family:(?!inherit)([^;}]+)', _apos_ff, STYLE_CSS)

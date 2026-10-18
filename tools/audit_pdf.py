@@ -29,6 +29,7 @@ import sys
 
 import pymupdf
 
+from .model import apostrophes
 from .qa_pdf import joiners
 
 NO_START = set('，。、；：！？）》」』”’】〕…,.;:!?)')
@@ -184,13 +185,14 @@ def audit(path):
                 rep['links'].append((i + 1, lk.get('page')))
     rep['type3'] = sorted({f[3] for pn in range(n) for f in d.get_page_fonts(pn) if f[2] == 'Type3'})
     for i in range(n):
+        # apostrophes inside Latin words set in a CJK face; a ’ that closes a ‘ on the page is a quote (model.apostrophes)
+        chars = [('\n', '')]
         for b in d[i].get_text('rawdict')['blocks']:
             for l in b.get('lines', []):
-                chars = [(c['c'], sp['font']) for sp in l['spans'] for c in sp['chars']]
-                for k in range(1, len(chars) - 1):
-                    if chars[k][0] == '’' and re.match(r'[A-Za-z]', chars[k - 1][0]) and re.match(r'[A-Za-z]', chars[k + 1][0]) \
-                            and re.search(r'CJK|SC-|Han', chars[k][1]):
-                        rep['apos'].append((i + 1, ''.join(x for x, _ in chars[max(0, k - 6):k + 4])))
+                chars += [(c['c'], sp['font']) for sp in l['spans'] for c in sp['chars']] + [('\n', '')]
+        for k in sorted(apostrophes(''.join(x for x, _ in chars))):
+            if re.search(r'CJK|SC-|Han', chars[k][1]):
+                rep['apos'].append((i + 1, ''.join(x for x, _ in chars[max(0, k - 6):k + 4])))
     try:
         rep['joiner'] = [x for x in joiners(d) if x[1]] if callable(joiners) else []
     except Exception:

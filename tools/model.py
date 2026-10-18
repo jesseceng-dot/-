@@ -45,8 +45,54 @@ def _wrap(r, inner):
     return inner
 
 
+APOS = re.compile(r'(?<=[A-Za-z\u00c0-\u024f])\u2019(?=[A-Za-z\u00c0-\u024f])')
+_APOS_MARK = '\ufdd0'
+_APOS_HTML = '<span style="font-family:var(--apos-ff,AposSerif,SongBody,serif);line-height:0">\u2019</span>'   # (style._apos_ff)
+
+
+_CONTR = re.compile(r'(?:s|t|d|ll|re|ve|m)(?![A-Za-z\u00c0-\u024f])')
+_WORD_END = re.compile(r'[A-Za-z\u00c0-\u024f]+$')
+
+
+def apostrophes(full):
+    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing). A ’ between letters that closes an open ‘
+    (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps the CJK glyph, whose blank half spaces it."""
+    hits, depth = set(), 0
+    for m in re.finditer('[‘’]', full):
+        k = m.start()
+        if m.group() == '‘':
+            depth += 1
+        elif APOS.match(full, k):
+            if depth and len(_WORD_END.search(full, 0, k).group()) > 2 and not _CONTR.match(full, k + 1):
+                depth -= 1
+            else:
+                hits.add(k)
+        elif depth:
+            depth -= 1
+    return hits
+
+
+def _latin_apostrophes(runs):
+    """An apostrophe inside a Latin word (Nature’s) in the Latin face: the CJK faces set ’ full width ('Nature’ s').
+    Marked here, replaced by a span in runs_html; runs already Latin or italic keep their own face."""
+    full = ''.join(r['t'] for r in runs)
+    hits = apostrophes(full)
+    if not hits:
+        return runs
+    out, pos = [], 0
+    for r in runs:
+        t = r['t']
+        if not r.get('i') and not set((r.get('c') or '').split()) & {'lat', 'it'} and any(pos <= h < pos + len(t) for h in hits):
+            r = dict(r, t=''.join(_APOS_MARK if pos + k in hits else ch for k, ch in enumerate(t)))
+        out.append(r)
+        pos += len(t)
+    return out
+
+
 def runs_html(runs, start=0, end=None, strip=True, final=False):
     """HTML for units [start, end) of a run list."""
+    if any('\u2019' in r['t'] for r in runs):
+        runs = _latin_apostrophes(runs)
     out = []
     pos = 0
     total = runs_len(runs)
@@ -90,7 +136,7 @@ def runs_html(runs, start=0, end=None, strip=True, final=False):
             parts.append(_wrap(r, f'<img class="inl" src="{_html.escape(r["i"])}">'))
         else:
             parts.append(_wrap(r, _html.escape(seg, quote=False)))
-    return ''.join(parts)
+    return ''.join(parts).replace(_APOS_MARK, _APOS_HTML)
 
 
 def collapse_ws(s):

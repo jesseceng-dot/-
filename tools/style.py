@@ -61,6 +61,8 @@ FONTS_CSS = """
 @font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
+@font-face{font-family:"AposSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+2019}
+@font-face{font-family:"AposSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+2019}
 @font-face{font-family:"GebRare";src:url("%(f)s/GebRare.ttf");unicode-range:U+AA9E-AAAF,U+E047}
 @font-face{font-family:"GuaSym";src:url("%(f)s/LXGWWenKai-Regular.ttf");font-weight:400;unicode-range:U+2630-2637,U+268A-268F,U+4DC0-4DFF}
 @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
@@ -148,3 +150,19 @@ a{{color:inherit;text-decoration:none}}
 import re as _re
 # The coined characters of 《哥德尔、艾舍尔、巴赫》 (U+AA9E–AAAF, the inverted G at U+E047) come from the ebook's own font in every face.
 STYLE_CSS = _re.sub(r'font-family:(?!"GebRare"|inherit)', 'font-family:"GebRare",', STYLE_CSS)
+
+
+# The face of an apostrophe inside a Latin word (model._APOS_HTML), set beside every font-family as --apos-ff: the CJK
+# faces set ’ full width ('Nature’ s'), so it comes from AposSerif; faces with a proportional ’ of their own keep it.
+_APOS_SKIP = {'GrkSerif', 'GebRare', 'HanExt', 'GuaSym', 'DroidHei'}       # (no ’ in these: the next face sets it)
+_APOS_OWN = {'KaiTi', 'ZhengHei', 'LatSerif', 'LatIt', 'Noto Serif', 'AposSerif'}
+
+
+def _apos_ff(m):
+    fams = m.group(1)
+    first = next((f for f in (x.strip().strip('"\'') for x in fams.split(',')) if f not in _APOS_SKIP), '')
+    return f'{m.group(0)};--apos-ff:{fams if first in _APOS_OWN else chr(34) + "AposSerif" + chr(34) + "," + fams}'
+
+
+import re as _re_apos
+STYLE_CSS = _re_apos.sub(r'font-family:(?!inherit)([^;}]+)', _apos_ff, STYLE_CSS)
