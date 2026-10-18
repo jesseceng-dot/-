@@ -26,21 +26,28 @@ def check(b):
     parts += list(C.get('endnotes', ()))
     marks, notes, dup = {}, {}, []
     noteish = set(C.get('note_cls', ()))
+    lab = C.get('mark_label')                             # (book 59) marks with a label before the number: '[原注3]'
+    is_mark = lambda t: BT.marker_text(t, 'sq') or (lab and re.fullmatch(r'\[(?:%s)\d+\]' % lab, t.strip()))
     sections = {p for x in C['back'] if isinstance(x, tuple) and x[1] == 'notes' for p in bk._parts(x[0])}   # (the ebook's notes in place)
     for n in parts:
         for i, it in enumerate(BE.items(bk.P(n))):
             is_note = it['k'] == 'note' or set(it['cls'].split()) & noteish or n in C.get('endnotes', ()) or n in sections and it['k'] == 'p'
             runs = it.get('runs', [])
-            if C.get('note_by_marker') and it['k'] == 'p' and len(runs) > 1 and runs[0].get('h') and BT.marker_text(runs[0]['t'], 'sq'):
+            if runs and runs[0].get('i') in C.get('img_mark', {}):
+                mt, href = C['img_mark'][runs[0]['i']]   # (book 59) a picture that is a note's mark: bk sets the mark above it
+                marks[it['id']] = (n, i, mt, href)
+                continue
+            if C.get('note_by_marker') and it['k'] == 'p' and len(runs) > 1 and runs[0].get('h') and is_mark(runs[0]['t']):
                 is_note = True                            # (as bk.elements: a paragraph that starts with a linked number is a note)
             if C.get('note_li') and it['k'] == 'li' and runs and (runs[0].get('h') or runs[0].get('a')) and BT.marker_text(runs[0]['t'], 'sq'):
                 is_note = True                            # (as bk.elements: a list item that starts with a linked number)
             if is_note:
-                if runs and runs[0].get('a'):
-                    notes[runs[0]['a']] = (n, i, runs[0]['t'], runs[0].get('h'))
+                key = runs[0].get('a') or (it.get('id') if runs[0].get('h') and is_mark(runs[0]['t']) else None) if runs else None
+                if key:                                   # (book 59: the anchor of a source note is its paragraph's id)
+                    notes[key] = (n, i, runs[0]['t'], runs[0].get('h'))
                 runs = [r for r in runs[1:] if re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())]   # (marks inside a note)
             for r in runs:
-                if r.get('h') and (r.get('s') or BT.marker_text(r['t'], 'sq')):
+                if r.get('h') and (r.get('s') or is_mark(r['t'])):
                     if r.get('a') in marks:
                         dup.append((n, i, r['t'], r.get('a')))
                     marks[r.get('a') or f'?{n}:{i}:{r["t"]}'] = (n, i, r['t'], r.get('h'))

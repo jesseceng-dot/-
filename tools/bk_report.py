@@ -73,7 +73,7 @@ def dropped_pictures(b):
     """Inline pictures (inside a line of text or a note) without a transcription in C['img_text']: the pipeline leaves
     them out, so every one of them must be either transcribed or knowingly dropped (a decorative icon)."""
     C = bk.CFG[b]
-    known = C.get('img_text', {})
+    known = set(C.get('img_text', {})) | set(C.get('img_mark', {}))      # (img_mark: a picture that is a note's mark, kept as a figure)
     out = collections.Counter()
     for n in book_parts(C) + (bk._parts(C['copyright']) if C.get('copyright') is not None else []):
         for it in BE.items(bk.P(n)):
@@ -200,8 +200,9 @@ def block_counter(cfg, renum=False):
                     continue
                 if b.get('id', '').endswith('#top') and b['style'] == 'h1' and runs_text(b['runs']) == '注　释':
                     continue
-                if b.get('style') == 'idxhead' and m.mid.startswith('notes'):
-                    continue
+                if b.get('style') == 'idxhead' and m.mid.startswith('notes') and not m.mid.startswith('notes_p'):
+                    continue                                     # (the chapter titles over groups of notes: not text of the ebook;
+                                                                 # the group headings of the ebook's own notes part are)
                 runs = [r for r in b['runs'] if not (r.get('s') == 1 or r.get('c') == 'nn')] if renum else b['runs']
                 t = runs_text(runs).replace('⁠', '').replace(' ', '')
                 c += counter(re.sub(r'[\d—]', '', t) if m.idxmap else t)

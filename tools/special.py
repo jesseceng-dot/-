@@ -228,6 +228,22 @@ def divider_html(lines, grid=False, snap=False):
                         f'<span style="line-height:0">{_html.escape(ln_)}</span></div>')
             y += (k + 1) * lh + 8.0
             continue
+        if lvl == 95:                                     # (book 59) the list of a part's contents on its page: its title,
+            y += 30.0                                     # the items (94) flush left in a block centred by its widest item,
+            out += _center(_html.escape(text), y, 11.0, 'HeiTi', 700, 0.1)      # each on the text grid
+            y += 24.0
+            continue
+        if lvl == 94:
+            items = [t for l_, t in lines if l_ == 94]
+            if text is items[0]:                          # (the first item: on a line of the text grid)
+                y = style.TOP + math.ceil((y - style.TOP) / style.LINE) * style.LINE + KAI_SHIFT
+            wmax = max(sum(normalize._w(ch) for ch in t) for t in items) * 10.5
+            x0 = (style.PAGE_W - wmax) / 2
+            out += (f'<div style="position:absolute;left:0;top:0;white-space:nowrap;font-family:KaiTi;font-size:10.5pt;'
+                    f'line-height:{style.LINE}pt;color:#000;transform:translate({x0:.2f}pt,{y:.2f}pt)">'
+                    f'<span style="line-height:0">{_html.escape(text)}</span></div>')
+            y += style.LINE
+            continue
         if lvl == 98:                                     # a picture under the title (the part pages of book 16)
             from PIL import Image
             iw, ih = Image.open(os.path.join(IMG_DIR, text)).size

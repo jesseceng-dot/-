@@ -654,6 +654,30 @@ CFG = {
              cap_mode='tabfig', cap_top_re=r'^表', label_re=r'^([图表][\d–-]+)', fig_inline=True, fig_dpi=150,
              front=[(n, 'text') for n in range(4, 8)], body=list(range(8, 25)), back=[25], tail=[], inplace=set(),
              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。'),
+    # a repaired ebook: three series of notes, each with the label the ebook prints ([n] the translator's and editor's,
+    # [原注n] the author's footnotes and [资料n] his source notes, both added by the repairer); the first two after each
+    # chapter (the label '原作者注释' over the author's dropped), the source notes at the end in their place, by chapter.
+    # The formulas inside the lines are pictures (tools/bk_img59.py); display formulas and tables are pictures too and stay.
+    59: dict(scratch='q59', file='魔鬼数学', title='魔鬼数学', sub='大数据时代，数学思维的力量', author='〔美〕乔丹·艾伦伯格 著',
+             credits=['胡小锐　译'], publisher='中信出版社', pdf_author='〔美〕乔丹·艾伦伯格', cover='cover00387.jpeg', title_img=None,
+             copyright=30, marker='sq', mark_label='原注|资料', note_cls=('calibre18',), note_by_marker=True, note_group_h=True,
+             head_drop=('原作者注释',), uni_sup=True, sup_join=True, sup_plain=r'[…“]+', lat_apos=True, toc_even=True, open_air=True,
+             url_break=True, url_break_back=True, name_dot=True,
+             head_sub=[(r'^(第\d+章|第[一二三四五]部分|引言|结语)[\s\u3000]+', '\\1\u3000')],
+             part_re=r'^第[一二三四五]部分', part_split=r'^(第[一二三四五]部分)[\s\u3000]+(.+)$', part_list=r'^精彩内容',
+             cls_quote=('calibre13', 'calibre22'), cls_right=('kaiti2',), cls_cap=('tushuo',),
+             head_as_p={'calibre27': 'cap', 'calibre28': 'cap'}, cls_map={'sequence-row': ('center', 0, 0, '')},
+             text_map=[(r'^……$', ('center', 0, 0, ''))],                # (the lottery tickets listed as a picture: '……' under it)
+             img_mark={'image00322.jpeg': ('[3]', 'part0004#note3n')},   # (the table of the bullet holes: the mark of the editor's note [3])
+             fig_scale={'image00431.jpeg': 0.75,                     # (chapter 1: two charts in a row; the first one fits on the first page)
+                        'image00422.jpeg': 0.5},                     # (Wald's report: its Chinese about the size of the text)
+             plate_figs={'image00375.jpeg'},                         # (chapter 3: 24 lines before it, '上图表明' after it: a blank foot otherwise)
+             fig_inline=True, fig_dpi=220, formula_img=r'image00(325|351|379|381|422|426|429|440|443)\.jpeg$',
+             img_text=__import__('tools.bk_img59', fromlist=['IMG_TEXT']).IMG_TEXT,
+             front=[(1, 'dedication'), (2, 'kaitext')], body=list(range(4, 28)), back=[28, 29, (31, 'notes')], tail=[], inplace=set(),
+             errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。另有两处不在下面的规则里，是配置项：电子书误标成上标的“（24 处）'
+                         '和“……”（5 处）恢复为正常文字（`sup_plain`）；编者注 [3] 的角标在电子书里是整张表格图片的链接，补在表格前一段的末尾'
+                         '（`img_mark`）。'),
 }
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
@@ -709,6 +733,7 @@ def regap_heading(runs):
 # ---------------------------------------------------------------------------------------------- markers
 CIRC_LINK = None          # (set per book from C['circ_link']) marks and entries of a second series of notes, set as ①②③
 PAGE_ANCHOR = None        # (set per book from C['page_anchor']) anchors of the ends of printed pages, kept in the text
+MARK_LABEL = None         # (set per book from C['mark_label']) marks that carry a label before their number ('[原注3]', '[资料12]')
 
 
 def circ_number(n):
@@ -725,6 +750,8 @@ def circ_number(n):
 def _marker(r, fmt):
     """The printed note number of a mark or of a note entry's label: C['circ_link'] (a pattern of the link or anchor)
     picks out the translator's notes of a book whose two series are both '[n]' in the ebook."""
+    if MARK_LABEL and re.fullmatch(r'\u2060?\[(?:%s)\d+\]' % MARK_LABEL, r['t'].strip()):
+        return '\u2060'.join(r['t'].strip().lstrip('\u2060'))   # (book 59) a labelled mark as the ebook prints it, never broken
     mt = BT.marker_text(r['t'], fmt)
     if mt and CIRC_LINK and mt.startswith('[') and '校' not in mt \
             and any(re.search(CIRC_LINK, r.get(k) or '') for k in ('h', 'a')):
@@ -760,6 +787,12 @@ def dot_runs(runs):
     """(C['name_dot']) The interpunct inside a name (卡尔·皮尔逊, 《论语·子路》) neither starts nor ends a line: word joiners on
     both sides.  (A '·' at the start of a paragraph, a list item's bullet, is left alone.)"""
     return [r if r.get('i') or '·' not in r['t'] else dict(r, t=_NAME_DOT.sub('⁠·⁠', r['t'])) for r in runs]
+
+
+def sup_runs(runs):
+    """(C['sup_join']) An exponent or index (msup / msub runs: L², q_i) never starts a line: a word joiner before it."""
+    return [dict(r, t='\u2060' + r['t']) if not r.get('i') and set((r.get('c') or '').split()) & {'msup', 'msub'}
+            and r['t'] and not r['t'].startswith('\u2060') else r for r in runs]
 
 
 def mark_runs(runs, fmt):
@@ -817,10 +850,34 @@ def _cs(C, key):
     return set(C.get(key, ()))
 
 
+_UNI_SUP = dict(zip('⁰⁴⁵⁶⁷⁸⁹⁺⁻ⁿⁱˣ', '0456789+−nix'))
+
+
+def uni_scripts(runs):
+    """(C['uni_sup'], book 59) The Unicode superscripts that the text faces lack (eˣ, 2⁵): raised digits and letters as the
+    ebook's own exponents are (msup)."""
+    out = []
+    for r in runs:
+        if r.get('i') or not any(ch in _UNI_SUP for ch in r['t']):
+            out.append(r)
+            continue
+        for m in re.finditer('([%s]+)|([^%s]+)' % ((''.join(_UNI_SUP),) * 2), r['t']):
+            if m.group(1):
+                out.append(dict(r, t=''.join(_UNI_SUP[ch] for ch in m.group(1)), c=_cls_add(r.get('c'), 'msup')))
+            else:
+                out.append(dict(r, t=m.group(2)))
+    return out
+
+
 def _img_text(C, runs):
     """Inline images: those with a transcription (C['img_text']) become text, all others are dropped.  C['img_text_plain']
     lists (text before, text after) patterns where a transcription is plain upright text instead (the letter of
     '附录A', the article of an English title, set by the ebook with the same italic formula picture as a variable)."""
+    if C.get('uni_sup'):
+        runs = uni_scripts(runs)
+    if C.get('sup_plain'):                                         # (book 59) text the ebook marks as an exponent by mistake
+        runs = [dict(r, c=' '.join(x for x in r['c'].split() if x != 'msup')) if 'msup' in (r.get('c') or '').split()
+                and re.fullmatch(C['sup_plain'], r['t']) else r for r in runs]
     m = C.get('img_text')
     if m is None or not any(r.get('i') for r in runs):
         return runs
@@ -906,6 +963,13 @@ def elements(C, items, kaitext=False):
             els.append(dict(k='p', style=C['head_as_p'][key], runs=BT.fix_edges(BT.fix_runs(it['runs'])), id=it['id'],
                             src=f'h.{it["cls"]}', nomerge=True))
             continue
+        if k == 'p' and it.get('runs') and it['runs'][0].get('i') in C.get('img_mark', {}) \
+                and not any(r['t'].strip() for r in it['runs'][1:] if not r.get('i')):
+            mt, href = C['img_mark'][it['runs'][0]['i']]   # (book 59) a picture that is the link of a note mark (a table whose
+            if els and els[-1]['k'] == 'p':                 # header carried the mark): the figure stays
+                els[-1]['runs'] = els[-1]['runs'] + [dict(run(mt), h=href, a=it['id'])]   # and the mark (the note's back-link
+            els.append(dict(k='fig', src=it['runs'][0]['i'], id=''))                    # lands on it) ends the paragraph above it
+            continue
         if k == 'p' and set(it['cls'].split()) & _cs(C, 'note_cls'):
             it = dict(it, k='note')                         # footnote paragraphs marked by their class
             k = 'note'
@@ -916,7 +980,7 @@ def elements(C, items, kaitext=False):
             else:
                 pg_pend.append(mk)
             continue
-        if k == 'p' and C.get('note_by_marker') and it['runs'] and it['runs'][0].get('h') and BT.marker_text(it['runs'][0]['t'], 'sq') \
+        if k == 'p' and C.get('note_by_marker') and it['runs'] and it['runs'][0].get('h') and _marker(it['runs'][0], 'sq') \
                 and len(it['runs']) > 1:
             it = dict(it, k='note')                         # a paragraph that starts with a linked note number is a note entry
             k = 'note'
@@ -1019,8 +1083,9 @@ def elements(C, items, kaitext=False):
             continue
         if k == 'h':
             t = plain(runs)
-            if t in ('注释', '注 释', '註釋', '註 釋', '注釋') or (els and els[-1]['k'] == 'h' and plain(els[-1]['runs']) == t):
-                continue
+            if t in ('注释', '注 释', '註釋', '註 釋', '注釋') or (els and els[-1]['k'] == 'h' and plain(els[-1]['runs']) == t) \
+                    or t in C.get('head_drop', ()):
+                continue                                         # (head_drop, book 59: the label over the notes at a chapter's end)
             if C.get('merge_dash_head') and t.startswith('——') and els and els[-1]['k'] == 'h':
                 els[-1]['runs'] = merge_runs(els[-1]['runs'] + runs)          # 'Title' + '——sub-title' set as two headings
                 continue
@@ -1783,6 +1848,7 @@ def note_blocks(items, fmt):
             continue
         first = runs[0]
         label = re.fullmatch(r'〔[^〕\d]{1,6}\d+〕', first['t'].strip().replace('\u2060', ''))    # (book 34: a reviser's note '〔校订注1〕', as its mark reads)
+        label = label or (MARK_LABEL and re.fullmatch(r'\[(?:%s)\d+\]' % MARK_LABEL, first['t'].strip().replace('\u2060', '')))
         if (first.get('h') or first.get('a')) and (BT.marker_text(first['t'], fmt) or label):
             mt = _marker(first, fmt) or first['t'].strip()
             marks = [repair_link(dict(first, t=mt, s=0, c='nn'))] if not label else \
@@ -1795,7 +1861,8 @@ def note_blocks(items, fmt):
                     rest[0] = dict(rest[0], t=re.sub(r'^[：:][\s\u3000]*', '', rest[0]['t']))     # '註9：text'
                 rest = [r for r in rest if r['t'] or r.get('i')]
             st = 'notel' if latin_ratio(rest) > 0.4 else 'note'
-            out.append(dict(k='p', style=st, runs=merge_runs(marks + rest)))
+            out.append(dict(k='p', style=st, runs=merge_runs(marks + rest), **({'id': it['id']} if it.get('id') else {})))
+            # (the entry's own id: book 59's source notes are linked to their paragraphs, not to their labels)
         else:
             out.append(dict(k='p', style='notec', runs=runs))
     return out
@@ -1804,7 +1871,7 @@ def note_blocks(items, fmt):
 def notes_module(mid, groups, fmt, zone='body', title='注　释', toc_level=2, toc_title='注释'):
     blocks = [dict(k='h', style='h1', rank=1, runs=[run(title)], id=mid + '#top')]
     for gtitle, items in groups:
-        if len(groups) > 1 and gtitle:
+        if len(groups) > 1 and gtitle and gtitle != title:      # (the notes before the first group heading: no second title)
             blocks.append(dict(k='p', style='idxhead', runs=[run(gtitle)], nostart=False))
         blocks += note_blocks(items, fmt)
     return Mod(mid=mid, zone=zone, title=toc_title, blocks=blocks, grid='small1', toc_level=toc_level, toc_title=toc_title)
@@ -1988,6 +2055,12 @@ def part_divider(C, els):
     if C.get('part_img') and rest and rest[0]['k'] == 'fig':      # the picture of the part page (book 16)
         lines.append((98, rest[0]['src']))
         rest = rest[1:]
+    if C.get('part_list') and rest and rest[0]['k'] == 'h' and re.match(C['part_list'], plain(rest[0]['runs'])):
+        lines.append((95, plain(rest[0]['runs'])))                # (book 59) '精彩内容：' and the topics of the part, on its page
+        rest = rest[1:]
+        while rest and rest[0]['k'] == 'p':
+            lines.append((94, plain(rest[0]['runs'])))
+            rest = rest[1:]
     epi = _cs(C, 'part_epi_cls')                                  # the epigraph of the part, set small under the title
     if epi and rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
         lines.append((97, ''))
@@ -1998,10 +2071,11 @@ def part_divider(C, els):
 
 
 def book(b):
-    global CIRC_LINK, PAGE_ANCHOR
+    global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL
     C = CFG[b]
     CIRC_LINK = C.get('circ_link')
     PAGE_ANCHOR = C.get('page_anchor')
+    MARK_LABEL = C.get('mark_label')
     m = meta(b)
     cover = C['cover']
     if C.get('cover_file'):                                          # a cover image supplied separately (source/covers/…) replaces the ebook's
@@ -2118,10 +2192,14 @@ def book(b):
                 x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)
             if C.get('name_dot') and x['k'] == 'p' and x.get('runs'):
                 x['runs'] = dot_runs(x['runs'])
+            if C.get('sup_join') and x['k'] == 'p' and x.get('runs'):
+                x['runs'] = sup_runs(x['runs'])
         if C.get('url_break'):
             notes = [dict(it, runs=url_runs(it['runs'])) for it in notes]
         if C.get('name_dot'):
             notes = [dict(it, runs=dot_runs(it['runs'])) for it in notes]
+        if C.get('sup_join'):
+            notes = [dict(it, runs=sup_runs(it['runs'])) for it in notes]
         title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
         if title_over is not None:
             title = title_over                                     # (part_intro: the part's title for the running head)
@@ -2265,6 +2343,12 @@ def book(b):
                     if not groups:                                 # (book 33: the note on the sources before the first chapter's)
                         groups.append(('' if C.get('note_group_re') else title, []))
                     runs_ = _img_text(C, it['runs'])
+                    if C.get('url_break_back'):
+                        runs_ = url_runs(runs_)                    # (book 59: the web addresses of the ebook's own notes part)
+                    if C.get('name_dot'):
+                        runs_ = dot_runs(runs_)
+                    if C.get('sup_join'):
+                        runs_ = sup_runs(runs_)
                     groups[-1][1].append(dict(it, k='note', runs=latin_runs(runs_, whole=False) if C.get('lat_apos') else runs_))
             nm = notes_module(f'notes_p{n}', groups, fmt, zone='back', title=C.get('endnotes_title', title),
                               toc_level=1, toc_title=C.get('endnotes_title', title))

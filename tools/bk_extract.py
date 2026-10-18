@@ -54,6 +54,7 @@ RUN_CLS = {
     'q37': {'kaiti4': (0, 'kai')},                               # 认知升级: the epigraphs under the chapter titles in Kai
     'q39': {'yanse': (0, 'hei')},                                # 世界观: the terms the ebook colours (where they are introduced) in 黑体
     'q40': {'heiti': (0, 'hei')},                                # 随机漫步的傻瓜: the names in the signatures of 各方赞誉
+    'q59': {'sbiao': (0, 'msup'), 'italic': (0, 'it')},         # 魔鬼数学: exponents; variables and titles in italics
     'q24': {'italic': (0, 'it')},                               # 理性之谜: titles of works in italics                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
