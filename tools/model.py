@@ -52,11 +52,13 @@ _APOS_HTML = '<span style="font-family:var(--apos-ff,AposSerif,SongBody,serif);l
 
 _CONTR = re.compile(r'(?:s|t|d|ll|re|ve|m)(?![A-Za-z\u00c0-\u024f])')
 _WORD_END = re.compile(r'[A-Za-z\u00c0-\u024f]+$')
+_LEAD = re.compile(r'(?:(?<=[\s(（“"])|^)\u2019(?=[A-Za-z\u00c0-\u024f])')
 
 
 def apostrophes(full):
-    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing). A ’ between letters that closes an open ‘
-    (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps the CJK glyph, whose blank half spaces it."""
+    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing) and at their start (Whole Earth ’Lectronic Link).
+    A ’ between letters that closes an open ‘ (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps
+    the CJK glyph, whose blank half spaces it."""
     hits, depth = set(), 0
     for m in re.finditer('[‘’]', full):
         k = m.start()
@@ -67,6 +69,8 @@ def apostrophes(full):
                 depth -= 1
             else:
                 hits.add(k)
+        elif _LEAD.match(full, k):
+            hits.add(k)
         elif depth:
             depth -= 1
     return hits

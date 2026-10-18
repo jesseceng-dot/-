@@ -42,6 +42,32 @@ index cf8c8b3..c61f339 100644
              elif t == 'img':
                  add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig)
              elif t in ('hr', 'nav', 'svg', 'br'):
+diff --git a/tools/bk_text.py b/tools/bk_text.py
+index 1d1565f..5a06365 100644
+--- a/tools/bk_text.py
++++ b/tools/bk_text.py
+@@ -11,6 +11,12 @@ _RE_SPACE_CLOSE = re.compile(r'(?<=[A-Za-z0-9])[ 　]+(?=[）】》”’，。
+ _RE_SPACE_OPEN = re.compile(r'(?<=[“‘（《])[ 　]+(?=[A-Za-z0-9一-鿿])')
+ CLOSE = '）】》”’，。；：！？、'
+ 
++# Slips of the ebooks, corrected at the user's request (books 2, 3, 6, 8; each string occurs once, in that book only)
++TYPOS = (('Majesty’sStationery', 'Majesty’s Stationery'),                 # 2: the space left out
++         ('Catherine Me’vel', 'Catherine Mével'),                         # 3: é typed as e’
++         ('Pitnam’s Sons', 'Putnam’s Sons'),                              # 6: the publisher, Putnam’s elsewhere
++         ('Earth’Lectronic', 'Earth ’Lectronic'), ("Earth 'Lectronic", 'Earth ’Lectronic'))   # 8: Whole Earth ’Lectronic Link
++
+ 
+ def fix_text(t):
+     t = t.replace('\xa0', ' ')
+@@ -19,6 +25,8 @@ def fix_text(t):
+     t = _RE_APOS.sub('’', t)
+     t = _RE_SPACE_CLOSE.sub('', t)
+     t = re.sub(r' {2,}', ' ', t)
++    for a, b in TYPOS:
++        t = t.replace(a, b)
+     return t
+ 
+ 
 diff --git a/tools/layout.py b/tools/layout.py
 index aec04a6..6150828 100644
 --- a/tools/layout.py
@@ -78,10 +104,10 @@ index a4ae38f..fb28d62 100644
              if (ln > cur) { flush(); starts.push(unit); cur = ln; }
              forced = false;
 diff --git a/tools/model.py b/tools/model.py
-index 0103be6..75c736e 100644
+index 0103be6..71555e2 100644
 --- a/tools/model.py
 +++ b/tools/model.py
-@@ -44,8 +44,54 @@ def _wrap(r, inner):
+@@ -44,8 +44,58 @@ def _wrap(r, inner):
      return inner
  
  
@@ -92,11 +118,13 @@ index 0103be6..75c736e 100644
 +
 +_CONTR = re.compile(r'(?:s|t|d|ll|re|ve|m)(?![A-Za-z\u00c0-\u024f])')
 +_WORD_END = re.compile(r'[A-Za-z\u00c0-\u024f]+$')
++_LEAD = re.compile(r'(?:(?<=[\s(（“"])|^)\u2019(?=[A-Za-z\u00c0-\u024f])')
 +
 +
 +def apostrophes(full):
-+    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing). A ’ between letters that closes an open ‘
-+    (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps the CJK glyph, whose blank half spaces it."""
++    """Offsets of the ’ inside Latin words (Nature’s, O’Neil, Ch’ing) and at their start (Whole Earth ’Lectronic Link).
++    A ’ between letters that closes an open ‘ (“The‘Poor’Are Getting Richer”, the space left out) is a quote: it keeps
++    the CJK glyph, whose blank half spaces it."""
 +    hits, depth = set(), 0
 +    for m in re.finditer('[‘’]', full):
 +        k = m.start()
@@ -107,6 +135,8 @@ index 0103be6..75c736e 100644
 +                depth -= 1
 +            else:
 +                hits.add(k)
++        elif _LEAD.match(full, k):
++            hits.add(k)
 +        elif depth:
 +            depth -= 1
 +    return hits
@@ -136,7 +166,7 @@ index 0103be6..75c736e 100644
      out = []
      pos = 0
      total = runs_len(runs)
-@@ -89,7 +135,7 @@ def runs_html(runs, start=0, end=None, strip=True, final=False):
+@@ -89,7 +139,7 @@ def runs_html(runs, start=0, end=None, strip=True, final=False):
              parts.append(_wrap(r, f'<img class="inl" src="{_html.escape(r["i"])}">'))
          else:
              parts.append(_wrap(r, _html.escape(seg, quote=False)))
