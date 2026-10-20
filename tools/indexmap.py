@@ -15,6 +15,7 @@ CLOSE = {'（': '）', '(': ')', '〔': '〕', '[': ']', '［': '］', '【': '�
 NUM_RE = re.compile(r'(?<![\d.A-Za-z])(\d+)(?:[—–-]\u2060?(\d+))?(?![\d])')   # (the word joiner after a range dash: bk_text)
 NOT_PAGE_AFTER = re.compile(r'^(?:年|月|日|世纪|页|卷|章|节|篇|号|岁|个|种|届|次|%|％|\.\d)')
 NOT_PAGE_BEFORE = re.compile(r'(?:前|约|公元|第|共|？|\?)$')
+SLASH_BREAK = re.compile(r'(?<=[^\W\d_])([/‖])(?=[^\W\d_])')
 
 
 def expand_range(a, b):
@@ -645,6 +646,10 @@ def remap_module(bb, mod):
             edits.append((r['start'] - (1 if r.get('pre_attached') else 0), r['end'], label, dict(h=f'pgp{pa}', c='pn')))
             last = (r['end'], label)
         b['runs'] = apply_edits(b['runs'], edits)
+    if mod.idxmap.get('slash_break'):                  # (Hegel 4) a 'German/English' pair may break after its '/' or '‖',
+        for b in blocks:                               # or a long pair runs past its column: a zero-width space there
+            if b.get('runs'):                          # (render drops it), put in after the mapping, which splits the
+                b['runs'] = [dict(r, t=SLASH_BREAK.sub('\\1\u200b', r['t'])) for r in b['runs']]    # pairs at '/'
     return blocks
 
 

@@ -1,3 +1,61 @@
+diff --git a/tools/books.py b/tools/books.py
+index 4df97be..c3554a2 100644
+--- a/tools/books.py
++++ b/tools/books.py
+@@ -359,8 +359,8 @@ def book4():
+     b4 += chapter(P(87), B4, 'body', ranks=LETTER_RANKS, styles=LETTER_STYLES,
+                   fixes=[('style', 4, 'right'), ('style', 163, 'right')])
+     ser4 = {'': [P(n) for n in range(82, 87)]}
+-    k4 = [index_module(P(88), B4, 'body', idxmap=dict(series=ser4)),
+-          index_module(P(89), B4, 'body', idxmap=dict(series=ser4, head_only=True, skip_c=True)),
++    k4 = [index_module(P(88), B4, 'body', idxmap=dict(series=ser4, slash_break=True)),
++          index_module(P(89), B4, 'body', idxmap=dict(series=ser4, head_only=True, skip_c=True, slash_break=True)),
+           text_module(P(90), B4, 'body', fixes=[('style', (7, 8), 'right')]),
+           colophon_module(P(91), 'body'), ads_module('b4ads', 'body', P(92))]
+     allm = (vol('第一卷', 'b4v1', f1, b1, k1) + vol('第二卷', 'b4v2', f2, b2, k2) +
+diff --git a/tools/fontready_run.py b/tools/fontready_run.py
+new file mode 100644
+index 0000000..830aad4
+--- /dev/null
++++ b/tools/fontready_run.py
+@@ -0,0 +1,14 @@
++"""Run a build with the measuring of c8c9cb2 -- each batch laid out, then `document.fonts.ready` awaited before the
++positions are read (a face used for the first time in a build was measured in a fallback face) -- with measure.py's
++file, and so the layout cache key, left as it was: what the cache holds is not measured again, and what is measured is
++measured right.     python -m tools.fontready_run tools.build book4"""
++import runpy
++import sys
++
++from . import measure
++
++OLD = "    root.appendChild(d);\n    return d;\n  });\n"
++assert measure.JS.count(OLD) == 1
++measure.JS = measure.JS.replace(OLD, OLD + "  root.getBoundingClientRect();\n  await document.fonts.ready;\n")
++sys.argv = sys.argv[1:]
++runpy.run_module(sys.argv[0], run_name='__main__', alter_sys=True)
+diff --git a/tools/indexmap.py b/tools/indexmap.py
+index 146a558..2faf644 100644
+--- a/tools/indexmap.py
++++ b/tools/indexmap.py
+@@ -15,6 +15,7 @@ CLOSE = {'（': '）', '(': ')', '〔': '〕', '[': ']', '［': '］', '【': '
+ NUM_RE = re.compile(r'(?<![\d.A-Za-z])(\d+)(?:[—–-](\d+))?(?![\d])')
+ NOT_PAGE_AFTER = re.compile(r'^(?:年|月|日|世纪|页|卷|章|节|篇|号|岁|个|种|届|次|%|％|\.\d)')
+ NOT_PAGE_BEFORE = re.compile(r'(?:前|约|公元|第|共|？|\?)$')
++SLASH_BREAK = re.compile(r'(?<=[^\W\d_])([/‖])(?=[^\W\d_])')
+ 
+ 
+ def expand_range(a, b):
+@@ -556,6 +557,10 @@ def remap_module(bb, mod):
+             edits.append((r['start'] - (1 if r.get('pre_attached') else 0), r['end'], label, dict(h=f'pgp{pa}', c='pn')))
+             last = (r['end'], label)
+         b['runs'] = apply_edits(b['runs'], edits)
++    if mod.idxmap.get('slash_break'):                  # (Hegel 4) a 'German/English' pair may break after its '/' or '‖',
++        for b in blocks:                               # or a long pair runs past its column: a zero-width space there
++            if b.get('runs'):                          # (render drops it), put in after the mapping, which splits the
++                b['runs'] = [dict(r, t=SLASH_BREAK.sub('\\1\u200b', r['t'])) for r in b['runs']]    # pairs at '/'
+     return blocks
+ 
+ 
 diff --git a/tools/layout.py b/tools/layout.py
 index 3948faa..4ca475c 100644
 --- a/tools/layout.py
@@ -142,13 +200,14 @@ index e6c527c..d464295 100644
  
  
 diff --git a/tools/render.py b/tools/render.py
-index ca6edff..daff89d 100644
+index ca6edff..5527bb1 100644
 --- a/tools/render.py
 +++ b/tools/render.py
-@@ -73,6 +73,7 @@ def baseline_dy(st):
+@@ -73,6 +73,8 @@ def baseline_dy(st):
  
  
  def line_div(st, j, nlines_total, html, x, y, w, ls):
++    html = html.replace('\u200b', '')          # (the break points of books.index_module's slash_break: Chromium draws them with a width)
 +    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
      if st['align'] == 'j':
          a = 'l' if j == nlines_total - 1 else 'j'

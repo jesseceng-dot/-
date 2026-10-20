@@ -103,6 +103,7 @@ def baseline_dy(st):
 
 
 def line_div(st, j, nlines_total, html, x, y, w, ls, forced=False):
+    html = html.replace('\u200b', '')          # (the break points of indexmap's slash_break, too: Chromium draws them with a width)
     html = html.replace('\u2060', '')          # word joiners only steer the line breaking: in a printed line Chromium draws
     if st['align'] == 'j':                      # one as a space glyph, which pushed a note mark ~2 pt to the right
         a = 'l' if j == nlines_total - 1 or forced else 'j'          # (a line that ends in a forced break is not spread)

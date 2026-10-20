@@ -359,8 +359,8 @@ def book4():
     b4 += chapter(P(87), B4, 'body', ranks=LETTER_RANKS, styles=LETTER_STYLES,
                   fixes=[('style', 4, 'right'), ('style', 163, 'right')])
     ser4 = {'': [P(n) for n in range(82, 87)]}
-    k4 = [index_module(P(88), B4, 'body', idxmap=dict(series=ser4)),
-          index_module(P(89), B4, 'body', idxmap=dict(series=ser4, head_only=True, skip_c=True)),
+    k4 = [index_module(P(88), B4, 'body', idxmap=dict(series=ser4, slash_break=True)),
+          index_module(P(89), B4, 'body', idxmap=dict(series=ser4, head_only=True, skip_c=True, slash_break=True)),
           text_module(P(90), B4, 'body', fixes=[('style', (7, 8), 'right')]),
           colophon_module(P(91), 'body'), ads_module('b4ads', 'body', P(92))]
     allm = (vol('第一卷', 'b4v1', f1, b1, k1) + vol('第二卷', 'b4v2', f2, b2, k2) +

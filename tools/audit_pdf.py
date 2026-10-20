@@ -77,6 +77,19 @@ def _ink_x1(pg, l):
     return x1
 
 
+def _ink_lines(pg):
+    """The lines of a page as drawn (the columns of a row are not merged), by their ink: a trailing ideographic space has
+    a box but no ink; zero-width characters and emphasis dots (the line above's) do not count."""
+    out = []
+    for bl in pg.get_text('rawdict')['blocks']:
+        for ln in bl.get('lines', []):
+            cs = [c for sp in ln['spans'] for c in sp['chars'] if not c['c'].isspace() and c['c'] not in '\u200b\u2060']
+            if cs and set(c['c'] for c in cs) - {'•'}:
+                out.append(dict(x0=cs[0]['bbox'][0], x1=max(c['bbox'][2] for c in cs), y=ln['spans'][0]['origin'][1],
+                                text=''.join(c['c'] for sp in ln['spans'] for c in sp['chars'])))
+    return out
+
+
 def audit(path):
     d = pymupdf.open(path)
     n = len(d)
@@ -103,6 +116,16 @@ def audit(path):
     lmin = min((x for x, c in left.items() if c >= max(5, sum(left.values()) // 200)), default=0)
     serif = lambda l: any(k in l['font'] for k in ('Serif', 'WenKai', 'Song', 'Kai'))
     rep = collections.defaultdict(list)
+    drawn = [_ink_lines(p) for p in d]
+    mid = (lmin + rmax) / 2
+
+    def col_start(raw):                                # where the right column of a page of two columns starts: many
+        rcol = [l for l in raw if l['x0'] > mid + 2]   # lines start at one place (the piece of a line after a note mark
+        st = [x for x, c in collections.Counter(round(l['x0']) for l in rcol).items() if c >= 4]   # does not)
+        st = [x for x in st if 0.3 < (rmax - x) / max(1, rmax - lmin) < 0.55]   # (no page numbers of a contents page)
+        return min(st) if st else None
+    starts = collections.Counter(x for x in map(col_start, drawn) if x is not None)
+    rstart = starts.most_common(1)[0][0] if starts else None   # (one place for the book: continuation lines start
     words = collections.Counter(w.lower() for p in d for w in re.findall(r'[A-Za-zÀ-ÿ]{2,}', p.get_text()))
     import pyphen
     hyph = [pyphen.Pyphen(lang=x) for x in ('en_US', 'de_DE', 'it')]
@@ -148,25 +171,17 @@ def audit(path):
                 # an indented line that starts with '……' is a paragraph that does)
             if rmax and l['x1'] > rmax + 3 and _ink_x1(d[i], l) > rmax + 3:
                 rep['over'].append((i + 1, t[:14], round(_ink_x1(d[i], l) - rmax, 1)))
-        ink = [(c['bbox'][0], c['bbox'][2]) for bl in d[i].get_text('rawdict')['blocks'] for ln in bl.get('lines', [])
-               for sp in ln['spans'] for c in sp['chars'] if not c['c'].isspace() and c['c'] not in '\u200b\u2060']
-        if ink and lmin and rmax and (min(x for x, _ in ink) < lmin - 2 or max(x for _, x in ink) > rmax + 2):
-            rep['edge'].append((i + 1, round(min(x for x, _ in ink), 1), round(max(x for _, x in ink), 1)))
-        mid = (lmin + rmax) / 2
-        raw = [dict(x0=ln['bbox'][0], x1=ln['bbox'][2], y=ln['spans'][0]['origin'][1], text=''.join(sp['text'] for sp in ln['spans']))
-               for bl in d[i].get_text('dict')['blocks'] for ln in bl.get('lines', []) if ''.join(sp['text'] for sp in ln['spans']).strip()]
-        rcol = [l for l in raw if l['x0'] > mid + 2]               # (the lines as drawn: the columns of a row are not merged)
-        starts = collections.Counter(round(l['x0']) for l in rcol)   # (a column starts many lines at one place; the
-        starts = [x for x, c in starts.items() if c >= 4]            #  piece of a line after a note mark does not)
-        if starts and not 0.3 < (rmax - min(starts)) / max(1, rmax - lmin) < 0.55:
-            starts = []                                            # (the page numbers of a contents page are no column)
-        colr = lmin + (rmax - min(starts)) if starts else 0       # (the columns are as wide as each other)
-        if colr and sum(1 for l in raw if l['x0'] < mid - 2 and abs(l['x1'] - colr) <= 3) < 5:
-            colr = 0                                               # (a table, a derivation: no left column ends there)
-        if lmin and rmax and colr:
-            for l in raw:
-                if l['x0'] < mid - 2 and l['x1'] > colr + 2 and any(abs(r['y'] - l['y']) < 0.6 * pitch for r in rcol):
-                    rep['col'].append((i + 1, l['text'][:24], round(l['x1'] - colr, 1)))
+        ink = drawn[i]
+        if ink and lmin and rmax and (min(l['x0'] for l in ink) < lmin - 2 or max(l['x1'] for l in ink) > rmax + 2):
+            rep['edge'].append((i + 1, round(min(l['x0'] for l in ink), 1), round(max(l['x1'] for l in ink), 1)))
+        raw = drawn[i]
+        if rstart and col_start(raw) is not None:
+            rcol = [l for l in raw if l['x0'] > mid + 2]
+            colr = lmin + (rmax - rstart)                          # (the columns are as wide as each other)
+            if sum(1 for l in raw if l['x0'] < mid - 2 and abs(l['x1'] - colr) <= 3) >= 5:   # (a table, a derivation:
+                for l in raw:                                                               #  no column ends there)
+                    if l['x0'] < mid - 2 and l['x1'] > colr + 2 and any(abs(r['y'] - l['y']) < 0.6 * pitch for r in rcol):
+                        rep['col'].append((i + 1, l['text'][:24], round(l['x1'] - colr, 1)))
         inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
