@@ -11,6 +11,8 @@
   over     text beyond the common right edge of the text block (an overfull line, a table cell pushing out)
   edge     a page with ink of any text (a caption, a title page, a running head, a note) 1.5 pt or more outside the
            common edges of the text block, left or right
+  col      on a page of two columns (an index), a line of the left column running into the gutter: past the right
+           edge the left column would have if as wide as the right one, with a line of the right column beside it
   overlap  two lines of text drawn over each other
   lone     a line of nothing but punctuation or a note mark
   short    a page with only one or two lines that runs on from the page before (not a new section)
@@ -150,6 +152,21 @@ def audit(path):
                for sp in ln['spans'] for c in sp['chars'] if not c['c'].isspace() and c['c'] not in '\u200b\u2060']
         if ink and lmin and rmax and (min(x for x, _ in ink) < lmin - 2 or max(x for _, x in ink) > rmax + 2):
             rep['edge'].append((i + 1, round(min(x for x, _ in ink), 1), round(max(x for _, x in ink), 1)))
+        mid = (lmin + rmax) / 2
+        raw = [dict(x0=ln['bbox'][0], x1=ln['bbox'][2], y=ln['spans'][0]['origin'][1], text=''.join(sp['text'] for sp in ln['spans']))
+               for bl in d[i].get_text('dict')['blocks'] for ln in bl.get('lines', []) if ''.join(sp['text'] for sp in ln['spans']).strip()]
+        rcol = [l for l in raw if l['x0'] > mid + 2]               # (the lines as drawn: the columns of a row are not merged)
+        starts = collections.Counter(round(l['x0']) for l in rcol)   # (a column starts many lines at one place; the
+        starts = [x for x, c in starts.items() if c >= 4]            #  piece of a line after a note mark does not)
+        if starts and not 0.3 < (rmax - min(starts)) / max(1, rmax - lmin) < 0.55:
+            starts = []                                            # (the page numbers of a contents page are no column)
+        colr = lmin + (rmax - min(starts)) if starts else 0       # (the columns are as wide as each other)
+        if colr and sum(1 for l in raw if l['x0'] < mid - 2 and abs(l['x1'] - colr) <= 3) < 5:
+            colr = 0                                               # (a table, a derivation: no left column ends there)
+        if lmin and rmax and colr:
+            for l in raw:
+                if l['x0'] < mid - 2 and l['x1'] > colr + 2 and any(abs(r['y'] - l['y']) < 0.6 * pitch for r in rcol):
+                    rep['col'].append((i + 1, l['text'][:24], round(l['x1'] - colr, 1)))
         inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
@@ -217,7 +234,7 @@ def main(args):
     for p in [a for a in args if a != '-v']:
         r = audit(p)
         rep = r['rep']
-        keys = ('foot', 'grid', 'kinsoku', 'over', 'edge', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
+        keys = ('foot', 'grid', 'kinsoku', 'over', 'edge', 'col', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
                 'empty', 'apos', 'type3')
         print(f"{p.split('/')[-1]}: {r['pages']} pp, sizes {list(r['sizes'])}, body {r['body']}, bottom {r['ref']}, pitch {r['pitch']} | "
               + ' '.join(f'{k} {len(rep.get(k, []))}' for k in keys))
