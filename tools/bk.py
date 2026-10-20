@@ -847,13 +847,13 @@ CFG[58] = _xf(scratch='q58', file='克尔凯郭尔日记选（1842—1846）', t
 # PDF: the footnotes of the printed book (<aside>, '[n]' linking to them) after each chapter as usual, and the printed book's
 # back notes (the formal derivations, with formulas: the ebook sets them as paragraphs at a chapter's end, '[n]' raised)
 # gathered at the end in the ebook's own notes part, one group a chapter (bnote_re), with the reviser's two notes of
-# chapter 17 ('[原注n]').  The formulas in the lines are text (tools/bk_img60.py); display formulas, tables drawn as
+# chapter 17 ('[原注n]'; the note [3] of chapter 26 that he restored is one of the back notes).  The formulas in the lines are text (tools/bk_img60.py); display formulas, tables drawn as
 # formulas and the charts are pictures (the reviser's LaTeX drawings in points: svg_pt).  The model boxes (专栏) of the
 # printed book: their titles (content-b) as small bold heads; the ebook does not mark where a box ends.
 CFG[60] = dict(scratch='q60', file='模型思维（新版）', title='模型思维', sub='新版', author='〔美〕斯科特·佩奇 著', credits=['贾拥民　译'],
                publisher='浙江科学技术出版社', pdf_author='〔美〕斯科特·佩奇', cover='CB_3300065203_device_phone_frontcover.jpg',
                title_img=None, copyright=1, marker='sq', mark_label='原注', note_by_marker=True, notes_tail=True,
-               bnote_re=r'#BT\d+$', note_group_re=r'^\d{2} ', note_dpi=300.0, svg_pt=True, exp_sup=True, math_ops=True,
+               bnote_re=r'#(?:BT\d+|learning-original-note\d+)$', note_group_re=r'^\d{2} ', note_dpi=300.0, svg_pt=True, exp_sup=True, math_ops=True,
                lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True, tail_join=True, dedication_grid=True,
                head_sub=[(r'^(\d{2}|序言|结语|测一测)[\s\u3000]+', '\\1\u3000')],
                page_parts={7: 'Part 1　为什么需要模型思维', 12: 'Part 2　模型思维'},
@@ -864,7 +864,9 @@ CFG[60] = dict(scratch='q60', file='模型思维（新版）', title='模型思�
                img_text=__import__('tools.bk_img60', fromlist=['IMG_TEXT']).IMG_TEXT,
                front=[(2, 'text'), (3, 'pageimg'), (4, 'dedication'), (5, 'text'), (6, 'text')], body=list(range(7, 38)),
                back=[38, (39, 'notes'), (40, 'hang'), (41, 'index')], tail=[], inplace=set(),
-               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。另有一处在公式转写里（`tools/bk_img60.py`），'
+                           '不在下面的规则里：第 26 章书末注 [1] 复制者方程里的分式图片画作“2./1.75”，分子多一个点'
+                           '（上文说油老虎车的收益等于 2，0.5×2/1.75≈0.57），转写为“2/1.75”。')
 # 思维模型（浙江教育出版社 2022）: the model names underlined as in the ebook, the bold items of the lists hanging under
 # their '·', the chapter summaries (本章要点, a box in the ebook) after a blank line under a small title; the figures'
 # titles above them (tuti / biaoti), as the ebook has it.  The repairer's SVG figures are vector drawings in points
@@ -2479,7 +2481,7 @@ def book(b):
                 for it in nt:
                     r0 = it['runs'][0] if it.get('runs') else {}
                     if (r0.get('a') or r0.get('h')) and not r0.get('i') and BT.marker_text(r0['t'], 'sq'):
-                        cur = bn if re.search(C['bnote_re'], r0.get('a') or '') else an
+                        cur = bn if re.search(C['bnote_re'], r0.get('a') or it.get('id') or '') else an
                     (cur if cur is not None else an).append(it)
                 if bn:
                     t_ = next((plain(x['runs']) for x in e if x['k'] == 'h'), '')
@@ -2709,7 +2711,7 @@ def book(b):
         else:
             entries.append((n, '', None))
     for n, sfx, chunk in entries:
-        if n in C.get('page_parts', {}):                          # (book 60) a part's title page drawn as a picture
+        if isinstance(n, int) and n in C.get('page_parts', {}):  # (book 60) a part's title page drawn as a picture
             if not C.get('notes_end'):
                 flush(body, 'body')
             body += page_images(n, 'body', C['page_parts'][n])
