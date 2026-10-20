@@ -124,6 +124,8 @@ class BookBuilder:
         os.makedirs(cache_dir, exist_ok=True)
         code = b''.join(open(os.path.join(os.path.dirname(__file__), f), 'rb').read()
                         for f in ('layout.py', 'style.py', 'hyph.py', 'measure.py', 'typeset.py', 'model.py', 'book.py'))
+        from . import hyph                                 # (the per-book hyphenation settings, C['hyph'], are part of the key)
+        code += f'{hyph.WORD.pattern}|{hyph.PASSES}|{hyph.MARGIN}'.encode('utf8')
         self._cache = (cache_dir, hashlib.sha1(code).hexdigest(), tuple(redo))
         for mod in self.mods:
             if mod.idxmap and mod.src_blocks is None:
@@ -189,7 +191,9 @@ class BookBuilder:
         tm = getattr(mod, 'tail_min', 2)               # modules may ask for a longer last page (a table of contents)
         lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid, tail_min=tm)
         mod.lbs, mod.plan = lbs, plan
-        if hyph.hyphenate_blocks(mod, self.hyph_log):
+        for _ in range(hyph.PASSES):                    # (more passes: the lines a new break leaves loose)
+            if not hyph.hyphenate_blocks(mod, self.hyph_log):
+                break
             lbs, plan = typeset.typeset(mod.blocks, self.m, mod.grid, tail_min=tm)
             mod.lbs, mod.plan = lbs, plan
         if _gaps(plan) or _lone_lines(lbs, plan):

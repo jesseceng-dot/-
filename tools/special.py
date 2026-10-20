@@ -359,7 +359,11 @@ def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, s
                 f'font-size:9.5pt;line-height:{style.LINE}pt;transform:translate(0pt,{top - 2 * style.LINE + k * style.LINE:.2f}pt)">'
                 f'{_html.escape(t)}</div>')
     room = style.TOP + style.TEXT_H - top
-    cap_h = (8.0 + 15.0 * len(lines)) if lines else 0.0
+    lines = [t.replace('\u2060', '') for t in lines]      # (word joiners steer the line breaking only: drawn, they take a width)
+    capw = style.TEXT_W - 2 * style.FONT                  # (book 63) a long caption wraps inside the text block, its lines counted
+    nl = [max(1, math.ceil(sum((9.5 if k == 0 else 9.0) * (1.0 if ord(c) > 0x2e80 else 0.56) for c in t) / capw * 1.04))
+          for k, t in enumerate(lines)]
+    cap_h = (8.0 + 15.0 * sum(nl)) if lines else 0.0
     s = min(style.TEXT_W / w, (room - cap_h) / h)
     iw, ih = w * s, h * s
     y = top + (room - ih - cap_h) / 2
@@ -368,10 +372,11 @@ def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, s
             f'transform:translate({x:.2f}pt,{y:.2f}pt)">')
     yc = y + ih + 8.0
     for k, t in enumerate(lines):
-        font = 'font-family:HeiTi;font-size:9.5pt;font-weight:500' if k == 0 else 'font-family:KaiTi;font-size:9pt;color:#333'
-        out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;{font};line-height:15pt;'
-                f'transform:translate(0pt,{yc:.2f}pt)">{_html.escape(t)}</div>')
-        yc += 15.0
+        font = 'font-family:HeiTi;font-size:9.5pt;font-weight:500' if k == 0 and nl[k] == 1 else 'font-family:KaiTi;font-size:9pt;color:#333'
+        al = 'text-align:center' if nl[k] == 1 else 'text-align:justify;text-align-last:left'   # (a caption of several lines: Kai)
+        out += (f'<div style="position:absolute;left:0;top:0;width:{capw:.2f}pt;{al};{font};line-height:15pt;'
+                f'transform:translate({style.LEFT + style.FONT:.2f}pt,{yc:.2f}pt)">{_html.escape(t)}</div>')
+        yc += 15.0 * nl[k]
     if builder is not None:
         for a in ids:
             builder.anchors[a] = (page.index, y)

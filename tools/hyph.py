@@ -9,6 +9,8 @@ from .model import runs_text
 
 LOOSE = 3.0
 WORD = re.compile(r'[A-Za-zÄÖÜäöüßéèêáàâóòíìúùçñ]{8,}')
+PASSES = 1                # (set per book from C['hyph'] = (shortest word, passes, margin), book 63: a reading list of English
+MARGIN = 0.4              #  titles; the margin (em) for the space before the word and the hyphen after its first part)
 LEAD = '（“‘《〔[(「'
 DIC = {'de': pyphen.Pyphen(lang='de_DE'), 'en': pyphen.Pyphen(lang='en_US'), 'it': pyphen.Pyphen(lang='it')}
 GERMAN = re.compile(r'(ung|heit|keit|lich|isch|schaft|ismus|verhältnis|urteil|sein|bestimmung|begriff)\b|[äöüß]', re.I)
@@ -59,7 +61,7 @@ def hyphenate_blocks(mod, log=None):
             for p in pick_dic(word).positions(word):
                 if p < 3 or len(word) - p < 3:
                     continue
-                need = lead_w + sum(_w(c) for c in word[:p]) + 0.4
+                need = lead_w + sum(_w(c) for c in word[:p]) + MARGIN
                 if need <= slack - 0.15:
                     best = p
             if best:

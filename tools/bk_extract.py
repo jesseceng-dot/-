@@ -65,6 +65,10 @@ for _k in ('q53', 'q57', 'q58'):                               # (books 53, 57, 
     RUN_CLS[_k] = dict(RUN_CLS[_k], super=(0, 'pmark'), super1=(0, 'pmark'), super2=(0, 'pmark'))     # (super1, 2: in titles)
 RUN_CLS['q57']['span_1'] = (0, 'pmark')                         # (the mark of the last work's title)
 RUN_CLS['q61'] = {'underline': (0, 'ul'), 'fangsong': (0, 'kai')}   # 思维模型: the model names underlined; the quoted quadrants in Kai
+RUN_CLS['q64'] = {'ht': (1, 'hei'), 'sub': (0, 'msub')}   # 中国国家治理的制度逻辑: the run-in headings (bold 黑体); SO₂
+EM_CLS = {'q64': 'emp'}                                         # <em> that is the emphasis dots (着重号), not italics (key: scratch)
+RUN_CLS['q63'] = {'i': (0, 'it'), 'jiacu': (1, ''), 'k': (0, 'kai')}   # 追寻现代中国: titles in italics, the reading list's topics
+                                                                # bold, the translator's insertions '（即《大义觉迷录》……）' in Kai
 RUN_CLS['q60'] = {'italic': (0, 'it'), 'bold': (1, ''), 'sub': (0, 'msub'), 'super': (0, 'SUP')}   # 模型思维: variables, exponents, the
                                                                 # marks of the book's back notes (<span.super><a>[n]</a></span>)
 # Note entries numbered '1.' with a separate '返回正文' link: the label their marks read (key = scratch directory).
@@ -82,6 +86,10 @@ _RUNMAP = None
 
 def _boxcls():
     return BOX_CLS.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), ())
+
+
+def _em_cls():
+    return EM_CLS.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), 'it')
 
 
 def _runmap():
@@ -660,7 +668,7 @@ def inline(el, part, mark_breaks=False):
             elif t in ('b', 'strong'):
                 rec(ch, 1, c, h, a, s)
             elif t in ('i', 'em', 'cite'):
-                rec(ch, b, _cls(c, 'it'), h, a, s)
+                rec(ch, b, _cls(c, _em_cls() if t == 'em' else 'it'), h, a, s)
             elif t == 'img':
                 out.append(run(OBJ, b, 0, h, a, i=os.path.basename(ch.get('src') or ''), c=ch.get('class') or ''))
             elif t == 'svg':                                    # a formula drawn in the text itself: keyed by its <title> (its LaTeX)

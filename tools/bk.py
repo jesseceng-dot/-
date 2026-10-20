@@ -891,6 +891,61 @@ CFG[61] = dict(scratch='q61', file='思维模型', title='思维模型', sub='�
                          'bond_ten_year_denominator.svg': ['1.06', ('10', 'msup')]},
                front=[(3, 'text')], body=list(range(5, 15)), back=[15], tail=[], inplace=set(),
                errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 理想国译丛 051.  The ebook's first page is the title page (the cover is the OPF's cover00133), then the imprint's
+# logo and motto pages (kept as flaps, before the title page).  The author's notes ([n], numbered by chapter) are the printed book's back notes (part 27, a group per
+# chapter under its <h4>); the translator's notes (* † ‡ §, the printed book's footnotes, after an <hr> at the end of a
+# chapter in the ebook; 16 in all) in a 译注 section after the text, a group per chapter, their marks as the ebook has them.
+CFG[62] = dict(scratch='q62', file='身份政治', title='身份政治', sub='对尊严与认同的渴求', author='〔美〕弗朗西斯·福山 著',
+               credits=['刘芳　译'], publisher='中译出版社', series='理想国译丛', pdf_author='〔美〕弗朗西斯·福山',
+               cover='cover00133.jpeg', front_flaps=['image00125.jpeg', 'image00128.jpeg'], title_img='image00130.jpeg', copyright=2,
+               tail=['image00127.jpeg'], tail_w=300.0, backcover='image00131.jpeg',
+               marker='sq', sym_marks='*†‡§', note_by_marker=True, notes_end=True, notes_title='译注', notes_toc='译注',
+               note_group_h=True, lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True, dedication_grid=True,
+               head_sub=[(r'^(第[一二三四五六七八九十]+章|导读|前言)[\s\u3000]+', '\\1\u3000')],
+               head_join=[(r'^第[一二三四五六七八九十]+章$', '\u3000'), (r'^导读$', '／')],   # (number and title: two <h1>)
+               head_split='／', head_split_join='\u3000',
+               cls_map={'suojin1': ('noindent', -2, 2), 'kindle-cn-para-no-indent': ('center', 0, 0, 'kai')},   # (the guide's byline)
+               cap_mode='tabfig', cap_top_re=r'^表', cap_after_re=r'^资料来源', label_re=r'^([图表]\d+)', fig_inline=True, fig_dpi=220,
+               img_text={'image00129.jpeg': ''},                        # (a blank 25 × 25 picture after each chapter's last note)
+               front=[(4, 'text'), (5, 'board'), ([6, 7, 8, 9, 10], 'text'), (11, 'dedication'), (12, 'text')],
+               body=list(range(13, 27)), back=[(27, 'notes'), (28, 'hang'), 29], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 理想国.  Four galleries of the printed book's plates sit at the ends of chapters 6, 11, 16 and 18 in the ebook: each set
+# after its chapter, a picture a page.  The maps and the tables (pictures) stay in the text, a table's title (and sub-title)
+# above it, its notes ('（1）…', '注：…') under it.  The reading list's chapter groups are sub-headings.
+CFG[63] = dict(scratch='q63', file='追寻现代中国', title='追寻现代中国', sub='1600—1949', author='〔美〕史景迁 著',
+               credits=['温洽溢　译'], publisher='四川人民出版社', pdf_author='〔美〕史景迁',
+               cover='cover00506.jpeg', front_flaps=['image00357.jpeg', 'image00415.jpeg'], title_img=None, copyright=2,
+               tail=['image00435.jpeg'], tail_w=300.0, backcover='image00490.jpeg',
+               marker='sq', note_cls=('notecontent',), lat_apos=True, toc_even=True, toc_sections=False, open_air=True,
+               url_break=True, name_dot=True, dedication_grid=True,
+               head_sub=[(r'^(第[一二三四五六七八九十]+[章部])[\s\u3000]+', '\\1\u3000'), (r'^总序[\s\u3000]+', '总序／')],
+               head_split='／', head_split_join='\u3000', head_cls={'xiaobiao': 2},
+               part_re=r'^第[一二三四]部', part_split=r'^(第[一二三四]部)[\s\u3000]*(.*)$', part_intro=True,
+               cls_quote=('yinwen',), cls_right=('bodytext-right',), cls_cap=('tuzhu-center',),
+               cap_top_re=r'.', cap_top_all=True, cap_below_re=r'^(（\d+）|注[：:])', fig_inline=True, fig_dpi=150,
+               insert_plates={20: '插图一', 26: '插图二', 32: '插图三', 35: '插图四'}, notes_before_plates=True,
+               hyph=(6, 3),                             # (the reading list: English titles at the line ends, hyphenated more)
+               front=[([4, 5, 6, 7, 8], 'text'), (9, 'dedication'), (10, 'text'), (11, 'text'), (12, 'text'), (13, 'text')],
+               body=list(range(14, 36)), back=[36], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 三联·哈佛燕京学术丛书.  A Duokan EPUB: the note marks are icons (numbered by chapter), the notes at the end of each chapter.
+# No copyright page in the ebook.  The series' statement (centred Kai lines) is a page of its own; <em> is the emphasis dots.
+CFG[64] = dict(scratch='q64', file='中国国家治理的制度逻辑', title='中国国家治理的制度逻辑', sub='一个组织学研究',
+               author='周雪光 著', credits=[], publisher='生活·读书·新知三联书店', series='三联·哈佛燕京学术丛书',
+               pdf_author='周雪光', cover='cover.png', title_img='titlepage.jpg', copyright=None,
+               marker='sq', renum=True, note_by_marker=True, lat_apos=True, toc_even=True, open_air=True, url_break=True,
+               name_dot=True, dedication_grid=True,
+               head_sub=[(r'^(第\d+章|自[\s\u3000]*序)[\s\u3000]+', '\\1\u3000'), (r'^自[\s\u3000]+序$', '自\u3000序'),
+                         (r'(?<=[\u4e00-\u9fff：、”])\s+(?=[\u4e00-\u9fff“\d])', '')],   # (the ebook's own line breaks in long titles)
+               head_cls={'heading': 4, 'aheading': 1}, cls_center=('aheading_e',),   # (作者简介 / Introduction)
+               part_re=r'^第[一二三]单元', part_split=r'^(第[一二三]单元)[\s\u3000]*(.*)$',
+               cls_skip=('h1m',), skip_text=('第一单元', '第二单元', '第三单元'),   # (the unit pages' title box repeats the <h1>)
+               head_first=(2,), toc_part_tight=True,     # (作者简介 above the photo; a unit's first chapter right under it)
+               cls_map={'signature': ('right', 0, 0, 'kai'), 'praise_sign': ('right', 0, 0, 'kai')},
+               cls_quote=('praise',), cap_mode='tabfig', cap_top_re=r'^表', fig_inline=True, fig_dpi=300,
+               front=[(2, 'text'), (3, 'dedication'), (5, 'text')], body=list(range(6, 21)), back=[(21, 'hang'), 22],
+               tail=[], inplace=set(), errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -1938,6 +1993,9 @@ def fig_inline(C, els):
         if out and out[-1]['k'] == 'p' and out[-1].get('style') == 'cap':
             if C.get('cap_top_re') and re.match(C['cap_top_re'], plain(out[-1]['runs'])):
                 caps_top = [out.pop()]                           # (book 26) a table title above its picture: part of the figure, floats with it
+                while C.get('cap_top_all') and out and out[-1]['k'] == 'p' and out[-1].get('style') == 'cap' \
+                        and re.match(C['cap_top_re'], plain(out[-1]['runs'])):
+                    caps_top.insert(0, out.pop())                # (book 63) the title and its sub-title ('（1945年9月=100）')
             else:
                 out[-1]['keep'] = 1                              # a title above the picture (表6-1) stays with it
         srcs = [e['src']]
@@ -1951,9 +2009,10 @@ def fig_inline(C, els):
                     srcs.append(els[i]['src'])
                     i += 1
         caps = []
-        while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap':
-            caps.append(els[i])
-            i += 1
+        while i < len(els) and els[i]['k'] == 'p' and els[i].get('style') == 'cap' \
+                and (not C.get('cap_below_re') or re.match(C['cap_below_re'], plain(els[i]['runs']))):
+            caps.append(els[i])                                  # (C['cap_below_re'], book 63: only the notes under a table;
+            i += 1                                               #  the next caption is the title of the next table)
         out.append(dict(k='fig', src=srcs[0] if len(srcs) == 1 else join_images(srcs), caps=caps, snap=e.get('snap'),
                         **({'caps_top': caps_top} if caps_top else {})))
     return out
@@ -2452,6 +2511,11 @@ def book(b):
     global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL, NOTE_DPI, SVG_PT
     C = CFG[b]
     CIRC_LINK = C.get('circ_link')
+    BT.SYM_MARKS = C.get('sym_marks', '')
+    from . import hyph
+    hy = tuple(C.get('hyph', ())) + (8, 1, 0.4)[len(C.get('hyph', ())):]   # (shortest word, passes, margin)
+    hyph.WORD = re.compile(r'[A-Za-zÄÖÜäöüßéèêáàâóòíìúùçñ]{%d,}' % hy[0])
+    hyph.PASSES, hyph.MARGIN = hy[1], hy[2]
     PAGE_ANCHOR = C.get('page_anchor')
     MARK_LABEL = C.get('mark_label')
     NOTE_DPI = C.get('note_dpi', 220.0)
@@ -2502,6 +2566,9 @@ def book(b):
             if n in C.get('short_right', {}):                     # (book 26) the names and titles under endorsements and prefaces
                 its = short_right(its, C['short_right'][n])
             e, nt = elements(C, its, kaitext=kaitext)
+            k_ = next((i for i, x in enumerate(e) if x['k'] == 'h'), None)
+            if n in C.get('head_first', ()) and k_ and all(x['k'] == 'fig' for x in e[:k_]):
+                e = [e[k_]] + e[:k_] + e[k_ + 1:]                 # (book 64) the author's photo comes before the page's heading
             if C.get('math_ops'):
                 e = [dict(x, runs=math_runs(x['runs'])) if x.get('runs') else x for x in e]
                 nt = [dict(x, runs=math_runs(x['runs'])) if x.get('runs') else x for x in nt]
@@ -2819,6 +2886,8 @@ def book(b):
         if pend_chars >= NOTE_MIN and not C.get('notes_end'):
             flush(body, 'body')
         if plates:
+            if C.get('notes_before_plates') and not C.get('notes_end'):
+                flush(body, 'body')                                # (book 63) the chapter's notes before the plates set after it
             body += figure_pages(f'{_parts(n)[0]}x', plates, zone='body')
     if C.get('notes_end') != 'all':
         flush(body, 'body')                                        # (notes_end: the few notes of all chapters in one module here)

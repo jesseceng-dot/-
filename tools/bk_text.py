@@ -73,7 +73,13 @@ def fix_edges(runs):
 NUM = re.compile(r'^(?:[註注])?[\[［(（〔]?\s*(?:校(?=\d+[\]］]))?(\d+)\s*[\]］)）〕]?[．.]?$')     # ([校1]: a reviser's note, book 17)
 
 
+SYM_MARKS = ''             # (set per book from C['sym_marks'], book 62) note marks that are symbols ('*†‡§'): kept as they are
+
+
 def marker_text(t, fmt):
+    sym = t.strip().strip('\u2060')
+    if SYM_MARKS and sym and all(c in SYM_MARKS for c in sym):
+        return sym
     m = NUM.match(t.strip())
     if not m:
         return None

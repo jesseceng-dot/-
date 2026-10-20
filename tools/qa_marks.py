@@ -16,6 +16,7 @@ def _num(t):
 
 def check(b):
     C = bk.CFG[b]
+    BT.SYM_MARKS = C.get('sym_marks', '')                # (book 62) marks that are symbols: '*', '†'
     parts = [x for n, _ in C['front'] for x in bk._parts(n)]
     for x in C['body']:
         parts += bk._parts(x)
@@ -56,7 +57,7 @@ def check(b):
     for a, (n, i, t, h) in marks.items():
         if h not in notes:
             bad.append(('角标指向不存在的注释', n, i, t, h))
-        elif _num(notes[h][2]) != re.sub(r'\D', '', t):
+        elif _num(notes[h][2]) != re.sub(r'\D', '', t) or not re.sub(r'\D', '', t) and notes[h][2].strip() != t.strip():
             bad.append(('角标与注释编号不同', n, i, t, notes[h][2]))
     orphan = []
     for a, (n, i, t, h) in notes.items():
