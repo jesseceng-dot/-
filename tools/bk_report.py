@@ -131,7 +131,7 @@ def raw_missing(b):
                 for f in pats:
                     t = f[1].sub(lambda m: m.expand(f[2]), t)
                 for f in fwp:
-                    t = BE.fw_parens_text(t, f[2])[1]
+                    t = BE.fw_parens_text(t, f[2], f[3] if len(f) == 5 else None)[1]
                 t = t.replace('\0', '\ue000')
                 tail = el.tail
                 el.clear()
@@ -170,7 +170,7 @@ def overlaps(doc):
         for b in pg.get_text('rawdict')['blocks']:
             for l in b.get('lines', []):
                 for sp in l['spans']:
-                    ch = [c for c in sp['chars'] if c['c'].strip()]
+                    ch = [c for c in sp['chars'] if c['c'].strip() and c['c'] not in '\u200b\u2060']   # (zero-width: no extent)
                     if ch:
                         spans.append((round(sp['origin'][1], 1), ch[0]['bbox'][0], ch[-1]['bbox'][2], ''.join(c['c'] for c in ch)))
         spans.sort()

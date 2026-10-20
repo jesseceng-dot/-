@@ -57,7 +57,7 @@ FONTS_CSS = """
 @font-face{font-family:"KaiM";src:url("%(f)s/KaitiM-Bold.ttf");font-weight:700}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Regular.ttf");font-weight:400}
 @font-face{font-family:"DroidHei";src:url("%(f)s/Droid-Bold.ttf");font-weight:700}
-@font-face{font-family:"LatIt";src:url("%(f)s/NotoSerif-Italic.ttf");font-style:italic;font-weight:400;unicode-range:U+0000-024F,U+0370-03FF,U+1F00-1FFF,U+2000-206F}
+@font-face{font-family:"LatIt";src:url("%(f)s/NotoSerif-Italic.ttf");font-style:italic;font-weight:400;unicode-range:U+0000-024F,U+0300-036F,U+0370-03FF,U+1F00-1FFF,U+2000-206F}
 @font-face{font-family:"HanExt";src:url("%(f)s/SansSC-Regular.ttf");font-weight:400;unicode-range:U+20000-3FFFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0370-03FF,U+1F00-1FFF}
 @font-face{font-family:"GrkSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0370-03FF,U+1F00-1FFF}
@@ -66,6 +66,8 @@ FONTS_CSS = """
 @font-face{font-family:"GebRare";src:url("%(f)s/GebRare.ttf");unicode-range:U+AA9E-AAAF,U+E047}
 @font-face{font-family:"SymFont";src:url("%(f)s/NotoSansSymbols2-Regular.ttf");font-weight:400;unicode-range:U+2751}
 @font-face{font-family:"RadSerif";src:url("%(f)s/FreeSerif.ttf");font-weight:400;unicode-range:U+221A}
+@font-face{font-family:"MathOps";src:url("%(f)s/FreeSerif.ttf");font-weight:400;unicode-range:U+00B1,U+00D7,U+00F7,U+2026,U+2190-21FF,U+2200-22FF}
+@font-face{font-family:"VecIt";src:url("%(f)s/FreeSerif-Italic.ttf");font-style:italic;font-weight:400}
 @font-face{font-family:"GuaSym";src:url("%(f)s/LXGWWenKai-Regular.ttf");font-weight:400;unicode-range:U+2630-2637,U+268A-268F,U+4DC0-4DFF}
 @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Regular.ttf");font-weight:400;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
 @font-face{font-family:"LatSerif";src:url("%(f)s/NotoSerif-Bold.ttf");font-weight:700;unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF,U+2100-214F}
@@ -104,9 +106,12 @@ a{{color:inherit;text-decoration:none}}
 .emp{{-webkit-text-emphasis:filled dot;text-emphasis:filled dot;-webkit-text-emphasis-position:under right;text-emphasis-position:under right}}
 .msup{{font-size:.7em;position:relative;top:-.4em;line-height:0}}
 .msub{{font-size:.7em;position:relative;top:.28em;line-height:0}}
+.msub2{{font-size:.5em;position:relative;top:.5em;line-height:0}}
 .ov{{border-top:.5pt solid;padding:0 .06em 0 .1em}}
 .pgno{{font-size:.62em;color:#8a8a8a;letter-spacing:0;line-height:0;font-family:"Noto Serif",serif}}
 .it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}
+.mth{{font-family:"MathOps","GrkSerif","SongBody","Noto Serif",serif;line-height:0}}
+.vec{{font-family:"VecIt","LatIt",serif;font-style:italic;line-height:0}}
 /* table cells: inline boxes of fixed width (em of the line font) */
 .tw{{display:inline-block;vertical-align:baseline;white-space:nowrap}}
 .w2{{width:2em}} .w3{{width:3em}} .w4{{width:4em}} .w5{{width:5em}} .w6{{width:6em}} .w7{{width:7em}} .w8{{width:8em}} .w9{{width:9em}} .w10{{width:10em}} .w11{{width:11em}} .w12{{width:12em}} .w13{{width:13em}} .w14{{width:14em}} .w15{{width:15em}} .w16{{width:16em}} .w17{{width:17em}} .w18{{width:18em}} .w19{{width:19em}} .w20{{width:20em}} .w21{{width:21em}} .w22{{width:22em}} .w23{{width:23em}} .w24{{width:24em}} .w25{{width:25em}} .w26{{width:26em}} .w27{{width:27em}} .w28{{width:28em}} .w29{{width:29em}} .w30{{width:30em}} .w31{{width:31em}} .w32{{width:32em}} .w33{{width:33em}} .w34{{width:34em}}

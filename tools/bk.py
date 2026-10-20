@@ -7,6 +7,7 @@ import math
 import os
 import re
 import shutil
+import zlib
 from . import bk_extract as BE, bk_text as BT, kant_struct as KS, normalize, special, style
 from .book import Mod, title_text, toc_runs
 from .kant import finish_blocks, balance_headings, wrap_lines, repair_link
@@ -842,6 +843,52 @@ CFG[58] = _xf(scratch='q58', file='克尔凯郭尔日记选（1842—1846）', t
               cls_cap=('imgtitle',),
               front=[(415, 'board'), (418, 'text'), (419, 'board'), (420, 'text'), (421, 'text'), (422, 'text')],
               body=[423, 424, 425], back=[])
+# 模型思维（新版，浙江科学技术出版社 2023，湛庐）: a repaired ebook.  Two series of notes, both '[n]' in the ebook and in this
+# PDF: the footnotes of the printed book (<aside>, '[n]' linking to them) after each chapter as usual, and the printed book's
+# back notes (the formal derivations, with formulas: the ebook sets them as paragraphs at a chapter's end, '[n]' raised)
+# gathered at the end in the ebook's own notes part, one group a chapter (bnote_re), with the reviser's two notes of
+# chapter 17 ('[原注n]').  The formulas in the lines are text (tools/bk_img60.py); display formulas, tables drawn as
+# formulas and the charts are pictures (the reviser's LaTeX drawings in points: svg_pt).  The model boxes (专栏) of the
+# printed book: their titles (content-b) as small bold heads; the ebook does not mark where a box ends.
+CFG[60] = dict(scratch='q60', file='模型思维（新版）', title='模型思维', sub='新版', author='〔美〕斯科特·佩奇 著', credits=['贾拥民　译'],
+               publisher='浙江科学技术出版社', pdf_author='〔美〕斯科特·佩奇', cover='CB_3300065203_device_phone_frontcover.jpg',
+               title_img=None, copyright=1, marker='sq', mark_label='原注', note_by_marker=True, notes_tail=True,
+               bnote_re=r'#BT\d+$', note_group_re=r'^\d{2} ', note_dpi=300.0, svg_pt=True, exp_sup=True, math_ops=True,
+               lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True, tail_join=True, dedication_grid=True,
+               head_sub=[(r'^(\d{2}|序言|结语|测一测)[\s\u3000]+', '\\1\u3000')],
+               page_parts={7: 'Part 1　为什么需要模型思维', 12: 'Part 2　模型思维'},
+               cls_quote=('quotation',), cls_right=('quotation-right', 'content-right'), cls_noindent=('content-noindent',),
+               cls_refhead=('content-b',), cls_cap=('imgdescript',), cap_top_re=r'^表', label_re=r'^([图表]\d+-\d+)',
+               text_map=[(r'^……$', ('center', 0, 0, ''))],            # (chapter 28: the rows of a list left out, '……' between them)
+               fig_inline=True, fig_dpi=300,
+               img_text=__import__('tools.bk_img60', fromlist=['IMG_TEXT']).IMG_TEXT,
+               front=[(2, 'text'), (3, 'pageimg'), (4, 'dedication'), (5, 'text'), (6, 'text')], body=list(range(7, 38)),
+               back=[38, (39, 'notes'), (40, 'hang'), (41, 'index')], tail=[], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 思维模型（浙江教育出版社 2022）: the model names underlined as in the ebook, the bold items of the lists hanging under
+# their '·', the chapter summaries (本章要点, a box in the ebook) after a blank line under a small title; the figures'
+# titles above them (tuti / biaoti), as the ebook has it.  The repairer's SVG figures are vector drawings in points
+# (fig_scale: about the width the ebook gives them), his three formulas in the lines are text.  The translator's note
+# (2) of chapter 5 belongs to the mark '1' drawn inside the XKCD comic: no mark in the text, as in the ebook.
+CFG[61] = dict(scratch='q61', file='思维模型', title='思维模型', sub='深度理解世界本质　重新定位人生坐标',
+               author='〔美〕加布里埃尔·温伯格　〔美〕劳伦·麦肯 著', credits=['王岑卉　译'], publisher='浙江教育出版社',
+               pdf_author='〔美〕加布里埃尔·温伯格　〔美〕劳伦·麦肯', cover='00151.jpeg', title_img='00001.jpeg', copyright=2,
+               marker='paren', note_cls=('fnContent-1',), note_split_label=True, lat_apos=True, toc_even=True, open_air=True,
+               url_break=True, name_dot=True, head_sub=[(r'^(\d+|序言)[\s\u3000]+', '\\1\u3000')], head_cls={'noindent-boxContent-1-2': 4},
+               cls_quote=('bodyContent-2-fangsong-4', 'bodyContent-2-fangsong-bot-4', 'bodyContent-2-fangsong-top-25',
+                          'bodyContent-2-fangsong-topbot-14'),
+               cls_map={'bodyContent-1-fangsong-7': ('noindent', -2, 4), 'bodyContent-1-fangsong-bot-24': ('noindent', -2, 4),
+                        'bodyContent-1-fangsong-top-30': ('noindent', -2, 4), 'boxContent-1-2': ('noindent', -2, 4)},
+               cls_hang=('bodyContent-1-fangsong-7', 'bodyContent-1-fangsong-bot-24', 'bodyContent-1-fangsong-top-30', 'boxContent-1-2'),
+               cls_cap=('tuti', 'tuzhu', 'biaoti'), cap_top_re=r'.', fig_inline=True, fig_dpi=300,
+               fig_scale={'power_sample_table.svg': 4.17, 'significance_base.svg': 3.08, 'significance_lower_alpha.svg': 3.08,
+                          'significance_larger_sample.svg': 3.08, 'test_error_rates.svg': 3.6, 'test_outcomes.svg': 3.54},
+               img_text={'00026.gif': '啰',                              # (……当然啰，她死掉了！)
+                         'discount_year_two.svg': ['100万美元/1.05', ('2', 'msup')],
+                         'discount_year_fifty.svg': ['100万美元/1.05', ('50', 'msup')],
+                         'bond_ten_year_denominator.svg': ['1.06', ('10', 'msup')]},
+               front=[(3, 'text')], body=list(range(5, 15)), back=[15], tail=[], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -897,6 +944,8 @@ def regap_heading(runs):
 CIRC_LINK = None          # (set per book from C['circ_link']) marks and entries of a second series of notes, set as ①②③
 PAGE_ANCHOR = None        # (set per book from C['page_anchor']) anchors of the ends of printed pages, kept in the text
 MARK_LABEL = None         # (set per book from C['mark_label']) marks that carry a label before their number ('[原注3]', '[资料12]')
+NOTE_DPI = 220.0          # (set per book from C['note_dpi']) the resolution of the pictures inside notes
+SVG_PT = False            # (set per book from C['svg_pt']) the units of the ebook's SVG pictures are points (LaTeX drawings)
 
 
 def circ_number(n):
@@ -1095,6 +1144,28 @@ def _img_text(C, runs):
     return [x for k, r in enumerate(runs) if not r.get('i') or r['i'] in m for x in (sub(r, k) if r.get('i') else [r])]
 
 
+MATH_OPS = re.compile('[±×÷\u2190-\u21ff\u2200-\u22ff]+')
+
+
+def math_runs(runs):
+    """(C['math_ops'], book 60) The operators of the formulas (×, ≈, ≤, √, ∞, ∂ …) in a Latin math face (.mth): the CJK faces
+    set them full width.  The runs are split around them, their other classes kept."""
+    out = []
+    for r in runs:
+        if r.get('i') or not MATH_OPS.search(r['t']) or 'mth' in (r.get('c') or '').split():
+            out.append(r)
+            continue
+        pos = 0
+        for m in MATH_OPS.finditer(r['t']):
+            if m.start() > pos:
+                out.append(dict(r, t=r['t'][pos:m.start()]))
+            out.append(dict(r, t=m.group(0), c=_cls_add(r.get('c'), 'mth')))
+            pos = m.end()
+        if pos < len(r['t']):
+            out.append(dict(r, t=r['t'][pos:]))
+    return out
+
+
 def exp_sup(runs):
     """A superscript without a link is an exponent (m², 10⁶), not a note mark: black raised digits."""
     return [dict({k: v for k, v in r.items() if k != 's'}, c=((r.get('c') or '') + ' msup').strip())
@@ -1176,6 +1247,12 @@ def elements(C, items, kaitext=False):
         if k == 'p' and set(it['cls'].split()) & _cs(C, 'note_cls'):
             it = dict(it, k='note')                         # footnote paragraphs marked by their class
             k = 'note'
+            r0 = it['runs'][0] if it['runs'] else {}
+            m0 = C.get('note_split_label') and not (r0.get('h') or r0.get('a')) and not r0.get('i') \
+                and re.match(r'(\(\d+\))[\s\u3000]+', r0.get('t', ''))
+            if m0:                                          # (book 61) a note whose mark is drawn in a picture: its label set
+                it = dict(it, runs=[dict(r0, t=m0.group(1), a=it['id'] or 'nolink-%08x' % zlib.crc32(plain(it['runs']).encode())),   # like the others' (an anchor, no link)
+                                    dict(r0, t=r0['t'][m0.end():])] + it['runs'][1:])
         if k == 'p' and set(it['cls'].split()) & _cs(C, 'pgno_cls') and re.fullmatch(r'[ivxlcdm]{1,8}|\d{1,4}', plain(it['runs'])):
             mk = run('〔%s〕' % plain(it['runs']), c='pgno')     # a page number of the original edition: small, at the end of its paragraph
             if els and els[-1]['k'] == 'p' and els[-1].get('style') not in ('cap',):
@@ -1394,8 +1471,16 @@ def elements(C, items, kaitext=False):
                 b['right'] = 0
         if c & _cs(C, 'cls_hang'):                         # '● item' paragraphs: hanging indent under the bullet
             r0 = b['runs'][0]
-            b['runs'] = [dict(r0, t=re.sub(r'^([●•■◆▲○◇□])[\s\u3000]*', '\\1\u3000', r0['t']))] + b['runs'][1:]
-            b.update(style='noindent', first=-2, left=2)
+            if r0['t'].startswith('·'):                    # (book 61) a narrow '·': in a 2-em box, the text at the turn
+                rest = [dict(r0, t=r0['t'][1:])] + b['runs'][1:]
+                while rest and not rest[0].get('i') and not rest[0]['t'].lstrip(' \u3000\n'):
+                    rest = rest[1:]
+                if rest and not rest[0].get('i'):
+                    rest[0] = dict(rest[0], t=rest[0]['t'].lstrip(' \u3000\n'))
+                b['runs'] = [dict(r0, t='·', c=_cls_add(r0.get('c'), 'nb'))] + rest
+            else:
+                b['runs'] = [dict(r0, t=re.sub(r'^([●•■◆▲○◇□])[\s\u3000]*', '\\1\u3000', r0['t']))] + b['runs'][1:]
+            b.update(style='noindent', first=-2, left=cm[2] if cm and cm[2] else 2)
         if gap_before and b['style'] in ('body', 'noindent', 'quote', 'quotel', 'kaibody', 'center', 'right'):
             b['before'] = 1
         gap_before = False
@@ -1917,6 +2002,8 @@ def fig_block(C, e, fmt):
         sc = SNAP_SCALE                                         # a picture of a table: its own size (made at SNAP_SCALE)
     elif re.match(C.get('formula_img', r'$^'), e['src']):
         sc = formula_scale(e['src'])                            # a formula set as an image: its letters about the size of the text
+    elif SVG_PT and e['src'].endswith('.svg'):
+        sc = 1.0                                                # (book 60) the reviser's LaTeX drawings: their units are points
     elif C.get('fig_dpi'):
         sc = 72.0 / C['fig_dpi']                                # (book 18) the printed size: the scans' resolution (an SVG redrawing: its units as their pixels)
     else:
@@ -2054,9 +2141,8 @@ def note_blocks(items, fmt):
             out += note_table_blocks(it['rows'])
             continue
         if it['k'] == 'img':                               # (book 43) a table of a note, a picture: at its width at 220 dpi,
-            from PIL import Image                          # at most the text block's, centred on the small grid
-            iw, ih = Image.open(os.path.join(special.IMG_DIR, it['src'])).size
-            w = min(style.TEXT_W, iw * 72.0 / 220)
+            iw, ih = special.img_size(it['src'])           # at most the text block's, centred on the small grid
+            w = min(style.TEXT_W, iw if SVG_PT and it['src'].endswith('.svg') else iw * 72.0 / NOTE_DPI)   # (book 60: SVG in points)
             h = w * ih / iw
             pitch = style.TEXT_H / style.SMALL_N
             out.append(dict(k='img', style='orn', runs=[], src=special.img_url(it['src']), w=w, h=h,
@@ -2126,7 +2212,8 @@ def index_module(C, n):
                 hn = len(blocks)
             elif re.fullmatch(r'[A-Z]', t):
                 blocks.append(dict(k='p', style='idxhead', runs=rs, id=it['id']))
-            elif t[0].islower() or t.startswith('—'):            # (a sub-entry: lower-case English, or '—term' under the entry)
+            elif t[0].islower() or t.startswith('—') or 'secondaryie' in it['cls'].split():   # (a sub-entry: lower-case English, '—term'
+                                                                 # under the entry, or the ebook's class of sub-entries: book 60)
                 blocks.append(dict(k='p', style='indexc', runs=rs, id=it['id'], first=-1, left=2))
             else:
                 blocks.append(dict(k='p', style='index', runs=rs, id=it['id']))
@@ -2331,11 +2418,13 @@ def part_divider(C, els):
 
 
 def book(b):
-    global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL
+    global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL, NOTE_DPI, SVG_PT
     C = CFG[b]
     CIRC_LINK = C.get('circ_link')
     PAGE_ANCHOR = C.get('page_anchor')
     MARK_LABEL = C.get('mark_label')
+    NOTE_DPI = C.get('note_dpi', 220.0)
+    SVG_PT = C.get('svg_pt', False)
     m = meta(b)
     cover = C['cover']
     if C.get('cover_file'):                                          # a cover image supplied separately (source/covers/…) replaces the ebook's
@@ -2382,11 +2471,41 @@ def book(b):
             if n in C.get('short_right', {}):                     # (book 26) the names and titles under endorsements and prefaces
                 its = short_right(its, C['short_right'][n])
             e, nt = elements(C, its, kaitext=kaitext)
+            if C.get('math_ops'):
+                e = [dict(x, runs=math_runs(x['runs'])) if x.get('runs') else x for x in e]
+                nt = [dict(x, runs=math_runs(x['runs'])) if x.get('runs') else x for x in nt]
+            if C.get('bnote_re') and nt:                          # (book 60) the notes of the printed book's back, which the ebook
+                bn, an, cur = [], [], None                        # sets at the end of each chapter: kept for the back's notes part
+                for it in nt:
+                    r0 = it['runs'][0] if it.get('runs') else {}
+                    if (r0.get('a') or r0.get('h')) and not r0.get('i') and BT.marker_text(r0['t'], 'sq'):
+                        cur = bn if re.search(C['bnote_re'], r0.get('a') or '') else an
+                    (cur if cur is not None else an).append(it)
+                if bn:
+                    t_ = next((plain(x['runs']) for x in e if x['k'] == 'h'), '')
+                    bnotes[n] = (_head_sub(C, [run(plain(regap_heading([run(t_)])))])[0]['t'], bn)
+                nt = an
             if n in C.get('insert_head', {}):                     # (book 35) a part with no heading of its own: the name the ebook's contents give it
                 e = [dict(k='h', lvl=1.0, runs=[run(C['insert_head'][n])], id=P(n) + '#head', src='insert_head', cls='')] + e
             els += e
             notes += nt
         return els, notes
+
+    bnotes = {}                                                    # (book 60) part -> (chapter title, its notes of the book's back)
+
+    def page_images(n, zone, title=None):
+        """(book 60) A part made of whole-page pictures (the author's pages, a part's title page): each picture a page of its
+        own, as the ebook draws it; `title` makes the first an entry of the contents (a part: level 0)."""
+        mods = []
+        for k_, it in enumerate([it for it in BE.items(P(n)) if it['k'] == 'img' or it.get('runs') and it['runs'][0].get('i')]):
+            src = it['src'] if it['k'] == 'img' else it['runs'][0]['i']
+            pm = page_module(f'pg{n}_{k_}', zone, special.cover_html(src), folio=False, head=False,
+                             **(dict(toc=True, toc_title=title, toc_level=0, title=title) if title and not k_ else {}))
+            pm.src_parts = _parts(n) if not k_ else []
+            if title and not k_:
+                pm.part = True
+            mods.append(pm)
+        return mods
 
     def add_unit(ns, zone_list, zone, els, notes, top=False, kaitext=False, toc=True, title_over=None, mid=None):
         nonlocal pend_chars
@@ -2534,9 +2653,13 @@ def book(b):
             pend_chars += sum(len(runs_text(i['runs'])) for i in notes)
 
     for n, kind in C['front']:
+        if kind == 'pageimg':
+            front += page_images(n, 'front')
+            continue
         els, notes = gather(n, kaitext=(kind == 'kaitext'))
         if kind == 'dedication':
-            lines = [(99, plain(e['runs'])) for e in els if e['k'] == 'p']
+            lines = [(99, plain(e['runs']).replace('\u2060', '')) for e in els if e['k'] == 'p']   # (a line of its own: no joiners,
+                                                                   # which the Kai face draws with a width: book 60 '1945—2013')
             dm = page_module('dedication' if not any(x.mid == 'dedication' for x in front) else f'dedication{n}', 'front',
                              special.divider_html(lines, grid=C.get('dedication_grid', False)), toc=False, title='献词', folio=False,
                              head=False)
@@ -2586,6 +2709,11 @@ def book(b):
         else:
             entries.append((n, '', None))
     for n, sfx, chunk in entries:
+        if n in C.get('page_parts', {}):                          # (book 60) a part's title page drawn as a picture
+            if not C.get('notes_end'):
+                flush(body, 'body')
+            body += page_images(n, 'body', C['page_parts'][n])
+            continue
         els, notes = gather(n) if chunk is None else elements(C, chunk)
         plates = []
         if isinstance(n, int) and n in C.get('insert_plates', {}):                       # (book 33) a plate section bound inside a chapter: its pictures
@@ -2696,7 +2824,14 @@ def book(b):
                         runs_ = dot_runs(runs_)
                     if C.get('sup_join'):
                         runs_ = sup_runs(runs_)
+                    if C.get('math_ops'):
+                        runs_ = math_runs(runs_)
                     groups[-1][1].append(dict(it, k='note', runs=latin_runs(runs_, whole=False) if C.get('lat_apos') else runs_))
+            if C.get('bnote_re'):                                  # (book 60) the chapters' notes of the printed book's back, here,
+                key = lambda t_: re.sub(r'\s', '', t_)            # one group a chapter (the part's own notes join their chapter's)
+                own = {key(t_): g_ for t_, g_ in groups}
+                merged = [(t_, g_ + own.pop(key(t_), [])) for n_, (t_, g_) in sorted(bnotes.items())]
+                groups = merged + [(t_, g_) for t_, g_ in groups if key(t_) in own]
             nm = notes_module(f'notes_p{n}', groups, fmt, zone='back', title=C.get('endnotes_title', title),
                               toc_level=1, toc_title=C.get('endnotes_title', title))
             nm.top = True

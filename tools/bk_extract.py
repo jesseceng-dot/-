@@ -64,6 +64,13 @@ RUN_CLS.update({f'q{_n}': {'calibre9': (0, 'it'), 'calibre6': (1, ''), 'emphasis
 for _k in ('q53', 'q57', 'q58'):                               # (books 53, 57, 58: the marks '（n）' '[n]', linked by bk_fixes PNOTES)
     RUN_CLS[_k] = dict(RUN_CLS[_k], super=(0, 'pmark'), super1=(0, 'pmark'), super2=(0, 'pmark'))     # (super1, 2: in titles)
 RUN_CLS['q57']['span_1'] = (0, 'pmark')                         # (the mark of the last work's title)
+RUN_CLS['q61'] = {'underline': (0, 'ul'), 'fangsong': (0, 'kai')}   # 思维模型: the model names underlined; the quoted quadrants in Kai
+RUN_CLS['q60'] = {'italic': (0, 'it'), 'bold': (1, ''), 'sub': (0, 'msub'), 'super': (0, 'SUP')}   # 模型思维: variables, exponents, the
+                                                                # marks of the book's back notes (<span.super><a>[n]</a></span>)
+# Note entries numbered '1.' with a separate '返回正文' link: the label their marks read (key = scratch directory).
+NUM_BACKLINK = {'q60': '[原注%s]'}                               # 模型思维: the reviser's two notes of chapter 17
+# Div classes of one book that are bordered boxes (方框) besides roundsolid / kx; key = scratch directory.
+BOX_CLS = {'q61': ('boxBlock-12',)}                             # 思维模型: 本章要点
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
 SNAP = {
@@ -71,6 +78,10 @@ SNAP = {
             (46, 7), (46, 8), (46, 10)},
 }
 _RUNMAP = None
+
+
+def _boxcls():
+    return BOX_CLS.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')), ())
 
 
 def _runmap():
@@ -361,7 +372,7 @@ def _mark_fix(f, out):
         return
     if kind == 'NOTEBACK':
         for it in out:
-            if it['k'] == 'note' and it['runs'] and it['runs'][0]['t'] == f[2]:
+            if it['k'] in ('note', 'p') and it.get('runs') and it['runs'][0]['t'] == f[2]:     # ('p': an entry of a notes part)
                 it['runs'][0] = dict(it['runs'][0], h=f[3])
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
                 return
@@ -373,7 +384,7 @@ def _mark_fix(f, out):
     mark = dict(t=f[4], s=1, h=f[5], a=f[6])
     if kind == 'RELINK':
         for k, r in enumerate(it['runs']):
-            if r.get('s') and r['t'] == f[3]:
+            if (r.get('s') or r.get('h')) and r['t'] == f[3]:           # (book 60: a mark that is a plain link, '[原注1]')
                 it['runs'][k] = dict(r, **mark)
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
                 return
@@ -552,22 +563,24 @@ def _apply_fixes(part, out):
             it['runs'] = fix_runs(it['runs'], fx)
         if it.get('rows'):
             it['rows'] = [[fix_runs(c, fx) for c in row] for row in it['rows']]
-    for f in fwp:                                               # (parts, 'FWPAREN', pattern of the character before, note): the
+    for f in fwp:                                               # (parts, 'FWPAREN', pattern of the character before[, inside], note): the
         for it in out:                                          # half-width parentheses of the Chinese text, character by character
             if it.get('runs'):                                  # (a pattern replacing whole spans would merge the marks and
                 fw_parens(it['runs'], f)                        #  styles inside them into one run)
     return out
 
 
-def fw_parens_text(t, before):
-    """The positions of the half-width parentheses in `t` that become full width (see fw_parens), and the new text."""
+def fw_parens_text(t, before, inside=None):
+    """The positions of the half-width parentheses in `t` that become full width (see fw_parens), and the new text.
+    `inside` (book 60): only a pair whose text matches it (words, not a formula's '(1-p)')."""
     stack, edits = [], {}
     for i, ch in enumerate(t):
         if ch == '(':
             stack.append(i)
         elif ch == ')' and stack:
             a = stack.pop()
-            if a and re.match(before, t[a - 1]) or re.search(r'[\u4e00-\u9fff]', t[a + 1:i]):
+            if (a and re.match(before, t[a - 1]) or re.search(r'[\u4e00-\u9fff]', t[a + 1:i])) \
+                    and (inside is None or re.search(inside, t[a + 1:i])):
                 edits[a], edits[i] = '（', '）'
     return edits, ''.join(edits.get(i, ch) for i, ch in enumerate(t))
 
@@ -584,7 +597,7 @@ def fw_parens(runs, f):
         for o, ch in enumerate(r['t']):
             pos.append((k, o))
             text.append(ch)
-    edits, _ = fw_parens_text(''.join(text), f[2])
+    edits, _ = fw_parens_text(''.join(text), f[2], f[3] if len(f) == 5 else None)
     if edits:
         FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(edits) // 2
     by_run = {}
@@ -632,11 +645,13 @@ def inline(el, part, mark_breaks=False):
                 bold, add = rm[next(x for x in cls if x in rm)]
                 c2 = c
                 for x in add.split():
-                    c2 = _cls(c2, x)
+                    if x != 'SUP':                                  # ('SUP': the span is a <sup>: a mark if linked, else an exponent)
+                        c2 = _cls(c2, x)
                 a2 = anchor_key(part, ch.get('id')) if ch.get('id') and not a and any(
                     isinstance(x.tag, str) and ln(x) == 'a' and x.get('href') for x in ch.iter() if x is not ch) else a
                 # (books 53, 57, 58: <span class="super" id=…><a href=…>[1]</a></span>: the id is the mark's anchor)
-                rec(ch, 1 if (bold or t in ('b', 'strong')) else b, _cls(c2, 'it') if t in ('i', 'em') else c2, h, a2, s)
+                rec(ch, 1 if (bold or t in ('b', 'strong')) else b, _cls(c2, 'it') if t in ('i', 'em') else c2, h, a2,
+                    1 if 'SUP' in add.split() else s)
             elif t == 'br':
                 if mark_breaks:
                     out.append(run(' '))
@@ -782,6 +797,17 @@ def _note_backlink(el):
             lead.set('id', sid)
         return
     m = re.match(r'\s*(\[\d+\])', el.text or '')
+    lab = NUM_BACKLINK.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')))
+    m2 = lab and not m and el.get('id') and re.match(r'\s*(\d+)\.', el.text or '')
+    if m2:                                                      # (book 60) '1.text': the label as its mark reads, the entry's
+        a = etree.Element('{%s}a' % etree.QName(el).namespace if etree.QName(el).namespace else 'a')   # id on it
+        a.text, a.tail = lab % m2.group(1), el.text[m2.end():]
+        a.set('href', href)
+        a.set('id', el.get('id'))
+        del el.attrib['id']
+        el.text = ''
+        el.insert(0, a)
+        return
     if m:
         a = etree.Element('{%s}a' % etree.QName(el).namespace if etree.QName(el).namespace else 'a')
         a.text, a.tail = m.group(1), el.text[m.end():]
@@ -932,7 +958,7 @@ def items(part):
                 dstack.extend(cls)
                 grp[0] += 1
                 outer, grp[1] = grp[1], grp[0]
-                walk(el, q=q, box=1 if ('roundsolid' in cls or 'kx' in cls) else box, fig=1 if 'chatu' in cls else fig,
+                walk(el, q=q, box=1 if ('roundsolid' in cls or 'kx' in cls or set(cls) & set(_boxcls())) else box, fig=1 if 'chatu' in cls else fig,
                      note=1 if ('fnote' in cls or 'annotation' in cls or '_idFootnote' in cls) else note)
                 grp[1] = outer
                 del dstack[len(dstack) - len(cls):]

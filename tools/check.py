@@ -109,6 +109,8 @@ def pdf_checks(pdf, bb):
                     ys.append(round(sp[0]['origin'][1], 2))
         if ys and any(im['bbox'][3] > max(ys) + 2 for im in page.get_image_info()):
             continue                                         # (the page ends with a picture, a formula drawn as one)
+        if ys and max(ys) < want - 1 and any(d['rect'].y1 > max(ys) + 10 for d in page.get_drawings()):
+            continue                                         # (book 61: the page ends with a vector figure, an SVG drawing)
         if ys:
             per_page[p.index] = max(ys)
             bottoms[max(ys)] += 1

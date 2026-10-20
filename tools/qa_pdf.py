@@ -70,6 +70,10 @@ def foot(d, meta, bottom):
         for im in pg.get_image_info():
             if im['bbox'][3] - im['bbox'][1] > 20:
                 low = max(low, im['bbox'][3])
+        if bottom + 3 - low > 14:
+            for dr in pg.get_drawings():                        # (book 61) a vector figure (an SVG drawing) at the page foot
+                if dr['rect'].y1 < bottom + 25:
+                    low = max(low, dr['rect'].y1)
         band = bottom + 3 - low
         if band > 14:
             out.append((i + 1, pg.get_label(), round(band, 1)))

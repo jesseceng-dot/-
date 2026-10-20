@@ -336,6 +336,7 @@ SYSTEM_COPIES = {                                  # used whole (TrueType outlin
     'NotoSerif-Italic.ttf': '/usr/share/fonts/truetype/noto/NotoSerif-Italic.ttf',
     'NotoSansSymbols2-Regular.ttf': '/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf',   # (❑ of book 39: .sym)
     'FreeSerif.ttf': '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',   # (√ of book 59: .rad; the CJK faces set it full width)
+    'FreeSerif-Italic.ttf': '/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf',   # (book 60: vectors, the arrow U+20D7: .vec)
 }
 
 
