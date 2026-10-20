@@ -337,6 +337,8 @@ SYSTEM_COPIES = {                                  # used whole (TrueType outlin
     'NotoSansSymbols2-Regular.ttf': '/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf',   # (❑ of book 39: .sym)
     'FreeSerif.ttf': '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',   # (√ of book 59: .rad; the CJK faces set it full width)
     'FreeSerif-Italic.ttf': '/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf',   # (book 60: vectors, the arrow U+20D7: .vec)
+    'STIXTwoMath-Regular.ttf': os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'fonts', 'STIXTwoMath-Regular.ttf'),
+                                                   # (book 60: formulas set as MathML, a face with a MATH table; SIL OFL 1.1, fonts/)
 }
 
 

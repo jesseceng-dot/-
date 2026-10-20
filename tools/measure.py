@@ -24,6 +24,10 @@ async (specs) => {
     root.appendChild(d);
     return d;
   });
+  // the faces the paragraphs use start loading when they are laid out (the italic, the math faces ...): measured before
+  // they are there, a line is measured in a fallback face and breaks elsewhere than it is printed
+  root.getBoundingClientRect();
+  await document.fonts.ready;
   const PX = 96 / 72;
   const out = [];
   const range = document.createRange();
@@ -52,12 +56,14 @@ async (specs) => {
       const d = Math.floor((mid - anchor) / lhpx + 0.5);
       return d > 0 ? cur + d : cur;
     };
-    const walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    // a formula (MathML) is one unit, as a picture is: what is inside it is not walked
+    const walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      {acceptNode: x => x.parentNode && x.parentNode.closest && x.parentNode.closest('math') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
     let n;
     while ((n = walker.nextNode())) {
       if (n.nodeType === 1) {
         if (n.tagName === 'BR') { unit += 1; forced = true; continue; }
-        if (n.tagName === 'IMG') {
+        if (n.tagName === 'IMG' || n.localName === 'math') {
           const rc = n.getBoundingClientRect();
           const mid = midOf(rc, false), ln = lineOf(mid);
           if (ln > cur || forced) { flush(); starts.push(unit); cur = Math.max(ln, cur + (forced ? 1 : 0)); forced = false; anchor = mid; }

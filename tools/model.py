@@ -1,9 +1,10 @@
 """Content model: paragraphs are lists of runs; a run is a small dict.
 
-    {"t": text, "b": 1 (bold), "s": 1 (superscript), "h": link target id, "a": anchor id, "i": inline image}
+    {"t": text, "b": 1 (bold), "s": 1 (superscript), "h": link target id, "a": anchor id, "i": inline image,
+     "m": a formula as MathML markup}
 
 Text offsets ("units") count code points; a forced line break is a run with t == "\\n" (one unit),
-an inline image is a run with an "i" key and t == "\\ufffc" (one unit).
+an inline image is a run with an "i" key and t == "\\ufffc" (one unit), so is a formula (an "m" key).
 """
 import html as _html
 import re
@@ -30,6 +31,11 @@ def runs_text(runs):
 
 def runs_len(runs):
     return sum(len(r['t']) for r in runs)
+
+
+def runs_plain(runs):
+    """Text of a run list as printed: a formula (MathML) by its characters, not by its one unit (the fidelity checks)."""
+    return ''.join(_html.unescape(re.sub(r'<[^>]*>', '', r['m'])) if r.get('m') else r['t'] for r in runs)
 
 
 def _wrap(r, inner):
@@ -136,6 +142,8 @@ def runs_html(runs, start=0, end=None, strip=True, final=False):
             continue
         if seg == BR:
             parts.append('<br>')
+        elif r.get('m'):
+            parts.append(_wrap(r, r['m']))
         elif r.get('i'):
             parts.append(_wrap(r, f'<img class="inl" src="{_html.escape(r["i"])}">'))
         else:
@@ -155,7 +163,7 @@ def merge_runs(runs):
         if not r['t']:
             continue
         if out and {k: v for k, v in out[-1].items() if k != 't'} == {k: v for k, v in r.items() if k != 't'} \
-                and r['t'] != BR and out[-1]['t'] != BR and not r.get('i'):
+                and r['t'] != BR and out[-1]['t'] != BR and not r.get('i') and not r.get('m'):
             out[-1] = dict(out[-1], t=out[-1]['t'] + r['t'])
         else:
             out.append(dict(r))

@@ -7,7 +7,7 @@ import collections
 import pymupdf
 from . import style, books, book as B, check, build
 from .measure import Measurer
-from .model import runs_text
+from .model import runs_text, runs_plain
 
 IGN = set(' \t\r\n\u2060\u200b\u3000\u2002\ufeff\u00a0\u00ad')
 
@@ -46,7 +46,7 @@ def fidelity(bb, pdf):
                 exp += norm_counter(runs_text(runs))
             if b['k'] in ('img', 'space'):
                 continue
-            exp += norm_counter(runs_text(b['runs']))
+            exp += norm_counter(runs_plain(b['runs']))
         got = norm_counter(pdf_text_of_pages(doc, bb.pages_of(mod)))
         miss = exp - got
         extra = got - exp

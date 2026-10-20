@@ -10,7 +10,7 @@ import collections
 import pymupdf
 from . import style, build, check, book as B, qa, bk, bk_extract as BE, bk_fixes as BF
 from .measure import Measurer
-from .model import runs_text
+from .model import runs_text, runs_plain
 
 IGN = qa.IGN
 
@@ -204,7 +204,7 @@ def block_counter(cfg, renum=False):
                     continue                                     # (the chapter titles over groups of notes: not text of the ebook;
                                                                  # the group headings of the ebook's own notes part are)
                 runs = [r for r in b['runs'] if not (r.get('s') == 1 or r.get('c') == 'nn')] if renum else b['runs']
-                t = runs_text(runs).replace('⁠', '').replace(' ', '')
+                t = runs_plain(runs).replace('⁠', '').replace(' ', '')
                 c += counter(re.sub(r'[\d—]', '', t) if m.idxmap else t)
         elif m.kind == 'page' and hasattr(m, 'lines'):
             for t in m.lines:

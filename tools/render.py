@@ -199,6 +199,18 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
             continue
         if lb.block['k'] == 'space':
             continue
+        if lb.block.get('disp'):                        # a displayed formula (MathML) taller than a line: centred in its
+            st1 = dict(st, slots=1)                     # slots, between the ink of the lines of text above and below it
+            pk = st['pitch'] * k
+            above = style.TOP + (slot0 - 1) * pk + baseline_dy(st1) + BASE.get(f'{st["cls"]}@{st["pitch"]}', 0.8 * st['pitch'])
+            mid = above + (st['slots'] + 1) * pk / 2 - 0.36 * st['fs']
+            hh = st['slots'] * st['pitch']
+            parts.append(f'<div class="ln {st["cls"]}" style="width:{st["W"]:.3f}pt;height:{hh:.3f}pt;line-height:normal;'
+                         f'display:flex;align-items:center;justify-content:center;transform:translate({x0:.3f}pt,{mid - hh / 2:.3f}pt)">'
+                         f'<span>{runs_html(runs, final=True)}</span></div>')
+            if anchors is not None:
+                _register_anchors(anchors, lb.block, runs, 0, None, page_ref, mid - hh / 2, True)
+            continue
         for j in range(lo, hi):
             x, w = line_geom(st, j)
             slot = slot0 + (j - lo) * st['slots']

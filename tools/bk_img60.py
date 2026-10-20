@@ -4,8 +4,15 @@ The raster pictures (CB_…_Figure-Pnnn_…, Pnnn the page of the printed book; 
 the reviser's SVG formulas (`latex-repaired`) from their drawings and their LaTeX (alt).  Fractions in the line as a/b,
 parentheses around compound numerators and denominators; variables in italics (it), exponents (msup), indices (msub),
 an index of an index (msub2); vectors with a combining arrow (U+20D7), means with a macron (U+0304), estimates with a
-circumflex (U+0302), time derivatives with a dot (U+0307).  The binomial coefficient of chapter 14's note is written
-C with N below and K above, as Chinese textbooks write it."""
+circumflex (U+0302), time derivatives with a dot (U+0307).  The binomial coefficient of chapter 14's back note [1] and
+its fraction are set as MathML (N over K in parentheses, N! over K!(N−K)!, STIX Two Math): displayed, centred on three
+lines of the notes' grid, as the picture is a display formula; set in the line it would run into the lines above and
+below it."""
+
+_I = lambda v: f'<mi class="it">{v}</mi>'
+BINOM = ('<math displaystyle="true"><mrow><mo>(</mo><mfrac linethickness="0">' + _I('N') + _I('K') + '</mfrac><mo>)</mo></mrow>'
+         '<mo>=</mo><mfrac><mrow>' + _I('N') + '<mo>!</mo></mrow><mrow>' + _I('K') + '<mo>!</mo><mo stretchy="false">(</mo>'
+         + _I('N') + '<mo>−</mo>' + _I('K') + '<mo stretchy="false">)</mo><mo>!</mo></mrow></mfrac></math>')
 
 IMG_TEXT = {
     'CB_3300065203_Figure-P60_225448.jpg': [('M̄', 'it')],
@@ -60,7 +67,7 @@ IMG_TEXT = {
     'CB_3300065203_Figure-P534_226082.jpg': '1/2',
     'CB_3300065203_Figure-P534_226083.jpg': ['√', ('N', 'it')],
     'CB_3300065203_Figure-P254_225688.jpg': ['2', ('M', 'it'), '√', ('N', 'it')],
-    'CB_3300065203_Figure-P535_244295.jpg': [('C', 'it'), ('N', 'it msub'), ('K', 'it msup'), '=', ('N', 'it'), '!/[', ('K', 'it'), '!(', ('N', 'it'), '−', ('K', 'it'), ')!]'],
+    'CB_3300065203_Figure-P535_244295.jpg': [{'m': BINOM, 'disp': 3}],
     'CB_3300065203_Figure-P536_244297.jpg': ['√', ('N', 'it')],
     'CB_3300065203_Figure-P537_244299.jpg': '(1/4·1/10)/(1/4·1/10+3/4·1/60)=(1/40)/(3/80)=2/3',
     'CB_3300065203_Figure-P537_244301.jpg': 'BUY(C)>1/2',
@@ -206,6 +213,9 @@ def _post(v):
     a formula ('1,2,3,…') in the Latin math face (.mth), on the line, not centred as the CJK faces set it."""
     out = []
     for x in ([v] if isinstance(v, str) else v):
+        if isinstance(x, dict):                                   # (MathML)
+            out.append(x)
+            continue
         t, c = (x, '') if isinstance(x, str) else x
         if '⃗' in t:
             out.append((t, (c + ' vec').strip()))

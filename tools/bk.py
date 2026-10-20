@@ -1137,9 +1137,12 @@ def _img_text(C, runs):
             before = ''.join(x['t'] for x in runs[:k] if not x.get('i'))
             after = ''.join(x['t'] for x in runs[k + 1:] if not x.get('i'))
             if any(re.search(b + '$', before) and re.match(a, after) for b, a in C['img_text_plain']):
-                pieces = [''.join(x[0] if isinstance(x, tuple) else x for x in pieces)]
+                pieces = [''.join(x[0] if isinstance(x, tuple) else x for x in pieces if not isinstance(x, dict))]
         out = []
         for x in pieces:
+            if isinstance(x, dict):                                    # (book 60) a formula set as MathML: {'m': markup},
+                out.append(dict({k: y for k, y in r.items() if k not in ('i', 'c')}, t='\ufffc', **x))   # 'disp': displayed
+                continue
             t, c = x if isinstance(x, tuple) else (x, '')
             out.append(dict({k: y for k, y in r.items() if k not in ('i', 'c')}, t=t, **({'c': c} if c else {})))
         return out
@@ -2172,6 +2175,32 @@ def note_blocks(items, fmt):
             # (the entry's own id: book 59's source notes are linked to their paragraphs, not to their labels)
         else:
             out.append(dict(k='p', style='notecap' if it.get('notecap') else 'notec', runs=runs))   # (a figure's caption: centred)
+    return display_formulas(out)
+
+
+def display_formulas(blocks):
+    """(book 60) A formula transcribed for display (a MathML run with 'disp': the number of grid slots it takes): its
+    paragraph is split round it.  The formula, with the punctuation mark that follows it, is set centred on its own slots
+    (render.logical_page_html), the text after it goes on as a paragraph without indent."""
+    out = []
+    for b in blocks:
+        k = next((i for i, r in enumerate(b.get('runs') or ()) if r.get('disp')), None) if b['k'] == 'p' else None
+        if k is None:
+            out.append(b)
+            continue
+        runs, f = b['runs'], b['runs'][k]
+        after = [dict(r) for r in runs[k + 1:]]
+        tail = []
+        if after and after[0]['t'].lstrip('\u2060')[:1] in tuple('。，；：、'):
+            t = after[0]['t'].lstrip('\u2060')
+            tail, after[0]['t'] = [dict(after[0], t=t[0])], t[1:].lstrip(' \u2060')
+            after = [r for r in after if r['t'] or r.get('i') or r.get('m')]
+        note = b['style'].startswith('note')
+        if runs[:k]:
+            out.append(dict(b, runs=runs[:k]))
+        out.append(dict(k='p', style='notecap' if note else 'center', runs=[f] + tail, slots=f['disp'], disp=1, novary=1))
+        if after:
+            out += display_formulas([dict(k='p', style='notec' if note else 'noindent', runs=after)])
     return out
 
 
