@@ -765,6 +765,10 @@ _EE = dict(cls_quote=('content_reference',), cls_center=('content_center',), cls
            cls_noindent=('content_left',))
 CFG[50] = _xf(scratch='q50', file='非此即彼（上）', title='非此即彼', sub='一个生命的残片（上）', credits=['京不特　译'], **_KG, **_EE,
               cover='image06221.jpeg', title_img='image06043.jpeg', copyright=239,
+              errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。另有一处改在行内小图的转写里（`tools/bk_img41.py`，'
+                          '不在下表）：注〔749〕的希腊文引文，电子书放错了图片，放的是注〔562〕那一张（ἀφωρισμένος εἰς εὐαγγέλιον '
+                          'θεοῦ）；这条注的译文是马可·奥勒留《沉思录》第七卷第 2 节，这里排出这一节的原文开头 ἀναβιῶναί σοι ἔξεστιν· '
+                          'ἴδε πάλιν τὰ πράγματα。',
               part_re=r'^(那些直接的爱欲的阶段或者那音乐性的—爱欲的|剪影)$', part_intro=True, part_top={251, 254},
               front=[(240, 'text'), (241, 'text'), (242, 'board'), (243, 'text'), (244, 'text'), (246, 'text')],
               body=list(range(247, 258)), back=[(258, 'index'), (259, 'index')])
@@ -949,6 +953,7 @@ def dot_runs(runs):
 
 
 _TAIL = re.compile(r'([，、,；;：:])\s?(?=(?:\d{1,4}[)）\]］]|[（(]\d{1,2}[)）])[)）\]］]*[。.，；]?$)')   # (and a verse: '（4：17）］。')
+_TAIL2 = re.compile(r'(?<=[\u4e00-\u9fff])(?=\d{1,4}[)）\]］]+[。.，；]?$)')       # (book 57: '……，注释44）。')
 
 
 def tail_runs(runs):
@@ -960,7 +965,7 @@ def tail_runs(runs):
     if k < 0 or k < len(runs) - 1:
         return runs
     t = runs[k]['t']
-    t2 = _TAIL.sub('\\1\u2060', t)
+    t2 = _TAIL2.sub('\u2060', _TAIL.sub('\\1\u2060', t))
     return runs if t2 == t else runs[:k] + [dict(runs[k], t=t2)]
 
 

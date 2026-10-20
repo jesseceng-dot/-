@@ -17,7 +17,7 @@ def fit_page_box(doc, page):
     doc.xref_set_key(page.xref, 'CropBox', 'null')
 
 
-def finish_pdf(src, dst, anchors, outline, labels, meta):
+def finish_pdf(src, dst, anchors, outline, labels, meta, garbage=4):
     doc = pymupdf.open(src)
     missing = {}
     n_int = n_ext = 0
@@ -44,5 +44,5 @@ def finish_pdf(src, dst, anchors, outline, labels, meta):
     if labels:
         doc.set_page_labels(labels)
     doc.set_metadata(meta)
-    doc.save(dst, garbage=4, deflate=True, clean=True)
+    doc.save(dst, garbage=garbage, deflate=True, clean=True)        # (a collection of 18 volumes: 3, as 4 takes hours)
     return dict(internal=n_int, external=n_ext, missing=missing)

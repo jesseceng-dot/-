@@ -45,7 +45,8 @@ def check(b):
                 key = runs[0].get('a') or (it.get('id') if runs[0].get('h') and is_mark(runs[0]['t']) else None) if runs else None
                 if key:                                   # (book 59: the anchor of a source note is its paragraph's id)
                     notes[key] = (n, i, runs[0]['t'], runs[0].get('h'))
-                runs = [r for r in runs[1:] if re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())]   # (marks inside a note)
+                runs = [r for r in runs[1:] if re.fullmatch(r'\[[^\]\s]{1,6}\]', r['t'].strip())
+                        or r.get('s') and r.get('h') and r.get('a')]   # (marks inside a note: '[n]', or a raised linked mark '（n）')
             for r in runs:
                 if r.get('h') and (r.get('s') or is_mark(r['t'])):
                     if r.get('a') in marks:
@@ -57,9 +58,13 @@ def check(b):
             bad.append(('角标指向不存在的注释', n, i, t, h))
         elif _num(notes[h][2]) != re.sub(r'\D', '', t):
             bad.append(('角标与注释编号不同', n, i, t, notes[h][2]))
+    orphan = []
     for a, (n, i, t, h) in notes.items():
-        if h not in marks:
+        if h is None:
+            orphan.append((n, i, t))                      # (books 53, 57) a note whose mark the ebook's text lacks: no back-link
+        elif h not in marks:
             bad.append(('注释的回链没有对应角标', n, i, t, h))
+    check.orphan = orphan
     return marks, notes, dup, bad
 
 
@@ -67,6 +72,8 @@ if __name__ == '__main__':
     b = int(sys.argv[1])
     marks, notes, dup, bad = check(b)
     print(f'book {b}: 角标 {len(marks)}  注释 {len(notes)}  重复锚点 {len(dup)}  问题 {len(bad)}')
+    if check.orphan:
+        print(f'  电子书正文里没有注码的注释（不设回链）{len(check.orphan)} 条：', check.orphan[:20])
     for x in dup[:20]:
         print('  重复', x)
     for x in bad[:60]:

@@ -147,7 +147,7 @@ def audit(path):
         inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
-            if t and len(t) <= 5 and LONE.fullmatch(t) and not set(t) <= set('*＊∗※-—─_=# ') \
+            if t and len(t) <= 5 and LONE.fullmatch(t) and not set(t) <= set('*＊∗※-—─_=# ') and not re.fullmatch(r'[◀▶]+\s*(?:[（(\[]\d+[)）\]])?', t) \
                     and not any(m is not l and abs(m['y'] - l['y']) < 0.8 * body for m in ls):   # (a row of asterisks or dashes: a section break)
                 rep['lone'].append((i + 1, t, round(l['y'])))               # a line of nothing but punctuation or a note mark (a raised mark beside its line is not one)
         if not imgs[i] and inside and all(abs(l['size'] - body) < 1.6 for l in inside) and len({round(l['y']) for l in inside}) <= 2 \

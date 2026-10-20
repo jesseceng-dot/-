@@ -449,7 +449,7 @@ def _apply_fixes(part, out):
         for k, it in enumerate(out):                            # a heading ends a block of notes)
             if it['k'] == 'p' and p_.match(_txt(it).strip()):
                 rs = [dict(r, b=0) for r in it['runs']]
-                m = re.match(r'(I|II|III|IV|V|VI|VII|VIII|IX|X)[\s\u3000]*', rs[0]['t']) if rs and not rs[0].get('i') else None
+                m = re.match(r'([IVX]{1,4})(?![A-Za-z])[\s\u3000]*', rs[0]['t']) if rs and not rs[0].get('i') else None
                 if m:                                           # the ordinal 'II' and the title one ideographic space apart
                     rest_ = rs[0]['t'][m.end():]                # (after the ordinal's note mark, if it has one)
                     if rest_:

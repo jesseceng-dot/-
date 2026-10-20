@@ -19,7 +19,9 @@ SETS = {
     'xifang': dict(title='西方现代思想家精品译丛（18卷）', books=tuple(range(41, 59)), cover='cover06209.jpeg',
                    file='41-58-西方现代思想家精品译丛（合集）', author='米瑟斯　哈耶克　波普尔　克尔凯郭尔',
                    names={45: '《开放社会及其敌人》第一卷', 46: '《开放社会及其敌人》第二卷', 50: '《非此即彼》（上）',
-                          51: '《非此即彼》（下）'}),     # (two volumes of one title: told apart)
+                          51: '《非此即彼》（下）', 53: '《对〈哲学片断〉所做的最后的、非科学性的附言》',
+                          57: '《克尔凯郭尔讲演集（1848—1855）》', 58: '《克尔凯郭尔日记选（1842—1846）》'}),
+                   # (two volumes of one title told apart; a title inside the title in 〈〉)
 }
 
 
@@ -107,7 +109,8 @@ def build_collection(name):
     tmp = out + '.tmp.pdf'
     merged.save(tmp)
     info = finish_pdf(tmp, out, anchors, outline, labels,
-                      {'title': f'{S["title"]}（合集）', 'author': S.get('author', first['pdf_author']), 'subject': S['title']})
+                      {'title': f'{S["title"]}（合集）', 'author': S.get('author', first['pdf_author']), 'subject': S['title']},
+                      garbage=4 if len(S['books']) <= 6 else 3)
     os.remove(tmp)
     os.remove(raw)
     print('collection pages', len(pymupdf.open(out)), 'links', info['internal'], 'missing', info['missing'])
