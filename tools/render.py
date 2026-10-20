@@ -24,6 +24,22 @@ img.inl{{height:1em;vertical-align:-0.2em}}
 """
 
 
+def head_fit(text, width=None, size=8.0):
+    """A running head no wider than the text block (book 57: a discourse title of 50 characters ran 29 pt past it): a long
+    title keeps its part before a '——' sub-title, else before its first '（' or '：', else it is cut short with '……'."""
+    width = width or style.TEXT_W
+    w = lambda t: sum(size * (1.0 if ord(c) > 0x2e80 else 0.56) for c in t)
+    if w(text) <= width:
+        return text
+    for sep in ('——', '（', '：'):
+        k = text.find(sep)
+        if k > 0 and w(text[:k]) <= width:
+            return text[:k].rstrip()
+    while text and w(text + '……') > width:
+        text = text[:-1]
+    return text + '……'
+
+
 BASE = {}          # "css-class@pitch" -> baseline y (pt from the line top) as actually painted in the PDF
 
 

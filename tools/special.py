@@ -74,7 +74,11 @@ def half_title_html(title):
 def title_html(meta):
     """Formal title page: author, title, translator, series, publisher."""
     out = ''
-    out += _center(_html.escape(meta['author']), 96 * style.SY, 13, 'KaiTi', 400, 0.12)
+    au = [meta['author']]
+    if sum(13 * 1.12 * (1.0 if ord(c) > 0x2e80 else 0.56) for c in au[0]) > style.TEXT_W:
+        au = [x for x in re.split('\u3000+', au[0]) if x]       # (book 26: three authors) one author a line, the role after the last
+    for k, t in enumerate(au):
+        out += _center(_html.escape(t), 96 * style.SY + (k - (len(au) - 1) / 2) * 22, 13, 'KaiTi', 400, 0.12)
     lines = meta.get('title_lines') or [meta['title']]            # (book 53: a long title in two lines)
     fs = min(32.0, 300.0 / (max(len(t) for t in lines) * 1.1))
     for k, t in enumerate(lines):
@@ -332,15 +336,33 @@ def divider_html(lines, grid=False, snap=False, marks_out=None):
                 out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                         f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;white-space:nowrap;'
                         f'transform:translate(0pt,{y + k * lh:.2f}pt)"><span style="line-height:0">'
-                        f'{_line_marks(runs_html(pc), marks, y + k * lh, marks_out)}</span></div>')
+                        f'{_line_marks(runs_html(pc), marks, y + k * lh, marks_out).replace(chr(0x2060), "")}</span></div>')
             y += n * lh + gap
             continue
         body = _line_marks(runs_html(runs), marks, y, marks_out)    # (book 55) the note marks inside a line: raised, linked
+        body = body.replace('\u2060', '')                # (the lines are broken already; drawn, a word joiner takes a width)
         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                 f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
                 f'transform:translate(0pt,{y:.1f}pt)">{body}</div>')
         y += n * lh + gap
     return out
+
+
+_FACES = {}
+
+
+def _width(text, size, face):
+    """Width of a line in pt from the advances of the book's font file (a character the subset lacks counts 1 or 0.56 em)."""
+    if face not in _FACES:
+        from fontTools.ttLib import TTFont
+        try:
+            f = TTFont(os.path.join(style.FONT_DIR, face))
+            _FACES[face] = (f.getBestCmap(), f['hmtx'].metrics, f['head'].unitsPerEm)
+        except OSError:
+            _FACES[face] = ({}, {}, 1000)
+    cmap, hmtx, upm = _FACES[face]
+    return sum(size * (hmtx[cmap[ord(c)]][0] / upm if cmap.get(ord(c)) in hmtx else 1.0 if ord(c) > 0x2e80 else 0.56)
+               for c in text)
 
 
 def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, sub=()):
@@ -361,8 +383,10 @@ def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, s
     room = style.TOP + style.TEXT_H - top
     lines = [t.replace('\u2060', '') for t in lines]      # (word joiners steer the line breaking only: drawn, they take a width)
     capw = style.TEXT_W - 2 * style.FONT                  # (book 63) a long caption wraps inside the text block, its lines counted
-    nl = [max(1, math.ceil(sum((9.5 if k == 0 else 9.0) * (1.0 if ord(c) > 0x2e80 else 0.56) for c in t) / capw * 1.04))
-          for k, t in enumerate(lines)]
+    wd = lambda t, size: sum(size * (1.0 if ord(c) > 0x2e80 else 0.56) for c in t) * 1.04
+    hei = [k == 0 and _width(t, 9.5, 'SansSC-Medium.ttf') <= style.TEXT_W - 1 for k, t in enumerate(lines)]   # (else Kai)
+    one = [h or _width(t, 9.0, 'LXGWWenKai-Regular.ttf') <= style.TEXT_W - 1 for h, t in zip(hei, lines)]     # (one line)
+    nl = [1 if one[k] else max(2, math.ceil(wd(t, 9.0) / capw)) for k, t in enumerate(lines)]
     cap_h = (8.0 + 15.0 * sum(nl)) if lines else 0.0
     s = min(style.TEXT_W / w, (room - cap_h) / h)
     iw, ih = w * s, h * s
@@ -372,10 +396,13 @@ def figure_page_html(img, lines=(), title='', ids=(), builder=None, page=None, s
             f'transform:translate({x:.2f}pt,{y:.2f}pt)">')
     yc = y + ih + 8.0
     for k, t in enumerate(lines):
-        font = 'font-family:HeiTi;font-size:9.5pt;font-weight:500' if k == 0 and nl[k] == 1 else 'font-family:KaiTi;font-size:9pt;color:#333'
-        al = 'text-align:center' if nl[k] == 1 else 'text-align:justify;text-align-last:left'   # (a caption of several lines: Kai)
-        out += (f'<div style="position:absolute;left:0;top:0;width:{capw:.2f}pt;{al};{font};line-height:15pt;'
-                f'transform:translate({style.LEFT + style.FONT:.2f}pt,{yc:.2f}pt)">{_html.escape(t)}</div>')
+        font = 'font-family:HeiTi;font-size:9.5pt;font-weight:500' if hei[k] else 'font-family:KaiTi;font-size:9pt;color:#333'
+        t = _html.escape(t)
+        if nl[k] > 1:                                     # (several lines in Kai, justified, one em in from either side)
+            t = f'<span style="display:inline-block;text-align:justify;text-align-last:left">{t}</span>'
+        dx, dw = (style.LEFT, style.TEXT_W) if one[k] else (style.LEFT + style.FONT, capw)    # (one line: centred in the text block)
+        out += (f'<div style="position:absolute;left:0;top:0;width:{dw:.2f}pt;text-align:center;{font};line-height:15pt;'
+                f'transform:translate({dx:.2f}pt,{yc:.2f}pt)">{t}</div>')
         yc += 15.0 * nl[k]
     if builder is not None:
         for a in ids:

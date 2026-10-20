@@ -53,7 +53,7 @@ GEB_STYLE = {
 CFG = {
     1: dict(scratch='q1', file='巴菲特致股东的信', title='巴菲特致股东的信', sub='投资原则篇', author='〔美〕杰里米·米勒 著',
             credits=['郝旭奇　译'], publisher='中信出版集团', pdf_author='〔美〕杰里米·米勒', cover='cover00196.jpeg', title_img=None,
-            copyright=27, marker='sq',
+            copyright=27, marker='sq', url_break=True,      # (two long web addresses in the notes ran past the margin)
             front=[(2, 'dedication'), (3, 'kaitext'), (4, 'kaitext'), (5, 'text')], body=list(range(6, 20)),
             back=list(range(20, 27)), tail=[],
             inplace={'image00191.jpeg', 'image00192.jpeg', 'image00193.jpeg', 'image00194.jpeg', 'image00195.jpeg'}),

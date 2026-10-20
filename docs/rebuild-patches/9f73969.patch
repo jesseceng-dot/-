@@ -1,0 +1,71 @@
+diff --git a/tools/headfit_run.py b/tools/headfit_run.py
+new file mode 100644
+index 0000000..574a307
+--- /dev/null
++++ b/tools/headfit_run.py
+@@ -0,0 +1,21 @@
++"""Run a build with the running heads fitted to the text block (render.head_fit), the code the layout cache is keyed on
++(book.py among it) left as it was, so every page keeps its lines:  python -m tools.headfit_run tools.bk_build 57"""
++import html
++import re
++import runpy
++import sys
++
++from . import book, render
++
++_furniture = book.BookBuilder.furniture
++
++
++def furniture(self, p, opener):
++    return re.sub(r'(<div class="hd" style="[^"]*">)([^<]*)(</div>)',
++                  lambda m: m.group(1) + html.escape(render.head_fit(html.unescape(m.group(2)))) + m.group(3),
++                  _furniture(self, p, opener))
++
++
++book.BookBuilder.furniture = furniture
++sys.argv = sys.argv[1:]
++runpy.run_module(sys.argv[0], run_name='__main__', alter_sys=True)
+diff --git a/tools/render.py b/tools/render.py
+index 0e42491..651c4ad 100644
+--- a/tools/render.py
++++ b/tools/render.py
+@@ -24,6 +24,22 @@ img.inl{{height:1em;vertical-align:-0.2em}}
+ """
+ 
+ 
++def head_fit(text, width=None, size=8.0):
++    """A running head no wider than the text block (book 57: a discourse title of 50 characters ran 29 pt past it): a long
++    title keeps its part before a '——' sub-title, else before its first '（' or '：', else it is cut short with '……'."""
++    width = width or style.TEXT_W
++    w = lambda t: sum(size * (1.0 if ord(c) > 0x2e80 else 0.56) for c in t)
++    if w(text) <= width:
++        return text
++    for sep in ('——', '（', '：'):
++        k = text.find(sep)
++        if k > 0 and w(text[:k]) <= width:
++            return text[:k].rstrip()
++    while text and w(text + '……') > width:
++        text = text[:-1]
++    return text + '……'
++
++
+ BASE = {}          # "css-class@pitch" -> baseline y (pt from the line top) as actually painted in the PDF
+ 
+ 
+diff --git a/tools/special.py b/tools/special.py
+index 0276481..82ed3be 100644
+--- a/tools/special.py
++++ b/tools/special.py
+@@ -332,10 +332,11 @@ def divider_html(lines, grid=False, snap=False, marks_out=None):
+                 out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
+                         f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;white-space:nowrap;'
+                         f'transform:translate(0pt,{y + k * lh:.2f}pt)"><span style="line-height:0">'
+-                        f'{_line_marks(runs_html(pc), marks, y + k * lh, marks_out)}</span></div>')
++                        f'{_line_marks(runs_html(pc), marks, y + k * lh, marks_out).replace(chr(0x2060), "")}</span></div>')
+             y += n * lh + gap
+             continue
+         body = _line_marks(runs_html(runs), marks, y, marks_out)    # (book 55) the note marks inside a line: raised, linked
++        body = body.replace('\u2060', '')                # (the lines are broken already; drawn, a word joiner takes a width)
+         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
+                 f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
+                 f'transform:translate(0pt,{y:.1f}pt)">{body}</div>')

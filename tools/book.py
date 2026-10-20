@@ -311,6 +311,7 @@ class BookBuilder:
             recto = (p.index % 2 == 0) == (self.pages[0].mod.zone != 'cover') if False else None
             verso = self._is_verso(p)
             text = (self.cfg['title'] if verso else (mod.toc_title or mod.title)).replace('\u2060', '')   # (the head's face has no joiner)
+            text = render.head_fit(text)                     # (never wider than the text block and its rule)
             out += (f'<div class="hd" style="width:{style.TEXT_W}pt;left:{style.LEFT}pt;text-align:{"left" if verso else "right"};'
                     f'transform:translate(0pt,{style.TOP - 28}pt)">{_html.escape(text)}</div>'
                     f'<div class="rule" style="left:{style.LEFT}pt;width:{style.TEXT_W}pt;top:{style.TOP - 16}pt"></div>')

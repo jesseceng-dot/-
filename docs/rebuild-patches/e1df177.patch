@@ -1,3 +1,39 @@
+diff --git a/tools/bk.py b/tools/bk.py
+index 9de84c5..0be7946 100644
+--- a/tools/bk.py
++++ b/tools/bk.py
+@@ -20,7 +20,7 @@ NOTE_MIN = 2400          # notes of consecutive short chapters are gathered unti
+ CFG = {
+     1: dict(scratch='q1', file='巴菲特致股东的信', title='巴菲特致股东的信', sub='投资原则篇', author='〔美〕杰里米·米勒 著',
+             credits=['郝旭奇　译'], publisher='中信出版集团', pdf_author='〔美〕杰里米·米勒', cover='cover00196.jpeg', title_img=None,
+-            copyright=27, marker='sq',
++            copyright=27, marker='sq', url_zwsp=('oaktreecapital.com/memotree', 'documents/Timeline_fid'),
+             front=[(2, 'dedication'), (3, 'kaitext'), (4, 'kaitext'), (5, 'text')], body=list(range(6, 20)),
+             back=list(range(20, 27)), tail=[],
+             inplace={'image00191.jpeg', 'image00192.jpeg', 'image00193.jpeg', 'image00194.jpeg', 'image00195.jpeg'}),
+@@ -197,6 +197,13 @@ def _head_runs(C, runs, keep=None):
+     return BT.fix_edges(merge_runs(out))
+ 
+ 
++def url_zwsp(t, which):
++    """(C['url_zwsp']) The web addresses that hold one of `which` may break after a '/' (in the notes of book 1 two ran
++    past the margin): a zero-width space there, the code of this book knowing no other way."""
++    return re.sub(r'(?:https?|ftp)://\S+', lambda m: re.sub(r'(?<=[^/:]/)(?=[^/\s])', '\u200b', m.group(0))
++                  if any(w in m.group(0) for w in which) else m.group(0), t)
++
++
+ def elements(C, items, kaitext=False):
+     """Items of one part -> (elements, note items).  Headings carry 'lvl'; figures are {'k': 'fig'}; captions style 'cap'."""
+     els, notes = [], []
+@@ -211,6 +218,8 @@ def elements(C, items, kaitext=False):
+         if k == 'note':
+             if ''.join(r['t'] for r in it['runs']).strip('\u3000 ') in C.get('skip_text', ()):
+                 continue                                    # a 'notes' label that the ebook sets as a note entry
++            if C.get('url_zwsp'):
++                it = dict(it, runs=[dict(r, t=url_zwsp(r['t'], C['url_zwsp'])) for r in it['runs']])
+             notes.append(it)
+             continue
+         if k == 'img' and it['src'] in C.get('img_para', {}):
 diff --git a/tools/measure.py b/tools/measure.py
 index a4ae38f..fb28d62 100644
 --- a/tools/measure.py
@@ -81,14 +117,15 @@ index 0103be6..75c736e 100644
  
  def collapse_ws(s):
 diff --git a/tools/render.py b/tools/render.py
-index b3c9425..ada1220 100644
+index b3c9425..ee1483f 100644
 --- a/tools/render.py
 +++ b/tools/render.py
-@@ -73,6 +73,7 @@ def baseline_dy(st):
+@@ -73,6 +73,8 @@ def baseline_dy(st):
  
  
  def line_div(st, j, nlines_total, html, x, y, w, ls):
 +    html = html.replace('\u2060', '')          # word joiners only steer the line breaking (fix of 7120948)
++    html = html.replace('\u200b', '')          # (the zero-width spaces of C['url_zwsp'] too: Chromium draws them with a width)
      if st['align'] == 'j':
          a = 'l' if j == nlines_total - 1 else 'j'
      else:

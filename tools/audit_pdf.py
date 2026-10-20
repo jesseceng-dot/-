@@ -9,6 +9,8 @@
   grid     body-size lines off the line grid of the page's own last baseline
   kinsoku  a line of body text that starts with a closing mark or ends with an opening one
   over     text beyond the common right edge of the text block (an overfull line, a table cell pushing out)
+  edge     a page with ink of any text (a caption, a title page, a running head, a note) 1.5 pt or more outside the
+           common edges of the text block, left or right
   overlap  two lines of text drawn over each other
   lone     a line of nothing but punctuation or a note mark
   short    a page with only one or two lines that runs on from the page before (not a new section)
@@ -144,6 +146,10 @@ def audit(path):
                 # an indented line that starts with '……' is a paragraph that does)
             if rmax and l['x1'] > rmax + 3 and _ink_x1(d[i], l) > rmax + 3:
                 rep['over'].append((i + 1, t[:14], round(_ink_x1(d[i], l) - rmax, 1)))
+        ink = [(c['bbox'][0], c['bbox'][2]) for bl in d[i].get_text('rawdict')['blocks'] for ln in bl.get('lines', [])
+               for sp in ln['spans'] for c in sp['chars'] if not c['c'].isspace() and c['c'] not in '\u200b\u2060']
+        if ink and lmin and rmax and (min(x for x, _ in ink) < lmin - 2 or max(x for _, x in ink) > rmax + 2):
+            rep['edge'].append((i + 1, round(min(x for x, _ in ink), 1), round(max(x for _, x in ink), 1)))
         inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
@@ -211,7 +217,7 @@ def main(args):
     for p in [a for a in args if a != '-v']:
         r = audit(p)
         rep = r['rep']
-        keys = ('foot', 'grid', 'kinsoku', 'over', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
+        keys = ('foot', 'grid', 'kinsoku', 'over', 'edge', 'overlap', 'lone', 'short', 'head_bottom', 'markstart', 'numbreak', 'split', 'links', 'joiner',
                 'empty', 'apos', 'type3')
         print(f"{p.split('/')[-1]}: {r['pages']} pp, sizes {list(r['sizes'])}, body {r['body']}, bottom {r['ref']}, pitch {r['pitch']} | "
               + ' '.join(f'{k} {len(rep.get(k, []))}' for k in keys))
