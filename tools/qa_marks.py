@@ -27,7 +27,7 @@ def check(b):
     marks, notes, dup = {}, {}, []
     noteish = set(C.get('note_cls', ()))
     lab = C.get('mark_label')                             # (book 59) marks with a label before the number: '[原注3]'
-    is_mark = lambda t: BT.marker_text(t, 'sq') or (lab and re.fullmatch(r'\[(?:%s)\d+\]' % lab, t.strip()))
+    is_mark = lambda t: BT.marker_text(t, 'sq') or (lab and re.fullmatch(r'\[(?:%s)[\dA-Z]+\]' % lab, t.strip()))
     sections = {p for x in C['back'] if isinstance(x, tuple) and x[1] == 'notes' for p in bk._parts(x[0])}   # (the ebook's notes in place)
     for n in parts:
         for i, it in enumerate(BE.items(bk.P(n))):

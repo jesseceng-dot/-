@@ -38,13 +38,16 @@ def outline_for(bb):
             last_vol = mod.volume
             out.append([1, mod.volume, first])
         base = 2 if (has_vol and mod.volume) else 1
-        if mod.kind == 'page' and mod.toc and mod.toc_level == 0:
+        if mod.kind == 'page' and mod.toc and mod.toc_level == 0 and getattr(mod, 'part2', False):
+            base += 1                                          # (book 48) a part of a part: inside it, its modules one more down
+            under = 2
+        elif mod.kind == 'page' and mod.toc and mod.toc_level == 0:
             under = mod.mid != 'plates'
         elif under:
             if getattr(mod, 'unnest', False):                  # back matter after the last part divider is not inside that part
                 under = False
             else:
-                base += 1
+                base += 2 if under == 2 else 1
         if vol_page_only or getattr(mod, 'nobm', False):           # (a part's introduction: the part page carries the bookmark)
             continue
         if not mod.toc and mod.mid != 'toc' and not mod.title:

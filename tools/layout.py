@@ -58,6 +58,7 @@ STYLES = {
     'mvol':     dict(cls='s-mvol',    fs=11.0, first=0, left=0.8, right=3, align='l', slots=1, before=1, after=0, keep=2),
     'mtocnote': dict(cls='s-mtocnote', fs=9.0, first=0, left=0, right=0, align='c', slots=1, before=0, after=1, keep=0),
     'mnote':    dict(cls='s-mnote',   fs=9.0, first=0, left=0, right=0, align='r', slots=1, before=0, after=0, keep=0),   # right-hand label of a book line (calibration only)
+    'toc0s':    dict(cls='s-toc0s',   fs=10.5, first=0, left=1, right=3, align='l', slots=1, before=1, after=0, keep=2),   # (a part of a part)
     'toc1':     dict(cls='s-toc1',    fs=10.5, first=-1, left=1, right=3, align='l', slots=1, before=1, after=0, keep=0),
     'toc1i':    dict(cls='s-toc1',    fs=10.5, first=-1, left=2, right=3, align='l', slots=1, before=1, after=0, keep=0),
     'toc2i':    dict(cls='s-toc2',    fs=10.5, first=-1, left=3.5, right=3, align='l', slots=1, before=0, after=0, keep=0),
@@ -80,6 +81,7 @@ STYLES_SMALL = {
     'notev':   dict(cls='s-note', fs=8.5, first=0, left=6, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'notet':   dict(cls='s-note', fs=8.5, first=0, left=3, right=0, align='l', slots=1, before=0, after=0, keep=0),   # rows of a table inside a note
     'noter':   dict(cls='s-note', fs=8.5, first=0, left=3, right=1, align='r', slots=1, before=0, after=0, keep=0),
+    'notecap': dict(cls='s-note', fs=8.5, first=0, left=0, right=0, align='c', slots=1, before=0, after=0, keep=0),   # a caption inside a note
     'index':   dict(cls='s-index', fs=8.5, first=-1, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'indexc':  dict(cls='s-index', fs=8.5, first=0, left=1, right=0, align='l', slots=1, before=0, after=0, keep=0),
     'idxhead': dict(cls='s-idxhead', fs=10.0, first=0, left=0, right=0, align='l', slots=1, before=1, after=0, keep=3),

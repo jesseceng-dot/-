@@ -277,7 +277,8 @@ def make_toc(mods, title='目　录', sections=True):
         if mod.kind == 'page':
             if mod.toc and mod.toc_title:
                 under = mod.mid not in ('plates',) and getattr(mod, 'part', False)
-                blocks.append(dict(k='p', style='toc0', runs=[R(mod.toc_title, h=mod.mid)], h=mod.mid, toc_ref=(mod.mid, None)))
+                blocks.append(dict(k='p', style='toc0s' if getattr(mod, 'part2', False) else 'toc0', runs=[R(mod.toc_title, h=mod.mid)],
+                                   h=mod.mid, toc_ref=(mod.mid, None)))
             continue
         if not mod.toc:
             continue

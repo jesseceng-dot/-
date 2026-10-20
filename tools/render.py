@@ -35,25 +35,32 @@ def calibrate(pairs, cache=None):
     keys = [f'{c}@{p}' for c, p in pairs]
     if os.path.exists(cache):
         BASE.update(json.load(open(cache)))
-        if all(k in BASE for k in keys):
+        if all(k in BASE and k + '#emp' in BASE for k in keys):
             return BASE
     per = 12
     pages = []
-    for c0 in range(0, len(pairs), per):
-        rows = ''.join(f'<div class="ln {c} l" style="width:200pt;height:{p}pt;line-height:{p}pt;'
-                       f'transform:translate(10pt,{i * 40}pt)">中文Ag</div>' for i, (c, p) in enumerate(pairs[c0:c0 + per]))
-        pages.append(f'<section class="page">{rows}</section>')
+    # (each style twice: plain, and with emphasis dots under a word (着重号): Chromium lowers a line with the dots when its
+    #  line height leaves no room for them, 0.75 pt in the notes; line_div lifts such a line back onto the grid)
+    for inner in ('中文Ag', '中文<span class="emp">着重</span>Ag'):
+        for c0 in range(0, len(pairs), per):
+            rows = ''.join(f'<div class="ln {c} l" style="width:200pt;height:{p}pt;line-height:{p}pt;'
+                           f'transform:translate(10pt,{i * 40}pt)">{inner}</div>' for i, (c, p) in enumerate(pairs[c0:c0 + per]))
+            pages.append(f'<section class="page">{rows}</section>')
     pdf = os.path.join(style.SCRATCH, 'calib.pdf')
     print_pdf(document_html(pages), pdf)
     d = pymupdf.open(pdf)
-    for pi, c0 in enumerate(range(0, len(pairs), per)):
+    npg = len(range(0, len(pairs), per))
+    for pi in range(2 * npg):
+        c0 = (pi % npg) * per
         ys = []
         for blk in d[pi].get_text('dict')['blocks']:
             for l in blk.get('lines', []):
-                ys.append(l['spans'][0]['origin'][1])
-        ys.sort()
+                sp = [s_ for s_ in l['spans'] if s_['text'].strip() and set(s_['text']) - set('• ')]
+                if sp:
+                    ys.append(sp[0]['origin'][1])
+        ys = sorted(set(round(y_, 3) for y_ in ys))
         for i, k in enumerate(keys[c0:c0 + per]):
-            BASE[k] = round(ys[i] - i * 40, 3)
+            BASE[k + ('#emp' if pi >= npg else '')] = round(ys[i] - i * 40, 3)
     json.dump(BASE, open(cache, 'w'))
     return BASE
 
@@ -82,6 +89,10 @@ def line_div(st, j, nlines_total, html, x, y, w, ls, forced=False):
     else:
         a = st['align']
     y += baseline_dy(st)
+    key = f'{st["cls"]}@{st["pitch"]}'
+    if 'class="emp' in html or ' emp"' in html or ' emp ' in html:
+        if key in BASE and key + '#emp' in BASE:
+            y += BASE[key] - BASE[key + '#emp']           # (emphasis dots: the line back on its baseline)
     extra = ''
     if ls:
         extra += f'letter-spacing:{ls}em;'

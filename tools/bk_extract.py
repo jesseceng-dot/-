@@ -57,6 +57,10 @@ RUN_CLS = {
     'q59': {'sbiao': (0, 'msup'), 'italic': (0, 'it')},         # 魔鬼数学: exponents; variables and titles in italics
     'q24': {'italic': (0, 'it')},                               # 理性之谜: titles of works in italics                               # 美国大城市的死与生: the ebook's bold (the author's emphasis) in 黑体
 }
+# 西方现代思想家精品译丛 (books 41–58, one style sheet for all): italic, bold, the authors' underlining and emphasis dots,
+# subscripts, the translator's Kai (楷体字, which the notes of the Kierkegaard volumes refer to)
+RUN_CLS.update({f'q{_n}': {'calibre9': (0, 'it'), 'calibre6': (1, ''), 'emphasis_underlined': (0, 'ul'), 'em_dot': (0, 'emp'),
+                           'subscript': (0, 'msub'), 'kaiti1': (0, 'kai')} for _n in range(41, 59)})
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
 SNAP = {

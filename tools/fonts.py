@@ -67,7 +67,7 @@ def corpus_codepoints():
     cps = set(range(0x20, 0x7f)) | set(range(0xa0, 0x100))
     cps |= set(range(0x2000, 0x2070)) | set(range(0x3000, 0x3040)) | set(range(0xff00, 0xfff0))
     cps |= set(range(0x2100, 0x2200)) | set(range(0x2460, 0x2500)) | set(range(0x25a0, 0x2600))
-    cps |= set(range(0x0370, 0x0400)) | set(range(0x2150, 0x2190))
+    cps |= set(range(0x0370, 0x0400)) | set(range(0x2150, 0x2190)) | set(range(0x0300, 0x0370))   # (and the combining accents)
     cps |= {0x7560}                       # 畠 (stands behind a private-use glyph of the ebook)
     cps |= set(range(0x1f00, 0x2000)) | set(range(0x2070, 0x20a0)) | set(range(0x2200, 0x2300)) | set(range(0x00c0, 0x0180))
     cps |= {0x03ca, 0x00bd, 0x2153}       # ϊ ½ ⅓ (transcribed formulas)
@@ -78,17 +78,18 @@ def corpus_codepoints():
     scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
     for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
+    # (BOOK_FONT_KEYS=q41,q42,…: one font directory for several books of one ebook, their corrections and transcriptions all)
+    keys = os.environ.get('BOOK_FONT_KEYS', '').split(',') if os.environ.get('BOOK_FONT_KEYS') else [os.path.basename(scratch.rstrip('/'))]
     try:                                  # the replacement texts of the proof-reading corrections (bk_fixes)
         from . import bk_fixes
-        for f in bk_fixes.FIXES.get(os.path.basename(scratch.rstrip('/')), []):
+        for f in [f for key in keys for f in bk_fixes.FIXES.get(key, [])]:
             cps |= {ord(c) for x in f[2:] if isinstance(x, str) for c in x}
     except ImportError:
         pass
     try:                                  # the transcriptions of the ebook's inline glyph pictures (bk.CFG img_text)
         from . import bk
-        key = os.path.basename(scratch.rstrip('/'))
         for C in bk.CFG.values():
-            if C.get('scratch') != key:
+            if C.get('scratch') not in keys:
                 continue
             for v in C.get('img_text', {}).values():
                 for x in (v if isinstance(v, list) else [v]):

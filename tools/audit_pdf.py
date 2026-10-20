@@ -46,7 +46,8 @@ def _lines(pg):
     out = []
     for b in pg.get_text('dict')['blocks']:
         for l in b.get('lines', []):
-            sp = [s for s in l['spans'] if s['text'].strip()]
+            sp = [s for s in l['spans'] if s['text'].strip() and set(s['text']) - set('• ')]   # (emphasis dots under a word, 着重号:
+                                                                                             #  the text of the line above, not a line)
             if sp:
                 out.append(dict(y=sp[0]['origin'][1], size=round(max(s['size'] for s in sp), 1), x0=l['bbox'][0],
                                 x1=l['bbox'][2], y0=l['bbox'][1], y1=l['bbox'][3], text=''.join(s['text'] for s in sp),

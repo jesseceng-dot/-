@@ -679,6 +679,94 @@ CFG = {
                          '和“……”（5 处）恢复为正常文字（`sup_plain`）；编者注 [3] 的角标在电子书里是整张表格图片的链接，补在表格前一段的末尾'
                          '（`img_mark`）。'),
 }
+# 西方现代思想家精品译丛（18卷）·续校本: one ebook, eighteen books (41–58), each its own PDF and a collection of all
+# (tools/bk_collection.py).  The scratch directories q41–q58 hold the same unpacked ebook; one font directory serves all
+# (BOOK_FONT_KEYS).  Each book has its cover, its title page (a picture), its CIP page and the original's rights page.
+_IMG41 = __import__('tools.bk_img41', fromlist=['IMG_TEXT']).IMG_TEXT
+_XF = dict(publisher='中国社会科学出版社', title_img=None, marker='sq', lat_apos=True, toc_even=True, open_air=True, url_break=True,
+           name_dot=True, tail_join=True, fig_inline=True, fig_dpi=220, note_cls=('note', 'note1', 'footnote_content'), img_text=_IMG41, img_twin=__import__('tools.bk_img41', fromlist=['IMG_TWIN']).IMG_TWIN,
+           tail=[], inplace=set(),
+           errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+
+
+def _xf(**kw):
+    return dict(_XF, **kw)
+
+
+CFG[41] = _xf(scratch='q41', file='自由与繁荣的国度', title='自由与繁荣的国度', sub='', author='〔奥〕路德维希·冯·米瑟斯 著',
+              credits=['韩光明　潘琪昌　李百吉　等译'], pdf_author='〔奥〕路德维希·冯·米瑟斯', series='西方现代思想丛书',
+              cover='image06054.jpeg', title_img='image06070.jpeg', copyright=[4, 5], cls_center=('center1',),
+              front=[(6, 'board'), (7, 'text'), (9, 'text'), (10, 'text')], body=list(range(11, 16)), back=[16])
+CFG[42] = _xf(scratch='q42', file='通往奴役之路', title='通往奴役之路', sub='修订版', author='〔英〕弗里德里希·奥古斯特·哈耶克 著',
+              credits=['王明毅　冯兴元　等译', '冯兴元　毛寿龙　王明毅　等校'], pdf_author='〔英〕F. A. 哈耶克', series='西方现代思想丛书',
+              cover='image06104.jpeg', title_img='image06121.jpeg', copyright=[19, 21],
+              cls_quote=('content_reference',), cls_right=('content_reference_right', 'content_right'), cls_center=('content_center',),
+              cls_noindent=('content_left',),
+              front=[(20, 'text'), (22, 'board'), (23, 'text'), (25, 'text'), (26, 'text'), (27, 'text'), (28, 'text')],
+              body=list(range(29, 45)), back=[45, 46])
+# (the part pages: the title, the part's epigraph and its author, the epigraph's note mark linked; tables inside notes)
+CFG[43] = _xf(scratch='q43', file='自由宪章', title='自由宪章', sub='', author='〔英〕弗里德里希·奥古斯特·冯·哈耶克 著',
+              credits=['杨玉生　冯兴元　陈茅　等译', '杨玉生　陆衡　伊虹　统校'], pdf_author='〔英〕F. A. 冯·哈耶克', series='西方现代思想丛书',
+              cover='image06155.jpeg', title_img='image06172.jpeg', copyright=[49, 50], cls_quote=('content_reference',),
+              cls_center=('center1',), cls_noindent=('left',), notes_tail=True,
+              part_re=r'^第[一二三]篇', part_split=r'^(第[一二三]篇)[\s\u3000]+(.+)$', part_epi_cls=('content_reference', 'right'),
+              part_epi_right=('right',), part_epi_para=True,
+              front=[(51, 'board'), (52, 'dedication'), (53, 'text'), (55, 'text'), (56, 'text'), (57, 'text'), (58, 'text')],
+              body=list(range(59, 83)), back=[83, 84])
+CFG[44] = _xf(scratch='q44', file='历史主义贫困论', title='历史主义贫困论', sub='', author='〔英〕卡尔·波普尔 著', credits=['何林　赵平　译'],
+              pdf_author='〔英〕卡尔·波普尔', series='西方现代思想丛书', cover='image06045.jpeg', title_img='image06061.jpeg',
+              copyright=87, cls_center=('content_center',), cls_right=('content_right',), cls_noindent=('content_left',),
+              front=[(89, 'text')], body=list(range(90, 94)), back=[94, 95])
+# 开放社会及其敌人: the parts have titles of their own, no numbers ('柏拉图的描述社会学'); a figure and its caption inside a note
+_OS1 = r'^(起源和命运的神话|柏拉图的描述社会学|柏拉图的政治纲领|柏拉图攻击的背景)$'
+_OS2 = r'^(神谕哲学的兴起|马克思的方法|马克思的预言|马克思的伦理学|余波|结论)$'
+CFG[45] = _xf(scratch='q45', file='开放社会及其敌人（第一卷）', title='开放社会及其敌人', sub='第一卷　柏拉图的符咒',
+              author='〔英〕卡尔·波普尔 著', credits=['陆衡　张群群　杨光明　李少平　等译'], pdf_author='〔英〕卡尔·波普尔',
+              series='西方现代思想丛书', cover='image06094.jpeg', title_img='image06111.jpeg', copyright=98,
+              cls_quote=('content_reference',), cls_center=('center1',), cls_noindent=('left',), cls_cap=('img',), notes_tail=True,
+              part_re=_OS1, front=[(99, 'board'), (100, 'text'), (101, 'kaitext'), (102, 'text'), (103, 'text'), (104, 'text'),
+                                   (105, 'text'), (107, 'text')], body=list(range(108, 118)), back=[118])
+CFG[46] = _xf(scratch='q46', file='开放社会及其敌人（第二卷）', title='开放社会及其敌人', sub='第二卷　预言的高潮：黑格尔、马克思及余波',
+              author='〔英〕卡尔·波普尔 著', credits=['郑一明　李惠斌　陆俊　黄书进　等译'], pdf_author='〔英〕卡尔·波普尔',
+              series='西方现代思想丛书', cover='image06066.jpeg', title_img='image06083.jpeg', copyright=121,
+              cls_quote=('content_reference',), cls_center=('center1',), cls_noindent=('left',), part_re=_OS2,
+              front=[], body=list(range(123, 138)), back=[138])
+CFG[47] = _xf(scratch='q47', file='致命的自负', title='致命的自负', sub='', author='〔英〕弗里德里希·奥古斯特·冯·哈耶克 著',
+              credits=['冯克利　胡晋华　等译', '冯克利　统校'], pdf_author='〔英〕F. A. 哈耶克', series='西方现代思想丛书',
+              cover='image06117.jpeg', title_img='image06134.jpeg', copyright=141, cls_quote=('content_reference',),
+              cls_right=('content_reference_right',), cls_center=('content_center',), cls_noindent=('content_left',),
+              front=[(142, 'board'), (144, 'text'), (145, 'text'), (146, 'text'), (147, 'text'), (148, 'text')],
+              body=list(range(149, 158)), back=[158])
+# 社会主义: 卷 > 部分 > 章 > 节; both the 卷 and the 部分 get a page (part_re, part_re2); the index of the English edition's
+# pages (its numbers refer to the printed book's margins, which the ebook does not have) in two columns as it is
+CFG[48] = _xf(scratch='q48', file='社会主义', title='社会主义', sub='经济与社会学的分析', author='〔奥〕路德维希·冯·米瑟斯 著',
+              credits=['王建民　冯克利　崔树义　译'], pdf_author='〔奥〕路德维希·冯·米瑟斯', series='西方现代思想丛书',
+              cover='image06151.jpeg', title_img='image06168.jpeg', copyright=[161, 162], cls_quote=('content_reference',),
+              cls_center=('center1',), notes_tail=True,
+              part_re=r'^第[一二三四五]卷', part_split=r'^(第[一二三四五]卷)[\s\u3000]+(.+)$',
+              part_re2=r'^第[一二三]部分', part_split2=r'^(第[一二三]部分)[\s\u3000]+(.+)$',
+              front=[(163, 'board'), (164, 'text'), (165, 'text'), (166, 'text'), (167, 'text'), (168, 'text'), (169, 'text'),
+                     (170, 'text'), (171, 'text')], body=list(range(173, 209)), back=[209, (210, 'index'), 211])
+# 克尔凯郭尔文集 (books 49–58): each volume has the edition's statement, its editorial board, the general preface (汝信) and
+# the introduction to Kierkegaard (天才释放出的尖利的闪电), the same in every volume, as the ebook has them
+_KG = dict(author='〔丹〕索伦·克尔凯郭尔 著', pdf_author='〔丹〕索伦·克尔凯郭尔', series='克尔凯郭尔文集')
+CFG[49] = _xf(scratch='q49', file='论反讽概念', title='论反讽概念', sub='以苏格拉底为主线', credits=['汤晨溪　译'], **_KG,
+              cover='image06057.jpeg', title_img='image06073.jpeg', copyright=214, cls_quote=('content_reference',),
+              cls_center=('center1', 'block_center'), cls_right=('block_right',),
+              part_re=r'^[上下]卷', part_split=r'^([上下]卷)[\s\u3000]+(.+)$',
+              front=[(215, 'text'), (216, 'board'), (217, 'plain'), (218, 'text'), (219, 'text'), (220, 'text'), (221, 'text'),
+                     (222, 'text')], body=list(range(224, 234)), back=[(234, 'index'), (235, 'index'), 236])
+_EE = dict(cls_quote=('content_reference',), cls_center=('content_center',), cls_right=('content_right', 'content_reference_right1'),
+           cls_noindent=('content_left',))
+CFG[50] = _xf(scratch='q50', file='非此即彼（上）', title='非此即彼', sub='一个生命的残片（上）', credits=['京不特　译'], **_KG, **_EE,
+              cover='image06221.jpeg', title_img='image06043.jpeg', copyright=239,
+              part_re=r'^(那些直接的爱欲的阶段或者那音乐性的—爱欲的|剪影)$', part_intro=True, part_top={251, 254},
+              front=[(240, 'text'), (241, 'text'), (242, 'board'), (243, 'text'), (244, 'text'), (246, 'text')],
+              body=list(range(247, 258)), back=[(258, 'index'), (259, 'index')])
+CFG[51] = _xf(scratch='q51', file='非此即彼（下）', title='非此即彼', sub='一个生命的残片（下）', credits=['京不特　译'], **_KG, **_EE,
+              cover='image06095.jpeg', title_img='image06112.jpeg', copyright=262,
+              front=[(263, 'text'), (264, 'board'), (265, 'text'), (266, 'text'), (267, 'text')],
+              body=[269, 270, 271], back=[(272, 'index'), (273, 'index')])
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -750,7 +838,7 @@ def circ_number(n):
 def _marker(r, fmt):
     """The printed note number of a mark or of a note entry's label: C['circ_link'] (a pattern of the link or anchor)
     picks out the translator's notes of a book whose two series are both '[n]' in the ebook."""
-    if MARK_LABEL and re.fullmatch(r'\u2060?\[(?:%s)\d+\]' % MARK_LABEL, r['t'].strip()):
+    if MARK_LABEL and re.fullmatch(r'\u2060?\[(?:%s)[\dA-Z]+\]' % MARK_LABEL, r['t'].strip()):
         return '\u2060'.join(r['t'].strip().lstrip('\u2060'))   # (book 59) a labelled mark as the ebook prints it, never broken
     mt = BT.marker_text(r['t'], fmt)
     if mt and CIRC_LINK and mt.startswith('[') and '校' not in mt \
@@ -787,6 +875,22 @@ def dot_runs(runs):
     """(C['name_dot']) The interpunct inside a name (卡尔·皮尔逊, 《论语·子路》) neither starts nor ends a line: word joiners on
     both sides.  (A '·' at the start of a paragraph, a list item's bullet, is left alone.)"""
     return [r if r.get('i') or '·' not in r['t'] else dict(r, t=_NAME_DOT.sub('⁠·⁠', r['t'])) for r in runs]
+
+
+_TAIL = re.compile(r'([，、,；;])\s?(?=(?:\d{1,4}[)）\]］]|[（(]\d{1,2}[)）])[。.，；]?$)')
+
+
+def tail_runs(runs):
+    """(C['tail_join'], books 41–58) A paragraph that ends in a number after a comma ('……，II，270）。', '……，（2）。'): the
+    number is not alone on the last line, where it would read as a stray note mark (a word joiner after the comma)."""
+    k = len(runs) - 1
+    while k >= 0 and (runs[k].get('i') or runs[k].get('s')):
+        k -= 1                                             # (a note mark at the very end: the text before it)
+    if k < 0 or k < len(runs) - 1:
+        return runs
+    t = runs[k]['t']
+    t2 = _TAIL.sub('\\1\u2060', t)
+    return runs if t2 == t else runs[:k] + [dict(runs[k], t=t2)]
 
 
 def sup_runs(runs):
@@ -881,6 +985,24 @@ def _img_text(C, runs):
     m = C.get('img_text')
     if m is None or not any(r.get('i') for r in runs):
         return runs
+    if C.get('img_twin'):                                          # (books 41–58) a picture of a letter that the ebook types again
+        tw = C['img_twin']                                         # right beside it (the repair of the ebook): the letter once
+        txt = lambda rs: ''.join(x['t'] for x in rs if not x.get('i'))
+        drop, k = set(), 0
+        while k < len(runs):
+            if runs[k].get('i') in tw:
+                j = k
+                while j < len(runs) and runs[j].get('i') in tw:
+                    j += 1
+                word = ''.join(m[runs[x]['i']] for x in range(k, j))
+                after = re.sub(r'\s', '', txt(runs[j:j + 3]))
+                before = txt(runs[max(0, k - 3):k]).rstrip()
+                if after.startswith(word) or before.endswith(word):
+                    drop |= set(range(k, j))
+                k = j
+            else:
+                k += 1
+        runs = [r for x, r in enumerate(runs) if x not in drop]
     def sub(r, k):
         v = m[r['i']]
         pieces = v if isinstance(v, list) else [v]                     # text, (text, run class), or a list of those
@@ -1012,6 +1134,13 @@ def elements(C, items, kaitext=False):
                                 before=0 if els and els[-1].get('src') == 'edit_note' else 1))
                 continue
             notes.append(dict(it, runs=latin_runs(nr, whole=False) if C.get('lat_apos') else nr))
+            continue
+        if C.get('notes_tail') and notes and k in ('p', 'img'):    # (book 43) after the first note of a part everything is notes:
+            if k == 'img':                                  # a note's table (a picture) and its further paragraphs stay with it
+                notes.append(dict(k='img', src=it['src'], id=it.get('id', ''), runs=[]))
+            elif it.get('runs') and not it.get('blank'):
+                notes.append(dict(it, k='note', runs=latin_runs(_img_text(C, it['runs']), whole=False) if C.get('lat_apos')
+                                  else _img_text(C, it['runs']), notecap=bool(set(it['cls'].split()) & _cs(C, 'cls_cap'))))
             continue
         if k == 'img' and it['src'] in C.get('img_drop', ()):
             continue                                        # (book 35) the ebook's decoration repeated at the head of every section
@@ -1843,12 +1972,21 @@ def note_blocks(items, fmt):
         if it['k'] == 'table':
             out += note_table_blocks(it['rows'])
             continue
+        if it['k'] == 'img':                               # (book 43) a table of a note, a picture: at its width at 220 dpi,
+            from PIL import Image                          # at most the text block's, centred on the small grid
+            iw, ih = Image.open(os.path.join(special.IMG_DIR, it['src'])).size
+            w = min(style.TEXT_W, iw * 72.0 / 220)
+            h = w * ih / iw
+            pitch = style.TEXT_H / style.SMALL_N
+            out.append(dict(k='img', style='orn', runs=[], src=special.img_url(it['src']), w=w, h=h,
+                            n=math.ceil(h / pitch) + 1))
+            continue
         runs = BT.fix_edges(BT.fix_runs(it['runs']))
         if not runs:
             continue
         first = runs[0]
         label = re.fullmatch(r'〔[^〕\d]{1,6}\d+〕', first['t'].strip().replace('\u2060', ''))    # (book 34: a reviser's note '〔校订注1〕', as its mark reads)
-        label = label or (MARK_LABEL and re.fullmatch(r'\[(?:%s)\d+\]' % MARK_LABEL, first['t'].strip().replace('\u2060', '')))
+        label = label or (MARK_LABEL and re.fullmatch(r'\[(?:%s)[\dA-Z]+\]' % MARK_LABEL, first['t'].strip().replace('\u2060', '')))
         if (first.get('h') or first.get('a')) and (BT.marker_text(first['t'], fmt) or label):
             mt = _marker(first, fmt) or first['t'].strip()
             marks = [repair_link(dict(first, t=mt, s=0, c='nn'))] if not label else \
@@ -1864,7 +2002,7 @@ def note_blocks(items, fmt):
             out.append(dict(k='p', style=st, runs=merge_runs(marks + rest), **({'id': it['id']} if it.get('id') else {})))
             # (the entry's own id: book 59's source notes are linked to their paragraphs, not to their labels)
         else:
-            out.append(dict(k='p', style='notec', runs=runs))
+            out.append(dict(k='p', style='notecap' if it.get('notecap') else 'notec', runs=runs))   # (a figure's caption: centred)
     return out
 
 
@@ -2065,7 +2203,17 @@ def part_divider(C, els):
     if epi and rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
         lines.append((97, ''))
         while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & epi:
-            lines.append((96 if C.get('part_epi_para') else 99, plain(rest[0]['runs'])))     # (96: a paragraph, justified)
+            rs = rest[0]['runs']
+            if set(rest[0]['src'][2:].split()) & _cs(C, 'part_epi_right'):
+                lines.append((93, plain(rs)))                    # (books 41–58) the name under the epigraph, flush right
+            elif C.get('part_epi_para'):
+                mk = []
+                while rs and rs[-1].get('s') and rs[-1].get('h'):   # the note mark at its end: a link on the page, the note's
+                    mk.insert(0, (rs[-1]['t'].strip(), rs[-1]['h'], rs[-1].get('a', '')))   # back-link lands there
+                    rs = rs[:-1]
+                lines.append((96, plain(rs), mk) if mk else (96, plain(rs)))     # (96: a paragraph, justified)
+            else:
+                lines.append((99, plain(rs)))
             rest = rest[1:]
     return lines, title, rest
 
@@ -2194,12 +2342,16 @@ def book(b):
                 x['runs'] = dot_runs(x['runs'])
             if C.get('sup_join') and x['k'] == 'p' and x.get('runs'):
                 x['runs'] = sup_runs(x['runs'])
+            if C.get('tail_join') and x['k'] == 'p' and x.get('runs'):
+                x['runs'] = tail_runs(x['runs'])
         if C.get('url_break'):
             notes = [dict(it, runs=url_runs(it['runs'])) for it in notes]
         if C.get('name_dot'):
             notes = [dict(it, runs=dot_runs(it['runs'])) for it in notes]
         if C.get('sup_join'):
             notes = [dict(it, runs=sup_runs(it['runs'])) for it in notes]
+        if C.get('tail_join'):
+            notes = [dict(it, runs=tail_runs(it['runs'])) for it in notes]
         title = next((title_text(x['runs']) for x in blocks if x['k'] == 'h'), '')     # no heading (a statement page): no bookmark
         if title_over is not None:
             title = title_over                                     # (part_intro: the part's title for the running head)
@@ -2264,11 +2416,29 @@ def book(b):
             dm.src_parts = _parts(n)
             front.append(dm)
             continue
+        if kind == 'board':                                        # (books 41–58) a series' editorial board: its title and its lines
+            def _bt(rs):                                           # ('<b>主编</b> 冯隆灏': the space the ebook has between the
+                out = ''                                           #  bold label and the name, which the text model drops)
+                for k_, r in enumerate(rs):
+                    if k_ and bool(r.get('b')) != bool(rs[k_ - 1].get('b')) and out[-1:].strip() and r['t'][:1] not in ' 　（(':
+                        out += '\u3000'
+                    out += r['t']
+                return out
+            lines = [(2.0 if e['k'] == 'h' else 99, _bt(e['runs'])) for e in els if e['k'] in ('h', 'p')]   # centred, a page
+            if lines and lines[0][0] != 2.0:
+                lines[0] = (2.0, lines[0][1])                      # (no heading: the first line is the title)
+            bm = page_module(f'board{n}', 'front', special.divider_html(lines, snap=True), toc=False, title=lines[0][1], folio=False, head=False)
+            bm.lines = [t for _, t in lines]
+            bm.src_parts = _parts(n)
+            front.append(bm)
+            continue
         if kind == 'figure':                                       # a picture that is a page by itself (frontispiece), caption under it
             front += figure_pages(n, els)
             continue
         if kind == 'kaibody':                                      # a whole page in the ebook's Kai type: full-width Kai body text
             els = [dict(e, style='kaibody') if e['k'] == 'p' and e.get('style') in ('quote', 'body') else e for e in els]
+        if kind == 'plain':                                        # (books 49–58) a preface the ebook sets in its quotation class
+            els = [dict(e, style='body') if e['k'] == 'p' and e.get('style') == 'quote' else e for e in els]   # throughout: body text
         add_unit(n, front, 'front', els, notes, top=True, kaitext=(kind == 'kaitext'))
         if C.get('front_notes_each'):
             flush(front, 'front')                                  # (the notes of a preface right after it, not after the next one)
@@ -2294,14 +2464,37 @@ def book(b):
         if pd:
             lines, title_s, els = pd
             n0 = _parts(n)[0]
-            div = page_module(f'div{n0}', 'body', special.divider_html(lines, snap=C.get('part_grid', False)), toc=True, toc_title=title_s,
+            mk_out = []
+            dh = special.divider_html(lines, snap=C.get('part_grid', False), marks_out=mk_out)
+            if mk_out:                                             # (the epigraph's note marks: their anchors on this page)
+                def dh(builder, page, _h=dh, _m=tuple(mk_out)):
+                    for a_, y_ in _m:
+                        builder.anchors.setdefault(a_, (page.index, y_))
+                    return _h
+            div = page_module(f'div{n0}', 'body', dh, toc=True, toc_title=title_s,
                               toc_level=0, title=title_s, folio=False, head=False)
             div.part = True
-            div.lines = [t for lv, t in lines if lv != 98]
+            div.lines = [x[1] for x in lines if x[0] != 98]
             div.src_parts = _parts(n)
             if not C.get('notes_end'):
                 flush(body, 'body')
             body.append(div)
+        pd2 = part_divider(dict(C, part_re=C['part_re2'], part_split=C.get('part_split2'), part_epi_cls=(), part_list=None), els) \
+            if C.get('part_re2') else None
+        if pd2:                                                    # (book 48) the parts of a part ('第二卷' > '第一部分'): a page
+            lines2, title2, els = pd2                              # of their own, smaller, one level down in the contents
+            lines2 = [(x[0] + 1.0, x[1]) for x in lines2]
+            n0 = _parts(n)[0]
+            div2 = page_module(f'div{n0}b', 'body', special.divider_html(lines2), toc=True, toc_title=title2, toc_level=0,
+                               title=title2, folio=False, head=False)
+            div2.part = True
+            div2.part2 = True
+            div2.lines = [x[1] for x in lines2]
+            div2.src_parts = [] if pd else _parts(n)
+            if not C.get('notes_end') and not pd:
+                flush(body, 'body')
+            body.append(div2)
+        if pd or pd2:
             if not els:
                 continue
             if C.get('part_intro') and els[0]['k'] != 'h':          # (book 40) the part's introduction after its page: not an entry of
@@ -2309,7 +2502,9 @@ def book(b):
                 if pend_chars >= NOTE_MIN and not C.get('notes_end'):
                     flush(body, 'body')
                 continue
-        add_unit(n, body, 'body', els, notes)
+        add_unit(n, body, 'body', els, notes, top=n in C.get('part_top', ()))
+        if n in C.get('part_top', ()):                             # (books 50, 54…) a chapter after a part that is not inside it
+            body[-1].unnest = True
         if pend_chars >= NOTE_MIN and not C.get('notes_end'):
             flush(body, 'body')
         if plates:

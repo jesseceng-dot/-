@@ -115,6 +115,7 @@ a{{color:inherit;text-decoration:none}}
 .s-refhead{{font-family:"HeiTi",sans-serif;font-size:10pt;font-weight:700}}
 .fx{{white-space:nowrap;font-family:"GrkSerif","SongBody","Noto Serif",serif}}
 .s-toc0{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}
+.s-toc0s{{font-family:"KaiTi",serif;font-size:10.5pt;font-weight:700}}
 .s-toc1{{font-family:"HeiTi",sans-serif;font-size:10.5pt;font-weight:500}}
 .s-mbook{{font-family:"HeiTi",sans-serif;font-size:12pt;font-weight:700}}
 .s-mvol{{font-family:"KaiTi",serif;font-size:11pt;font-weight:700}}

@@ -23,6 +23,13 @@ SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTE
 
 ASCII_COMMA = re.compile(r'(?<=[%s）”])\s?,\s?(?=[%s“（])' % (CJK, CJK))
 ASCII_COLON = re.compile(r'(?<=[%s）])\s?:\s?(?=[%s“（])' % (CJK, CJK))
+ASCII_SEMI = re.compile(r'(?<=[%s）”])\s?;\s?(?=[%s“（])' % (CJK, CJK))
+ASCII_QM = re.compile(r'(?<=[%s])\?' % CJK)
+ASCII_EXCL = re.compile(r'(?<=[%s])!' % CJK)
+# (books 45, 46) the cross-references of the notes to the printed edition ('第378页注①（2）'): the circled number not alone
+# at the start of a line ('注' + '①', '①' + '（2）' kept together by a word joiner)
+REF_JOIN = [('*', re.compile(r'注([①-⑳])'), '注\u2060\\1', '排版：“注①”不在“注”与“①”之间换行（词连接符，不占宽度）'),
+            ('*', re.compile(r'([①-⑳])(?=[（(]\d)'), '\\1\u2060', '排版：“注①（2）”不在“①”与“（2）”之间换行（词连接符，不占宽度）')]
 
 FIXES = {
     'q9': [                                                        # 血酬定律（语文出版社）
@@ -2331,6 +2338,15 @@ FIXES = {
         (7, '表1混为一谈表', '表1\u3000混为一谈表', '排版：表号与表题之间加空隙'),
         (11, '表3–1不同时间尺度', '表3–1\u3000不同时间尺度', '排版：表号与表题之间加空隙'),
     ],
+    'q42': [                                                       # 通往奴役之路（修订版，中国社会科学出版社 2015）
+        ('*', 'FWPAREN', r'[\u4e00-\u9fff“”‘’，。：；、》%％\]\d]', '标点：中文里的半角括号改全角（前面是汉字、标点、数字，或括号里有汉字）；英文书名、引文里的照旧'),
+        ('*', re.compile(r'(?<=[%s）》”’\]])\s?:\s?(?!\d|//)' % CJK), '：', '标点：中文里的半角冒号改为全角（汉字、中文标点、注码之后）'),
+        ('*', re.compile(r'(?<=[%s）》”’\]])\s?;\s?' % CJK), '；', '标点：中文里的半角分号改为全角（汉字、中文标点、注码之后）'),
+        ('*', ASCII_QM, '？', '标点：中文里的半角问号改为全角'),
+        ('*', ASCII_EXCL, '！', '标点：中文里的半角叹号改为全角'),
+    ],
+    'q45': REF_JOIN,
+    'q46': REF_JOIN,
     'q59': [                                                       # 魔鬼数学（中信出版社 2015）
         (30, '/（ 美）艾伦伯格著', '/（美）艾伦伯格著', '版权页：括号里多余的空格'),
         (30, re.compile(r'(?<=[\dO])–(?=\d)'), '-', '版权页：ISBN、分类号里的连接号“–”改为连字符“-”（978-7-5086-5243-6、O1-49）'),

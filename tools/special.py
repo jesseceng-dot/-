@@ -201,7 +201,7 @@ def _para_lines(text, cap, indent):
 KAI_SHIFT = 0.78      # (measured) the Kai face's baseline in a 17 pt line lies 0.78 pt above the Song face's
 
 
-def divider_html(lines, grid=False, snap=False):
+def divider_html(lines, grid=False, snap=False, marks_out=None):
     """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
     smaller underneath.  Long titles get balanced line breaks.  grid=True (a dedication: small lines only): the lines
     one body line apart, on the baselines of the text pages."""
@@ -211,7 +211,20 @@ def divider_html(lines, grid=False, snap=False):
     if grid:
         y = style.TOP + round((y - style.TOP) / style.LINE) * style.LINE + KAI_SHIFT
     first = True
-    for lvl, text in lines:
+    w96 = None
+    for item in lines:
+        lvl, text = item[0], item[1]
+        marks = item[2] if len(item) > 2 else ()                  # (96: the note marks at the end of the paragraph, linked)
+        if lvl == 93:                                     # (books 41–58) the name under an epigraph paragraph: flush right
+            fs = 10.5                                     # on the paragraph's block, on the text grid
+            w = w96 or round(style.TEXT_W * 0.82, 1)
+            x = (style.PAGE_W - w) / 2
+            y = style.TOP + math.ceil((y - style.TOP - KAI_SHIFT - 0.01) / style.LINE) * style.LINE + KAI_SHIFT
+            out += (f'<div style="position:absolute;left:0;top:0;width:{w:.2f}pt;font-family:KaiTi;font-size:{fs}pt;'
+                    f'line-height:{style.LINE}pt;white-space:nowrap;text-align:right;color:#000;'
+                    f'transform:translate({x:.2f}pt,{y:.2f}pt)"><span style="line-height:0">{_html.escape(text)}</span></div>')
+            y += style.LINE
+            continue
         if lvl == 97:
             y += 26.0                                     # (a space before an epigraph)
             continue
@@ -219,14 +232,26 @@ def divider_html(lines, grid=False, snap=False):
             fs, lh, w = 10.5, 17.0, round(style.TEXT_W * 0.82, 1)    # justified Kai block, indented, centred on the page, each
             y = style.TOP + math.ceil((y - style.TOP) / style.LINE) * style.LINE + KAI_SHIFT     # line set on the text grid
             x = (style.PAGE_W - w) / 2
-            for k, (ln_, last) in enumerate(_para_lines(text, w / fs, 2.0)):
+            w96 = w
+            mk_w = sum(len(t) * 0.5 + 0.3 for t, _, _ in marks)         # (room for the raised marks after the last word)
+            pl = _para_lines(text, w / fs - mk_w * 0.62, 2.0) if marks else _para_lines(text, w / fs, 2.0)
+            for k, (ln_, last) in enumerate(pl):
                 ind = 2 * fs if k == 0 else 0.0
+                tail = ''
+                if last and marks:
+                    from .style import LINK_BASE
+                    for t, h, a in marks:
+                        tail += (f'<a href="{LINK_BASE}{h}" style="color:#000;text-decoration:none">'
+                                 f'<span style="font-family:SongBody;font-size:.62em;vertical-align:.45em;line-height:0">'
+                                 f'{_html.escape(t)}</span></a>')
+                        if marks_out is not None and a:
+                            marks_out.append((a, y + k * lh))
                 out += (f'<div style="position:absolute;left:0;top:0;width:{w - ind:.2f}pt;font-family:KaiTi;font-size:{fs}pt;'
                         f'line-height:{lh}pt;white-space:nowrap;text-align:{"left" if last else "justify"};'
                         f'text-align-last:{"left" if last else "justify"};color:#000;'
                         f'transform:translate({x + ind:.2f}pt,{y + k * lh:.2f}pt)">'
-                        f'<span style="line-height:0">{_html.escape(ln_)}</span></div>')
-            y += (k + 1) * lh + 8.0
+                        f'<span style="line-height:0">{_html.escape(ln_)}{tail}</span></div>')
+            y += (k + 1) * lh + (0.0 if any(l_[0] == 93 for l_ in lines) else 8.0)
             continue
         if lvl == 95:                                     # (book 59) the list of a part's contents on its page: its title,
             y += 30.0                                     # the items (94) flush left in a block centred by its widest item,
