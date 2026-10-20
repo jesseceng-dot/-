@@ -318,6 +318,13 @@ def divider_html(lines, grid=False, snap=False, marks_out=None):
             y += n * lh + gap
             continue
         body = runs_html(runs)
+        for k_, (t_, h_, a_) in enumerate(marks):           # (book 55) the note marks inside a line: raised, linked
+            from .style import LINK_BASE
+            body = body.replace(f'\ue000{k_}\ue001', f'<a href="{LINK_BASE}{h_}" style="color:#000;text-decoration:none">'
+                                f'<span style="font-family:SongBody;font-weight:400;font-size:.55em;vertical-align:.5em;line-height:0">'
+                                f'{_html.escape(t_)}</span></a>')
+            if marks_out is not None and a_:
+                marks_out.append((a_, y))
         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                 f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
                 f'transform:translate(0pt,{y:.1f}pt)">{body}</div>')

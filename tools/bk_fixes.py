@@ -19,7 +19,7 @@ DASH1 = re.compile(r'(?<=[%s%s])—(?![—\d])|(?<![—\d])—(?=[%s%s])' % (CJK
 # books whose cross-references point at <span id=…> anchors (captured as link targets)
 SPAN_ANCHORS = {'q15': r'^jz_\d+_\d+$', 'q23': r'^source-page-\d+$'}
 SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN',
-           'NOTELINK', 'MOVETAB', 'XNOTELINK', 'PARATABLE', 'FWPAREN')   # mark/structure fixes (not text replacements)
+           'NOTELINK', 'MOVETAB', 'XNOTELINK', 'PARATABLE', 'FWPAREN', 'PNOTES')   # mark/structure fixes (not text replacements)
 
 ASCII_COMMA = re.compile(r'(?<=[%s）”])\s?,\s?(?=[%s“（])' % (CJK, CJK))
 ASCII_COLON = re.compile(r'(?<=[%s）])\s?:\s?(?=[%s“（])' % (CJK, CJK))
@@ -2347,6 +2347,20 @@ FIXES = {
     ],
     'q45': REF_JOIN,
     'q46': REF_JOIN,
+    'q53': [                                                       # 最后的、非科学性的附言: the translator's notes, linked
+        (302, 'PNOTES', {'to': 307}, '注释：书前题词的译注角标（1）链接到序言后的注释（1）'),
+        (307, 'PNOTES', {'ext': {1: 'part0302'}}, '注释：译注角标“（n）”与各章末的注释双向链接（电子书里没有链接）'),
+        (308, 'PNOTES', {}, '注释：同上'), (309, 'PNOTES', {}, '注释：同上'), (310, 'PNOTES', {}, '注释：同上'),
+        (311, 'PNOTES', {}, '注释：同上'),
+    ],
+    'q55': [
+        (366, '↩2 ', '', '注释：注[75]开头电子书残留的返回箭头“↩2”（转换时的链接文字，不是注文）'),
+    ],
+    'q57': [(n, 'PNOTES', {}, '注释：注码“[n]”与各篇末的注释双向链接（电子书里没有链接）') for n in range(409, 414)],
+    'q58': [(n, 'PNOTES', {'plain': True}, '注释：正文里的注码“（n）”与日记后的注释双向链接（电子书里没有链接，注码是普通文字）')
+            for n in (423, 424, 425)] + [
+        ('*', '∗', '＊', '排版：日记之间的分隔符号“∗”（数学的星号算符，正文字体没有这个字）排成全角星号“＊”'),
+    ],
     'q59': [                                                       # 魔鬼数学（中信出版社 2015）
         (30, '/（ 美）艾伦伯格著', '/（美）艾伦伯格著', '版权页：括号里多余的空格'),
         (30, re.compile(r'(?<=[\dO])–(?=\d)'), '-', '版权页：ISBN、分类号里的连接号“–”改为连字符“-”（978-7-5086-5243-6、O1-49）'),

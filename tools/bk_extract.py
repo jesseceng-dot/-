@@ -61,6 +61,8 @@ RUN_CLS = {
 # subscripts, the translator's Kai (楷体字, which the notes of the Kierkegaard volumes refer to)
 RUN_CLS.update({f'q{_n}': {'calibre9': (0, 'it'), 'calibre6': (1, ''), 'emphasis_underlined': (0, 'ul'), 'em_dot': (0, 'emp'),
                            'subscript': (0, 'msub'), 'kaiti1': (0, 'kai')} for _n in range(41, 59)})
+for _k in ('q53', 'q57', 'q58'):                               # (books 53, 57, 58: the marks '（n）' '[n]', linked by bk_fixes PNOTES)
+    RUN_CLS[_k] = dict(RUN_CLS[_k], super=(0, 'pmark'))
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
 SNAP = {
@@ -157,6 +159,121 @@ def fix_tree(part, el):
 
 def _txt(it):
     return ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
+
+
+def _pnotes(part, out, opts):
+    """(books 53, 57, 58) Notes without links: the marks are plain superscripts (run class 'pmark') or, with opts['plain'],
+    plain text, '（n）' or '[n]'; the notes are plain paragraphs '（n）text' after a label '注释：' at the end of each
+    chapter, numbered anew in every chapter.  Each mark is linked to the note of its number in the next block of notes,
+    both ways (with 'plain', a text '（n）' only in the order of the numbers, so that a year or a list item is not taken).
+    The marks inside the author's own notes ('[n]' paragraphs at the end of the part, linked by the ebook) go to the notes
+    of the chapter where that author's note has its mark.  opts: {'to': p} the marks of this part are notes of part p's
+    first block; {'ext': {n: part}} a note whose mark is in another part (the motto of the book)."""
+    txt = lambda it: ''.join(r['t'] for r in it.get('runs', []) if not r.get('i')).strip()
+    pm = lambda r: 'pmark' in (r.get('c') or '').split()
+    unpm = lambda r: {k: v for k, v in dict(r, c=' '.join(x for x in (r.get('c') or '').split() if x != 'pmark')).items()
+                      if k != 'c' or v}
+    anote = lambda it: bool(it.get('runs')) and it['runs'][0].get('h') and (it['runs'][0].get('a') or it.get('id')) \
+        and re.match(r'\s*\[\d+\]', it['runs'][0]['t'])                 # (the anchor on the paragraph or on its link)
+    NUMRE = r'[（(\[](\d+)[）)\]]'
+    roles, j, mode = [], 0, 'text'
+    for it in out:
+        if it['k'] == 'p' and txt(it) in ('注释：', '注释:', '注释'):
+            roles.append(('label', j))
+            mode = 'notes'
+            continue
+        if mode == 'notes':
+            if it['k'] == 'h' or anote(it):
+                mode, j = 'text', j + 1
+            else:
+                roles.append(('note', j))
+                continue
+        roles.append(('anote' if anote(it) else 'text', j))
+    nums = {}                                                   # the note numbers of each block
+    for it, (role, j) in zip(out, roles):
+        m = re.match(r'\s*' + NUMRE, txt(it)) if role == 'note' else None
+        if m:
+            nums.setdefault(j, set()).add(int(m.group(1)))
+    amap = {}
+    for it, (role, j) in zip(out, roles):
+        if role == 'text':
+            for r in it.get('runs') or []:
+                if r.get('h'):
+                    amap.setdefault(r['h'], j)                  # (an author's note: the chapter of its mark)
+    tgt = opts.get('to')
+    last = {}
+
+    def mark(r, t, n, j):
+        h = f'part{tgt:04d}#pn0-{n}' if tgt else f'{part}#pn{j}-{n}'
+        return dict(unpm(r), t=t, s=1, h=h, a=f'{part}#pr{j}-{n}')
+
+    def link_marks(it, j):
+        new = []
+        for r in it.get('runs') or []:
+            m = re.fullmatch(r'\s*' + NUMRE + r'\s*', r['t']) if pm(r) and '#annot' not in (r.get('h') or '') else None
+            # (a mark inside a heading: the heading's link to the ebook's contents gives way to the note's)
+            if m and j is not None:
+                new.append(mark(r, m.group(0).strip(), m.group(1), j))
+                last[j] = int(m.group(1))
+            elif opts.get('plain') and j is not None and not (r.get('h') or r.get('i') or r.get('s')):
+                pos = 0
+                for m in re.finditer(NUMRE, r['t']):
+                    n = int(m.group(1))
+                    if n in nums.get(j, ()) and n > last.get(j, 0) and n <= last.get(j, 0) + 3:
+                        new += [x for x in (dict(r, t=r['t'][pos:m.start()]), mark(r, m.group(0), m.group(1), j)) if x['t']]
+                        pos = m.end()
+                        last[j] = n
+                new.append(dict(r, t=r['t'][pos:]) if pos else r)
+                if pos and not new[-1]['t']:
+                    new.pop()
+            else:
+                new.append(unpm(r) if pm(r) else r)
+        it['runs'] = new
+
+    keep = []
+    for it, (role, j) in zip(out, roles):
+        if role == 'label':
+            continue
+        if role == 'text':
+            link_marks(it, j)
+        elif role == 'anote':                                   # (the author's own notes: notes, in their place among them)
+            link_marks(it, amap.get(it['runs'][0].get('a') or it.get('id')))
+            it['k'] = 'note'
+        elif role == 'note':
+            it['k'] = 'note'
+            r0 = it['runs'][0] if it.get('runs') else {}
+            m = re.match(r'\s*' + NUMRE, r0.get('t', '')) if not r0.get('i') else None
+            if m:
+                n = m.group(1)
+                back = f'{opts["ext"][int(n)]}#pr0-{n}' if int(n) in opts.get('ext', {}) else f'{part}#pr{j}-{n}'
+                it['runs'][0:1] = [x for x in (run(m.group(0).strip(), 0, 0, back, f'{part}#pn{j}-{n}'),
+                                                dict(unpm(r0), t=r0['t'][m.end():].lstrip())) if x['t']]
+            it['runs'] = [unpm(r) if pm(r) else r for r in it['runs']]
+        keep.append(it)
+    # (a mark the ebook left as plain text '（30）' instead of a superscript: the first such text in the chapter, or in the
+    #  author's notes of the chapter, becomes the mark of a note that has none)
+    have = {r['h'] for it in keep if it['k'] != 'note' for r in it.get('runs') or [] if r.get('s') and r.get('h')}
+    notes_ = [(it['runs'][0]['a'], it['runs'][0]['h'], it['runs'][0]['t']) for it in keep if it['k'] == 'note' and it.get('runs')
+              and (it['runs'][0].get('a') or '').startswith(f'{part}#pn')]
+    seg = {id(it): (role, j) for it, (role, j) in zip(list(out), roles)}
+    for na, back, nt in notes_:
+        if na in have or tgt:
+            continue
+        j = int(na.split('#pn')[1].split('-')[0])
+        done = False
+        for it in keep:
+            role, jj = seg.get(id(it), ('', None))
+            if done or it['k'] == 'note' or not (role == 'text' and jj == j or role == 'anote'
+                                                 and amap.get(it['runs'][0].get('a') or it.get('id')) == j):
+                continue
+            for k, r in enumerate(it.get('runs') or []):
+                i = r['t'].find(nt) if not (r.get('h') or r.get('i') or r.get('s')) else -1
+                if i >= 0:
+                    it['runs'][k:k + 1] = [x for x in (dict(r, t=r['t'][:i]), dict(r, t=nt, s=1, h=na, a=back),
+                                                       dict(r, t=r['t'][i + len(nt):])) if x['t']]
+                    done = True
+                    break
+    out[:] = keep
 
 
 def _mark_fix(f, out):
@@ -307,6 +424,9 @@ def _apply_fixes(part, out):
             it['runs'] = [x for x in new if x['t'] or x.get('i')]
         if have:
             FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(seen)
+    for f in [f for f in fx if f[1] == 'PNOTES']:               # (part, 'PNOTES', options, note): (book 53) the translator's notes
+        _pnotes(part, out, f[2] if len(f) > 3 else {})          # '（n）' as plain text, linked both ways (see _pnotes)
+        FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
     for f in [f for f in fx if f[1] == 'PARATABLE']:            # (part, 'PARATABLE', start of the first paragraph, number of paragraphs,
         for k, it in enumerate(out):                            #  note): a table the ebook sets as lines padded with spaces -> a
             if it['k'] != 'p' or not _txt(it).startswith(f[2]):  # table, the first line its heading row

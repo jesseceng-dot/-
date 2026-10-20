@@ -709,6 +709,8 @@ CFG[43] = _xf(scratch='q43', file='自由宪章', title='自由宪章', sub='', 
               credits=['杨玉生　冯兴元　陈茅　等译', '杨玉生　陆衡　伊虹　统校'], pdf_author='〔英〕F. A. 冯·哈耶克', series='西方现代思想丛书',
               cover='image06155.jpeg', title_img='image06172.jpeg', copyright=[49, 50], cls_quote=('content_reference',),
               cls_center=('center1',), cls_noindent=('left',), notes_tail=True,
+              notel_vary=True,                        # (references in Latin, set ragged: their lines may be spaced too)
+              note_plates={'image06030.jpeg'},        # (chapter 21, note 8: its table at the back, else a page foot stays empty)
               part_re=r'^第[一二三]篇', part_split=r'^(第[一二三]篇)[\s\u3000]+(.+)$', part_epi_cls=('content_reference', 'right'),
               part_epi_right=('right',), part_epi_para=True,
               front=[(51, 'board'), (52, 'dedication'), (53, 'text'), (55, 'text'), (56, 'text'), (57, 'text'), (58, 'text')],
@@ -742,7 +744,7 @@ CFG[47] = _xf(scratch='q47', file='致命的自负', title='致命的自负', su
 CFG[48] = _xf(scratch='q48', file='社会主义', title='社会主义', sub='经济与社会学的分析', author='〔奥〕路德维希·冯·米瑟斯 著',
               credits=['王建民　冯克利　崔树义　译'], pdf_author='〔奥〕路德维希·冯·米瑟斯', series='西方现代思想丛书',
               cover='image06151.jpeg', title_img='image06168.jpeg', copyright=[161, 162], cls_quote=('content_reference',),
-              cls_center=('center1',), notes_tail=True,
+              cls_center=('center1',), notes_tail=True, notel_vary=True,
               part_re=r'^第[一二三四五]卷', part_split=r'^(第[一二三四五]卷)[\s\u3000]+(.+)$',
               part_re2=r'^第[一二三]部分', part_split2=r'^(第[一二三]部分)[\s\u3000]+(.+)$',
               front=[(163, 'board'), (164, 'text'), (165, 'text'), (166, 'text'), (167, 'text'), (168, 'text'), (169, 'text'),
@@ -752,6 +754,8 @@ CFG[48] = _xf(scratch='q48', file='社会主义', title='社会主义', sub='经
 _KG = dict(author='〔丹〕索伦·克尔凯郭尔 著', pdf_author='〔丹〕索伦·克尔凯郭尔', series='克尔凯郭尔文集')
 CFG[49] = _xf(scratch='q49', file='论反讽概念', title='论反讽概念', sub='以苏格拉底为主线', credits=['汤晨溪　译'], **_KG,
               cover='image06057.jpeg', title_img='image06073.jpeg', copyright=214, cls_quote=('content_reference',),
+              notes_tail=True,                         # (note 10 of chapter 1 is a picture: Napoleon's grave,
+              note_plates={'image06211.jpeg'},         #  at the back: in the note it would leave a page foot empty)
               cls_center=('center1', 'block_center'), cls_right=('block_right',),
               part_re=r'^[上下]卷', part_split=r'^([上下]卷)[\s\u3000]+(.+)$',
               front=[(215, 'text'), (216, 'board'), (217, 'plain'), (218, 'text'), (219, 'text'), (220, 'text'), (221, 'text'),
@@ -767,6 +771,61 @@ CFG[51] = _xf(scratch='q51', file='非此即彼（下）', title='非此即彼',
               cover='image06095.jpeg', title_img='image06112.jpeg', copyright=262,
               front=[(263, 'text'), (264, 'board'), (265, 'text'), (266, 'text'), (267, 'text')],
               body=[269, 270, 271], back=[(272, 'index'), (273, 'index')])
+CFG[52] = _xf(scratch='q52', file='哲学片断', title='哲学片断', sub='或片断的哲学', credits=['王齐　译'], **_KG,
+              cover='image06135.jpeg', title_img='image06152.jpeg', copyright=276, mark_label='原译注',
+              cls_quote=('content_reference',), cls_center=('center1', 'block_center'), cls_right=('block_right',),
+              cls_noindent=('left',),
+              front=[(277, 'text'), (278, 'text'), (279, 'board'), (280, 'dedication'), (281, 'text'), (282, 'text'), (283, 'text'),
+                     (284, 'dedication'), (285, 'text')], body=list(range(287, 296)), back=[296, 297])
+# 最后的、非科学性的附言: another ebook's markup; the translator's notes unlinked (bk_fixes PNOTES), the author's notes '[n]' at
+# the end of each part; the two parts of the book are two very long files: one unit per chapter (split_heads)
+CFG[53] = _xf(scratch='q53', file='最后的、非科学性的附言', title='对《哲学片断》所做的最后的、非科学性的附言', sub='',
+              credits=['王齐　译'], **_KG, cover='image06216.jpeg', title_img=None, copyright=300, marker='keep',
+              head_drop=('其他',), cls_center=('content_', 'tg-title'),
+              cls_map={'content_1': ('body', 2, 0, 'hei'), 'content_2': ('center', 0, 0, 'hei'), 'content_3': ('right', 0, 0, 'hei'),
+                       'content_4': ('body', 2, 6), 'content_5': ('right', 0, 0), 'content_6': ('body', 2, 3)},
+              part_re=r'^第[一二]部(?!分)', part_split=r'^(第[一二]部)[\s\u3000]+(.+)$', part_intro=True,
+              part_re2=r'^第[一二]册', part_split2=r'^(第[一二]册)[\s\u3000]+(.+)$',
+              split_heads={309: r'^第[一二三四五六]章', 310: r'^(第[一二三四五六]章|第[一二]册|附录)'},
+              front=[(299, 'board'), (302, 'text'), (303, 'board'), (304, 'text'), (305, 'text'), (306, 'text'), (307, 'text'),
+                     (308, 'text')], body=[309, 310], back=[311, 312])
+# 畏惧与颤栗 恐惧的概念 致死的疾病: three works, each with a page of its own (its title and the lines under it); the works'
+# own contents pages are not set (the book's contents lists them all)
+CFG[54] = _xf(scratch='q54', file='畏惧与颤栗 恐惧的概念 致死的疾病', title='畏惧与颤栗　恐惧的概念　致死的疾病', sub='',
+              credits=['京不特　译'], **_KG, cover='image06053.jpeg', title_img='image06069.jpeg', copyright=315,
+              cls_quote=('content_reference',), cls_center=('center1',), cls_noindent=('left',),
+              part_re=r'^(畏惧与颤栗|恐惧的概念|致死的疾病)$', part_sub_cls=('center1',), part_sub_notoc=True,
+              part_re2=r'^第[一二]部分', part_split2=r'^(第[一二]部分)[\s\u3000]+(.+)$',
+              front=[(316, 'text'), (317, 'board'), (318, 'kaitext'), (319, 'text'), (320, 'text'), (321, 'text')],
+              body=[323] + list(range(325, 333)) + list(range(334, 343)) + list(range(344, 351)),
+              back=[(351, 'index'), (352, 'index')])
+CFG[55] = _xf(scratch='q55', file='爱的作为', title='爱的作为', sub='', credits=['京不特　译'], **_KG,
+              cover='image06044.jpeg', title_img='image06060.jpeg', copyright=355, cls_center=('center1',),
+              part_re=r'^爱的作为$', part_sub_cls=('center1',), part_sub_toc=r'^第[一二]系列',
+              front=[(356, 'text'), (357, 'board'), (358, 'text'), (359, 'text')],
+              body=[361] + list(range(363, 374)) + list(range(375, 387)), back=[])
+# 陶冶性的讲演集: four collections, each a page of its own; one unit per discourse (the <h2>), its notes after it
+CFG[56] = _xf(scratch='q56', file='陶冶性的讲演集', title='陶冶性的讲演集', sub='', credits=['京不特　译'], **_KG,
+              cover='image06093.jpeg', title_img='image06110.jpeg', copyright=389, note_by_marker=True, notes_tail=True,
+              skip_text=('注释：',), cls_quote=('content_reference',), cls_center=('block_center', 'center1'),
+              part_re=r'^(两个陶冶性的讲演|四个陶冶性的讲演|三个想象出的场合讲演|原野里的百合和天空下的飞鸟)', part_intro=True,
+              split_heads={396: 2, 397: 2, 398: 2, 399: 2},
+              front=[(390, 'text'), (391, 'board'), (392, 'text'), (393, 'text'), (394, 'text')], body=[396, 397, 398, 399], back=[])
+_KS = dict(cls_center=('content_', 'tg-title'),
+           cls_map={'content_1': ('body', 2, 0, 'hei'), 'content_2': ('center', 0, 0, 'hei'), 'content_3': ('right', 0, 0, 'hei'),
+                    'content_4': ('body', 2, 6), 'content_5': ('right', 0, 0), 'content_6': ('body', 2, 3)})
+CFG[57] = _xf(scratch='q57', file='克尔凯郭尔讲演集（1848—1855）', title='克尔凯郭尔讲演集', sub='1848—1855', credits=['京不特　译'],
+              **_KG, **_KS, cover='image06214.jpeg', title_img=None, copyright=402, head_drop=('其他',),
+              part_re2=r'^第[一二三四]部分', part_split2=r'^(第[一二三四]部分)(?:\[\d+\])?[\s\u3000]+(.+)$',
+              split_heads={409: r'^第[一二三四]部分'},
+              front=[(401, 'board'), (404, 'text'), (405, 'board'), (406, 'text'), (407, 'text'), (408, 'text')],
+              body=list(range(409, 414)), back=[])
+CFG[58] = _xf(scratch='q58', file='克尔凯郭尔日记选（1842—1846）', title='克尔凯郭尔日记选', sub='1842—1846', credits=['王齐　译'],
+              **_KG, **_KS, cover='image06040.jpeg', title_img=None, copyright=416, marker='keep', head_drop=('其他',),
+              orn={'image06072.jpeg', 'image06106.jpeg', 'image06123.jpeg', 'image06140.jpeg'}, orn_size=(60.0, 16.0),
+              cls_cap=('imgtitle',),
+              front=[(415, 'board'), (418, 'text'), (419, 'board'), (420, 'text'), (421, 'text'), (422, 'text')],
+              body=[423, 424, 425], back=[])
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -877,7 +936,7 @@ def dot_runs(runs):
     return [r if r.get('i') or '·' not in r['t'] else dict(r, t=_NAME_DOT.sub('⁠·⁠', r['t'])) for r in runs]
 
 
-_TAIL = re.compile(r'([，、,；;])\s?(?=(?:\d{1,4}[)）\]］]|[（(]\d{1,2}[)）])[。.，；]?$)')
+_TAIL = re.compile(r'([，、,；;：:])\s?(?=(?:\d{1,4}[)）\]］]|[（(]\d{1,2}[)）])[)）\]］]*[。.，；]?$)')   # (and a verse: '（4：17）］。')
 
 
 def tail_runs(runs):
@@ -2187,8 +2246,16 @@ def part_divider(C, els):
         lines.append((3.0, m.group(3)))                          # an English sub-title line (page only, not in the contents)
     sub = _cs(C, 'part_sub_cls')
     while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & sub:
-        lines.append((3.0, plain(rest[0]['runs'])))
-        title += '　' + plain(rest[0]['runs'])
+        t_, mk = '', []                                           # (book 55: note marks inside the lines: linked on the page,
+        for r in rest[0]['runs']:                                 #  a placeholder in the text until divider_html sets them)
+            if r.get('s') and r.get('h') and not r.get('i'):
+                t_ += f'\ue000{len(mk)}\ue001'
+                mk.append((r['t'].strip(), r['h'], r.get('a', '')))
+            elif not r.get('i'):
+                t_ += r['t']
+        lines.append((3.0, t_, mk) if mk else (3.0, t_))
+        if not C.get('part_sub_notoc') and (not C.get('part_sub_toc') or re.search(C['part_sub_toc'], t_)):
+            title += '　' + re.sub('\ue000\\d+\ue001', '', t_)   # (part_sub_toc: only the lines naming the part, book 55)
         rest = rest[1:]
     if C.get('part_img') and rest and rest[0]['k'] == 'fig':      # the picture of the part page (book 16)
         lines.append((98, rest[0]['src']))
@@ -2276,7 +2343,7 @@ def book(b):
             notes += nt
         return els, notes
 
-    def add_unit(ns, zone_list, zone, els, notes, top=False, kaitext=False, toc=True, title_over=None):
+    def add_unit(ns, zone_list, zone, els, notes, top=False, kaitext=False, toc=True, title_over=None, mid=None):
         nonlocal pend_chars
         n = _parts(ns)[0]
         if C.get('renum') and notes:
@@ -2344,6 +2411,14 @@ def book(b):
                 x['runs'] = sup_runs(x['runs'])
             if C.get('tail_join') and x['k'] == 'p' and x.get('runs'):
                 x['runs'] = tail_runs(x['runs'])
+        if C.get('note_plates'):                                   # (book 43) a note's table (a picture) that would leave a page
+            out_ = []                                              # foot empty: at the back, a plate of its own; in the note
+            for it in notes:                                       # 'see plate N', linked both ways
+                if it['k'] == 'img' and it['src'] in C['note_plates']:
+                    k_ = fig_no(it['src'], '', ())
+                    it = dict(k='note', id='', notecap=True, runs=[run(f'（见书后插图{k_}）', h=f'plate-{k_}', a=f'figref-{k_}', c='fig')])
+                out_.append(it)
+            notes = out_
         if C.get('url_break'):
             notes = [dict(it, runs=url_runs(it['runs'])) for it in notes]
         if C.get('name_dot'):
@@ -2394,7 +2469,7 @@ def book(b):
                 for i in range(len(rs) - 1):
                     if rs[i]['t'] == '\n' and rs[i + 1].get('s'):
                         rs[i], rs[i + 1] = rs[i + 1], rs[i]
-        mod = Mod(mid=P(n), zone=zone, title=title, blocks=blocks, toc_level=1, toc=toc and any(x['k'] == 'h' for x in blocks))
+        mod = Mod(mid=mid or P(n), zone=zone, title=title, blocks=blocks, toc_level=1, toc=toc and any(x['k'] == 'h' for x in blocks))
         mod.src_part = n
         mod.src_parts = _parts(ns)
         mod.top = top
@@ -2444,8 +2519,21 @@ def book(b):
             flush(front, 'front')                                  # (the notes of a preface right after it, not after the next one)
     if C.get('notes_end') != 'all':
         flush(front, 'front')                                      # (notes_end='all': the front matter's notes join the others)
-    for n in C['body']:
-        els, notes = gather(n)
+    entries = []                                                   # (book 53) a part holding several chapters: one unit per
+    for n in C['body']:                                            # chapter (split before its heading), each with its notes
+        if isinstance(n, int) and n in C.get('split_heads', {}):
+            sh_ = C['split_heads'][n]                              # (a pattern of the heading's text, or its level: book 56)
+            hit = (lambda it: it['lvl'] == sh_) if isinstance(sh_, int) else (lambda it, p_=re.compile(sh_): p_.match(plain(it['runs'])))
+            chunks = [[]]
+            for it in BE.items(P(n)):
+                if it['k'] == 'h' and hit(it) and any(x['k'] in ('p', 'h') for x in chunks[-1]):
+                    chunks.append([])
+                chunks[-1].append(it)
+            entries += [(n, f'#u{k_}' if k_ else '', ch) for k_, ch in enumerate(chunks)]
+        else:
+            entries.append((n, '', None))
+    for n, sfx, chunk in entries:
+        els, notes = gather(n) if chunk is None else elements(C, chunk)
         plates = []
         if isinstance(n, int) and n in C.get('insert_plates', {}):                       # (book 33) a plate section bound inside a chapter: its pictures
             runs_, cur = [], []                                    # (the longest run of pictures and captions) set after the chapter,
@@ -2471,10 +2559,10 @@ def book(b):
                     for a_, y_ in _m:
                         builder.anchors.setdefault(a_, (page.index, y_))
                     return _h
-            div = page_module(f'div{n0}', 'body', dh, toc=True, toc_title=title_s,
+            div = page_module(f'div{n0}{sfx}', 'body', dh, toc=True, toc_title=title_s,
                               toc_level=0, title=title_s, folio=False, head=False)
             div.part = True
-            div.lines = [x[1] for x in lines if x[0] != 98]
+            div.lines = [re.sub('\ue000\\d+\ue001', '', x[1]) for x in lines if x[0] != 98]
             div.src_parts = _parts(n)
             if not C.get('notes_end'):
                 flush(body, 'body')
@@ -2485,7 +2573,7 @@ def book(b):
             lines2, title2, els = pd2                              # of their own, smaller, one level down in the contents
             lines2 = [(x[0] + 1.0, x[1]) for x in lines2]
             n0 = _parts(n)[0]
-            div2 = page_module(f'div{n0}b', 'body', special.divider_html(lines2), toc=True, toc_title=title2, toc_level=0,
+            div2 = page_module(f'div{n0}b{sfx}', 'body', special.divider_html(lines2), toc=True, toc_title=title2, toc_level=0,
                                title=title2, folio=False, head=False)
             div2.part = True
             div2.part2 = True
@@ -2496,13 +2584,16 @@ def book(b):
             body.append(div2)
         if pd or pd2:
             if not els:
+                if notes:                                          # (book 55) the notes of the part page's own lines
+                    pend.append((title_s if pd else title2, notes))
+                    pend_chars += sum(len(runs_text(i['runs'])) for i in notes)
                 continue
             if C.get('part_intro') and els[0]['k'] != 'h':          # (book 40) the part's introduction after its page: not an entry of
-                add_unit(n, body, 'body', els, notes, toc=False, title_over=title_s)    # its own (its sub-titles are not chapters)
+                add_unit(n, body, 'body', els, notes, toc=False, title_over=title_s if pd else title2, mid=P(n) + sfx if sfx else None)    # its own (its sub-titles are not chapters)
                 if pend_chars >= NOTE_MIN and not C.get('notes_end'):
                     flush(body, 'body')
                 continue
-        add_unit(n, body, 'body', els, notes, top=n in C.get('part_top', ()))
+        add_unit(n, body, 'body', els, notes, top=n in C.get('part_top', ()), mid=P(n) + sfx if sfx else None)
         if n in C.get('part_top', ()):                             # (books 50, 54…) a chapter after a part that is not inside it
             body[-1].unnest = True
         if pend_chars >= NOTE_MIN and not C.get('notes_end'):
