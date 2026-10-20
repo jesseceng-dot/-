@@ -62,7 +62,8 @@ RUN_CLS = {
 RUN_CLS.update({f'q{_n}': {'calibre9': (0, 'it'), 'calibre6': (1, ''), 'emphasis_underlined': (0, 'ul'), 'em_dot': (0, 'emp'),
                            'subscript': (0, 'msub'), 'kaiti1': (0, 'kai')} for _n in range(41, 59)})
 for _k in ('q53', 'q57', 'q58'):                               # (books 53, 57, 58: the marks '（n）' '[n]', linked by bk_fixes PNOTES)
-    RUN_CLS[_k] = dict(RUN_CLS[_k], super=(0, 'pmark'))
+    RUN_CLS[_k] = dict(RUN_CLS[_k], super=(0, 'pmark'), super1=(0, 'pmark'), super2=(0, 'pmark'))     # (super1, 2: in titles)
+RUN_CLS['q57']['span_1'] = (0, 'pmark')                         # (the mark of the last work's title)
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
 SNAP = {
@@ -174,7 +175,9 @@ def _pnotes(part, out, opts):
     unpm = lambda r: {k: v for k, v in dict(r, c=' '.join(x for x in (r.get('c') or '').split() if x != 'pmark')).items()
                       if k != 'c' or v}
     anote = lambda it: bool(it.get('runs')) and it['runs'][0].get('h') and (it['runs'][0].get('a') or it.get('id')) \
-        and re.match(r'\s*\[\d+\]', it['runs'][0]['t'])                 # (the anchor on the paragraph or on its link)
+        and re.match(r'\s*\[\d+\]', it['runs'][0]['t']) and ('#ref' in it['runs'][0]['h'] or 'annot' in (it.get('id') or ''))
+    # (the anchor on the paragraph or on its link; the note links back to '#ref…'; a paragraph that starts with the mark
+    #  of an author's note, which links to the note, is text)
     NUMRE = r'[（(\[](\d+)[）)\]]'
     roles, j, mode = [], 0, 'text'
     for it in out:
@@ -201,16 +204,17 @@ def _pnotes(part, out, opts):
                 if r.get('h'):
                     amap.setdefault(r['h'], j)                  # (an author's note: the chapter of its mark)
     tgt = opts.get('to')
-    last = {}
+    last, used = {}, set()
 
     def mark(r, t, n, j):
         h = f'part{tgt:04d}#pn0-{n}' if tgt else f'{part}#pn{j}-{n}'
         return dict(unpm(r), t=t, s=1, h=h, a=f'{part}#pr{j}-{n}')
 
-    def link_marks(it, j):
+    def link_marks(it, j, free=False):
         new = []
         for r in it.get('runs') or []:
-            m = re.fullmatch(r'\s*' + NUMRE + r'\s*', r['t']) if pm(r) and '#annot' not in (r.get('h') or '') else None
+            own = (r.get('h') or '').startswith(part + '#')       # (a mark the ebook links within the part: an author's note)
+            m = re.fullmatch(r'\s*' + NUMRE + r'\s*', r['t']) if pm(r) and '#annot' not in (r.get('h') or '') and not own else None
             # (a mark inside a heading: the heading's link to the ebook's contents gives way to the note's)
             if m and j is not None:
                 new.append(mark(r, m.group(0).strip(), m.group(1), j))
@@ -219,13 +223,17 @@ def _pnotes(part, out, opts):
                 pos = 0
                 for m in re.finditer(NUMRE, r['t']):
                     n = int(m.group(1))
-                    if n in nums.get(j, ()) and n > last.get(j, 0) and n <= last.get(j, 0) + 3:
+                    if n in nums.get(j, ()) and (j, n) not in used and (free or abs(n - last.get(j, 0)) <= 3):
                         new += [x for x in (dict(r, t=r['t'][pos:m.start()]), mark(r, m.group(0), m.group(1), j)) if x['t']]
-                        pos = m.end()
-                        last[j] = n
+                        pos = m.end()          # (book 58: a mark the ebook set out of order, '（163）' before '（162）')
+                        if not free:
+                            last[j] = max(n, last.get(j, 0))
+                        used.add((j, n))
                 new.append(dict(r, t=r['t'][pos:]) if pos else r)
                 if pos and not new[-1]['t']:
                     new.pop()
+            elif own and pm(r) and re.fullmatch(r'\s*\[\d+\]\s*', r['t']):
+                new.append(dict(unpm(r), s=1))                  # (an author's note mark: raised, its own link)
             else:
                 new.append(unpm(r) if pm(r) else r)
         it['runs'] = new
@@ -237,7 +245,8 @@ def _pnotes(part, out, opts):
         if role == 'text':
             link_marks(it, j)
         elif role == 'anote':                                   # (the author's own notes: notes, in their place among them)
-            link_marks(it, amap.get(it['runs'][0].get('a') or it.get('id')))
+            link_marks(it, amap.get(it['runs'][0].get('a') or it.get('id')), free=True)    # (book 58: the marks in an author's
+            # note, at the end of the part, refer to notes of any number not yet taken)
             it['k'] = 'note'
         elif role == 'note':
             it['k'] = 'note'
@@ -273,6 +282,17 @@ def _pnotes(part, out, opts):
                                                        dict(r, t=r['t'][i + len(nt):])) if x['t']]
                     done = True
                     break
+    if not tgt:                                                 # (book 57) a mark whose note the ebook lacks: raised, not linked
+        ids = {it['runs'][0].get('a') for it in keep if it['k'] == 'note' and it.get('runs')}
+        for it in keep:
+            if it['k'] != 'note':
+                it['runs'] = [{k: v for k, v in r.items() if k not in ('h', 'a')} if r.get('s') and (r.get('h') or '').startswith(f'{part}#pn')
+                              and r['h'] not in ids else r for r in it.get('runs') or []]
+        anchors = {r.get('a') for it in keep for r in it.get('runs') or [] if r.get('s')}
+        for it in keep:                                         # (book 53) a note whose mark the ebook lacks: no back-link
+            r0 = it['runs'][0] if it['k'] == 'note' and it.get('runs') else {}
+            if (r0.get('h') or '').startswith(f'{part}#pr') and r0['h'] not in anchors and not opts.get('ext'):
+                it['runs'][0] = {k: v for k, v in r0.items() if k != 'h'}
     out[:] = keep
 
 
@@ -424,6 +444,25 @@ def _apply_fixes(part, out):
             it['runs'] = [x for x in new if x['t'] or x.get('i')]
         if have:
             FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + len(seen)
+    for f in [f for f in fx if f[1] == 'HEADRE']:              # (part, 'HEADRE', pattern, level, note): (book 57) every paragraph
+        p_ = re.compile(f[2])                                   # of the pattern is a heading the ebook set as text (before PNOTES:
+        for k, it in enumerate(out):                            # a heading ends a block of notes)
+            if it['k'] == 'p' and p_.match(_txt(it).strip()):
+                rs = [dict(r, b=0) for r in it['runs']]
+                m = re.match(r'(I|II|III|IV|V|VI|VII|VIII|IX|X)[\s\u3000]*', rs[0]['t']) if rs and not rs[0].get('i') else None
+                if m:                                           # the ordinal 'II' and the title one ideographic space apart
+                    rest_ = rs[0]['t'][m.end():]                # (after the ordinal's note mark, if it has one)
+                    if rest_:
+                        rs[0] = dict(rs[0], t=m.group(1) + '\u3000' + rest_)
+                    else:
+                        rs[0] = dict(rs[0], t=m.group(1))
+                        j = 1
+                        while j < len(rs) and 'pmark' in (rs[j].get('c') or '').split():
+                            j += 1
+                        if j < len(rs):
+                            rs[j] = dict(rs[j], t='\u3000' + rs[j]['t'].lstrip())
+                out[k] = dict(it, k='h', lvl=f[3], runs=rs)
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
     for f in [f for f in fx if f[1] == 'PNOTES']:               # (part, 'PNOTES', options, note): (book 53) the translator's notes
         _pnotes(part, out, f[2] if len(f) > 3 else {})          # '（n）' as plain text, linked both ways (see _pnotes)
         FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
@@ -594,7 +633,10 @@ def inline(el, part, mark_breaks=False):
                 c2 = c
                 for x in add.split():
                     c2 = _cls(c2, x)
-                rec(ch, 1 if (bold or t in ('b', 'strong')) else b, _cls(c2, 'it') if t in ('i', 'em') else c2, h, a, s)
+                a2 = anchor_key(part, ch.get('id')) if ch.get('id') and not a and any(
+                    isinstance(x.tag, str) and ln(x) == 'a' and x.get('href') for x in ch.iter() if x is not ch) else a
+                # (books 53, 57, 58: <span class="super" id=…><a href=…>[1]</a></span>: the id is the mark's anchor)
+                rec(ch, 1 if (bold or t in ('b', 'strong')) else b, _cls(c2, 'it') if t in ('i', 'em') else c2, h, a2, s)
             elif t == 'br':
                 if mark_breaks:
                     out.append(run(' '))
@@ -645,7 +687,8 @@ def inline(el, part, mark_breaks=False):
                                    for x in ch.iter() if isinstance(x.tag, str)):
                     rec(ch, b, c, h, a, 1)
                 elif MARK_RE.match(txt) or h:
-                    rec(ch, b, c, h, a, 1)
+                    rec(ch, b, c, h, a or (anchor_key(part, ch.get('id')) if h and ch.get('id') else ''), 1)
+                    # (book 56: <a href=…><sup id=…>57</sup></a>: the sup's id is the mark's anchor)
                 elif txt:
                     rec(ch, b, _cls(c, 'msup'), h, a, s)
             elif t == 'sub':

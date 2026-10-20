@@ -75,8 +75,10 @@ def title_html(meta):
     """Formal title page: author, title, translator, series, publisher."""
     out = ''
     out += _center(_html.escape(meta['author']), 96 * style.SY, 13, 'KaiTi', 400, 0.12)
-    fs = min(32.0, 300.0 / (len(meta['title']) * 1.1))
-    out += _center(_html.escape(meta['title']), 176 * style.SY, fs, 'HeiTi', 700, 0.1)
+    lines = meta.get('title_lines') or [meta['title']]            # (book 53: a long title in two lines)
+    fs = min(32.0, 300.0 / (max(len(t) for t in lines) * 1.1))
+    for k, t in enumerate(lines):
+        out += _center(_html.escape(t), 176 * style.SY + (k - (len(lines) - 1) / 2) * fs * 1.4, fs, 'HeiTi', 700, 0.1)
     if meta.get('sub'):
         out += _center(_html.escape(meta['sub']), 224 * style.SY, 13, 'KaiTi', 400, 0.06)
     y = 288 * style.SY
@@ -201,6 +203,21 @@ def _para_lines(text, cap, indent):
 KAI_SHIFT = 0.78      # (measured) the Kai face's baseline in a 17 pt line lies 0.78 pt above the Song face's
 
 
+def _line_marks(body, marks, y, marks_out):
+    """The placeholders '\\ue000k\\ue001' of a divider line's note marks: raised marks linked to their notes (and the
+    marks' anchors at height y, for the notes' back-links)."""
+    from .style import LINK_BASE
+    for k_, (t_, h_, a_) in enumerate(marks):
+        if f'\ue000{k_}\ue001' not in body:
+            continue
+        body = body.replace(f'\ue000{k_}\ue001', f'<a href="{LINK_BASE}{h_}" style="color:#000;text-decoration:none">'
+                            f'<span style="font-family:SongBody;font-weight:400;font-size:.55em;vertical-align:.5em;line-height:0">'
+                            f'{_html.escape(t_)}</span></a>')
+        if marks_out is not None and a_:
+            marks_out.append((a_, y))
+    return body
+
+
 def divider_html(lines, grid=False, snap=False, marks_out=None):
     """Title page of a work / section: (level, text) lines, the first one large; other short lines (epigraph, sub-title, name)
     smaller underneath.  Long titles get balanced line breaks.  grid=True (a dedication: small lines only): the lines
@@ -314,17 +331,11 @@ def divider_html(lines, grid=False, snap=False, marks_out=None):
             for k, pc in enumerate(pieces):
                 out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                         f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;white-space:nowrap;'
-                        f'transform:translate(0pt,{y + k * lh:.2f}pt)"><span style="line-height:0">{runs_html(pc)}</span></div>')
+                        f'transform:translate(0pt,{y + k * lh:.2f}pt)"><span style="line-height:0">'
+                        f'{_line_marks(runs_html(pc), marks, y + k * lh, marks_out)}</span></div>')
             y += n * lh + gap
             continue
-        body = runs_html(runs)
-        for k_, (t_, h_, a_) in enumerate(marks):           # (book 55) the note marks inside a line: raised, linked
-            from .style import LINK_BASE
-            body = body.replace(f'\ue000{k_}\ue001', f'<a href="{LINK_BASE}{h_}" style="color:#000;text-decoration:none">'
-                                f'<span style="font-family:SongBody;font-weight:400;font-size:.55em;vertical-align:.5em;line-height:0">'
-                                f'{_html.escape(t_)}</span></a>')
-            if marks_out is not None and a_:
-                marks_out.append((a_, y))
+        body = _line_marks(runs_html(runs), marks, y, marks_out)    # (book 55) the note marks inside a line: raised, linked
         out += (f'<div style="position:absolute;left:0;top:0;width:{style.PAGE_W}pt;text-align:center;font-family:{fam};'
                 f'font-size:{fs}pt;font-weight:{wt};letter-spacing:{ls}em;line-height:{lh}pt;color:#000;'
                 f'transform:translate(0pt,{y:.1f}pt)">{body}</div>')

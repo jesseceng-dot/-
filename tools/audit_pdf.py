@@ -121,10 +121,12 @@ def audit(path):
             rep['empty'].append(i + 1)
             continue
         b = [l for l in ls if is_body(l)]
+        folio = any(l['y'] > (ref or 0) + 0.9 * pitch and re.fullmatch(r'[0-9ivxlcdm]{1,6}', l['text'].strip()) for l in ls)
+        # (a page without a page number is a page of its own design: a title page, a board, a dedication, a part page)
         bottom = max([l['y'] for l in b] + [im[3] - 0.25 * body for im in imgs[i]] + [l['y'] for l in ls if l['size'] < body - 0.6], default=0)
-        if ref and b and bottom < ref - 0.9 * pitch and i < n - 1 and not opens(i + 1):
+        if ref and b and folio and bottom < ref - 0.9 * pitch and i < n - 1 and not opens(i + 1):
             rep['foot'].append((i + 1, round((ref - bottom) / pitch, 1)))
-        if ref and b and not imgs[i]:
+        if ref and b and folio and not imgs[i]:
             pref = max(l['y'] for l in b)
             for l in b:
                 if not serif(l):
@@ -136,18 +138,20 @@ def audit(path):
         for l in b:
             t = l['text'].strip()
             if t and len(t) > 3 and (t[0] in NO_START and l['x0'] < lmin + 2.5 * body
+                                     and not (t.startswith('…') and l['x0'] > lmin + 1.5 * body)
                                      or t[-1] in NO_END and l['x1'] > rmax - 1.5 * body):
-                rep['kinsoku'].append((i + 1, t[:14]))       # (only at the edges of the text block: a line after a raised mark starts mid-line)
+                rep['kinsoku'].append((i + 1, t[:14]))       # (only at the edges of the text block: a line after a raised mark starts mid-line;
+                # an indented line that starts with '……' is a paragraph that does)
             if rmax and l['x1'] > rmax + 3 and _ink_x1(d[i], l) > rmax + 3:
                 rep['over'].append((i + 1, t[:14], round(_ink_x1(d[i], l) - rmax, 1)))
         inside = [l for l in ls if top is not None and ref and top - 1 <= l['y'] <= ref + 1]
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
-            if t and len(t) <= 5 and LONE.fullmatch(t) and not set(t) <= set('*＊∗※-—─ ') \
+            if t and len(t) <= 5 and LONE.fullmatch(t) and not set(t) <= set('*＊∗※-—─_=# ') \
                     and not any(m is not l and abs(m['y'] - l['y']) < 0.8 * body for m in ls):   # (a row of asterisks or dashes: a section break)
                 rep['lone'].append((i + 1, t, round(l['y'])))               # a line of nothing but punctuation or a note mark (a raised mark beside its line is not one)
         if not imgs[i] and inside and all(abs(l['size'] - body) < 1.6 for l in inside) and len({round(l['y']) for l in inside}) <= 2 \
-                and i > 0 and pages[i - 1] and not opens(i):
+                and i > 0 and pages[i - 1] and not opens(i) and folio:
             rep['short'].append((i + 1, inside[0]['text'][:12]))     # a page with one or two lines, run on from the page before
         for l in ls:
             if l['size'] < body - 2 and MARK.fullmatch(l['text'].strip()) and abs(l['x0'] - lmin) < 1.5 \
@@ -169,7 +173,7 @@ def audit(path):
             if NUM_END.search(a['text'].replace('\u2060', '').strip()) and re.match(r'\d', c['text'].strip()) and 5 < c['y'] - a['y'] < 25:
                 rep['numbreak'].append((i + 1, a['text'].strip()[-8:], c['text'].strip()[:6]))   # '1797—' / '1798', 'p.' / '264'
         heads = [l for l in inside if l['size'] >= body + 1]
-        if heads and b:
+        if heads and b and folio:
             h = max(heads, key=lambda l: l['y'])
             if h['y'] > ref - 2.5 * pitch and not any(l['y'] > h['y'] + 1 for l in b):
                 rep['head_bottom'].append((i + 1, h['text'][:12]))   # a heading in the last lines with nothing under it

@@ -754,8 +754,9 @@ CFG[48] = _xf(scratch='q48', file='社会主义', title='社会主义', sub='经
 _KG = dict(author='〔丹〕索伦·克尔凯郭尔 著', pdf_author='〔丹〕索伦·克尔凯郭尔', series='克尔凯郭尔文集')
 CFG[49] = _xf(scratch='q49', file='论反讽概念', title='论反讽概念', sub='以苏格拉底为主线', credits=['汤晨溪　译'], **_KG,
               cover='image06057.jpeg', title_img='image06073.jpeg', copyright=214, cls_quote=('content_reference',),
-              notes_tail=True,                         # (note 10 of chapter 1 is a picture: Napoleon's grave,
-              note_plates={'image06211.jpeg'},         #  at the back: in the note it would leave a page foot empty)
+              notes_tail=True, toc_part_tight=True,
+              note_plates={'image06211.jpeg'},         # (note 10 of chapter 1 is a picture, Napoleon's grave: at the back,
+                                                       #  in the note it would leave a page foot empty)
               cls_center=('center1', 'block_center'), cls_right=('block_right',),
               part_re=r'^[上下]卷', part_split=r'^([上下]卷)[\s\u3000]+(.+)$',
               front=[(215, 'text'), (216, 'board'), (217, 'plain'), (218, 'text'), (219, 'text'), (220, 'text'), (221, 'text'),
@@ -773,6 +774,8 @@ CFG[51] = _xf(scratch='q51', file='非此即彼（下）', title='非此即彼',
               body=[269, 270, 271], back=[(272, 'index'), (273, 'index')])
 CFG[52] = _xf(scratch='q52', file='哲学片断', title='哲学片断', sub='或片断的哲学', credits=['王齐　译'], **_KG,
               cover='image06135.jpeg', title_img='image06152.jpeg', copyright=276, mark_label='原译注',
+              open_air=2, dedication_grid=True,        # (间奏曲: its title, its two-line motto and a long paragraph fill the page
+                                                       #  only with two blank lines under the title)
               cls_quote=('content_reference',), cls_center=('center1', 'block_center'), cls_right=('block_right',),
               cls_noindent=('left',),
               front=[(277, 'text'), (278, 'text'), (279, 'board'), (280, 'dedication'), (281, 'text'), (282, 'text'), (283, 'text'),
@@ -780,8 +783,9 @@ CFG[52] = _xf(scratch='q52', file='哲学片断', title='哲学片断', sub='或
 # 最后的、非科学性的附言: another ebook's markup; the translator's notes unlinked (bk_fixes PNOTES), the author's notes '[n]' at
 # the end of each part; the two parts of the book are two very long files: one unit per chapter (split_heads)
 CFG[53] = _xf(scratch='q53', file='最后的、非科学性的附言', title='对《哲学片断》所做的最后的、非科学性的附言', sub='',
+              title_lines=['对《哲学片断》所做的', '最后的、非科学性的附言'],
               credits=['王齐　译'], **_KG, cover='image06216.jpeg', title_img=None, copyright=300, marker='keep',
-              head_drop=('其他',), cls_center=('content_', 'tg-title'),
+              head_drop=('其他',), toc_src=301, cls_center=('content_', 'tg-title'), note_cls=('note', 'note1', 'footnote_content', 'noindent'),
               cls_map={'content_1': ('body', 2, 0, 'hei'), 'content_2': ('center', 0, 0, 'hei'), 'content_3': ('right', 0, 0, 'hei'),
                        'content_4': ('body', 2, 6), 'content_5': ('right', 0, 0), 'content_6': ('body', 2, 3)},
               part_re=r'^第[一二]部(?!分)', part_split=r'^(第[一二]部)[\s\u3000]+(.+)$', part_intro=True,
@@ -807,21 +811,29 @@ CFG[55] = _xf(scratch='q55', file='爱的作为', title='爱的作为', sub='', 
 # 陶冶性的讲演集: four collections, each a page of its own; one unit per discourse (the <h2>), its notes after it
 CFG[56] = _xf(scratch='q56', file='陶冶性的讲演集', title='陶冶性的讲演集', sub='', credits=['京不特　译'], **_KG,
               cover='image06093.jpeg', title_img='image06110.jpeg', copyright=389, note_by_marker=True, notes_tail=True,
+              note_plates={'image06178.jpeg', 'image06195.jpeg'},    # (two woodcuts of the dance of death after the notes of
+                                                                      #  the third collection, a page each: at the back)
               skip_text=('注释：',), cls_quote=('content_reference',), cls_center=('block_center', 'center1'),
               part_re=r'^(两个陶冶性的讲演|四个陶冶性的讲演|三个想象出的场合讲演|原野里的百合和天空下的飞鸟)', part_intro=True,
               split_heads={396: 2, 397: 2, 398: 2, 399: 2},
               front=[(390, 'text'), (391, 'board'), (392, 'text'), (393, 'text'), (394, 'text')], body=[396, 397, 398, 399], back=[])
-_KS = dict(cls_center=('content_', 'tg-title'),
+_KS = dict(cls_center=('content_', 'tg-title'), note_cls=('note', 'note1', 'footnote_content', 'noindent'),   # (noindent: the author's notes)
            cls_map={'content_1': ('body', 2, 0, 'hei'), 'content_2': ('center', 0, 0, 'hei'), 'content_3': ('right', 0, 0, 'hei'),
                     'content_4': ('body', 2, 6), 'content_5': ('right', 0, 0), 'content_6': ('body', 2, 3)})
+# 克尔凯郭尔讲演集: five works, each with the lines of its title page (on its part page here); 基督教的讲演 has four parts;
+# the discourses' titles, set as text in the ebook, are headings (bk_fixes HEADRE), each discourse a chapter with its notes
+_KD = r'^(第[一二三四]部分|(?:I|II|III|IV|V|VI|VII)(?:\[\d+\])?[\s\u3000]*[《“\u4e00-\u9fff]|前言(?:\[\d+\])?$|引言\[\d+\]$|“女罪人”)'
 CFG[57] = _xf(scratch='q57', file='克尔凯郭尔讲演集（1848—1855）', title='克尔凯郭尔讲演集', sub='1848—1855', credits=['京不特　译'],
               **_KG, **_KS, cover='image06214.jpeg', title_img=None, copyright=402, head_drop=('其他',),
-              part_re2=r'^第[一二三四]部分', part_split2=r'^(第[一二三四]部分)(?:\[\d+\])?[\s\u3000]+(.+)$',
-              split_heads={409: r'^第[一二三四]部分'},
+              toc_src=403, part_re=r'^(基督教的讲演|“大祭司”|一个陶冶性的讲演|在星期五圣餐礼仪式上的两个讲演|上帝的不变性)',
+              part_sub_cls=('content_', 'content_2'), part_sub_lvl=99, part_sub_short=20, part_sub_stop=r'^(前言|内容)',
+              part_sub_notoc=True, part_intro=True, part2_nosub=True, part_grid=True,
+              part_re2=r'^第[一二三四]部分', part_split2=r'^(第[一二三四]部分(?:\ue000\d+\ue001)?)[\s\u3000]+(.+)$',
+              split_heads={n: _KD for n in range(409, 413)},
               front=[(401, 'board'), (404, 'text'), (405, 'board'), (406, 'text'), (407, 'text'), (408, 'text')],
               body=list(range(409, 414)), back=[])
 CFG[58] = _xf(scratch='q58', file='克尔凯郭尔日记选（1842—1846）', title='克尔凯郭尔日记选', sub='1842—1846', credits=['王齐　译'],
-              **_KG, **_KS, cover='image06040.jpeg', title_img=None, copyright=416, marker='keep', head_drop=('其他',),
+              **_KG, **_KS, cover='image06040.jpeg', title_img=None, copyright=416, marker='keep', head_drop=('其他',), toc_src=417,
               orn={'image06072.jpeg', 'image06106.jpeg', 'image06123.jpeg', 'image06140.jpeg'}, orn_size=(60.0, 16.0),
               cls_cap=('imgtitle',),
               front=[(415, 'board'), (418, 'text'), (419, 'board'), (420, 'text'), (421, 'text'), (422, 'text')],
@@ -833,7 +845,7 @@ TITLES = {b: CFG[b]['file'] for b in CFG}
 def meta(b):
     C = CFG[b]
     return dict(title=C['title'], sub=C['sub'], author=C['author'], credits=C['credits'], series=C.get('series', ''),
-                publisher=C['publisher'], subject=C['file'])
+                publisher=C['publisher'], subject=C['file'], title_lines=C.get('title_lines'))
 
 
 # ---------------------------------------------------------------------------------------------- headings
@@ -1136,6 +1148,11 @@ def elements(C, items, kaitext=False):
         if k == 'p' and set(it['cls'].split()) & _cs(C, 'head_num_cls'):
             num_pend = plain(it['runs'])                    # '第一章' set above the chapter title: prefixed to the heading
             continue
+        if k == 'p' and els and els[-1]['k'] == 'h' and it.get('runs') and any(r.get('s') and r.get('h') for r in it['runs']) \
+                and all(r.get('s') and r.get('h') or not r['t'].strip() and not r.get('i') for r in it['runs']):
+            els[-1]['runs'] = els[-1]['runs'] + [r for r in it['runs'] if r.get('s')]
+            continue                                        # (book 55) a paragraph of nothing but a note mark under a heading:
+            # the heading's mark
         if k == 'h' and num_pend:
             it = dict(it, runs=[run(num_pend + '\u3000')] + it['runs'])
             num_pend = None
@@ -2227,35 +2244,58 @@ def short_right(items, max_len):
     return out
 
 
+def _mark_text(runs):
+    """The text of a title line, its note marks as placeholders '\\ue000k\\ue001' (divider_html links them), and the marks."""
+    t_, mk = '', []
+    for r in runs:
+        if r.get('s') and r.get('h') and not r.get('i'):
+            t_ += f'\ue000{len(mk)}\ue001'
+            mk.append((r['t'].strip(), r['h'], r.get('a', '')))
+        elif not r.get('i'):
+            t_ += r['t']
+    return t_, mk
+
+
 def part_divider(C, els):
     """A heading 'Part N' (+ sub-title lines that follow it) that becomes a page of its own: (lines, toc title, remaining elements)."""
     pr = re.compile(C.get('part_re') or PART_RE.pattern)
     if not (els and els[0]['k'] == 'h' and pr.match(plain(els[0]['runs']))):
         return None
-    head = plain(regap_heading(els[0]['runs']))
+    head, mk0 = _mark_text(regap_heading(els[0]['runs']))         # (books 55, 57: the title's own note marks, linked on the page)
+    head = re.sub(r'\s+', ' ', head).strip()
     rest = els[1:]
+    clean = lambda t: re.sub('\ue000\\d+\ue001', '', t)
+
+    def line(lvl, t):                                             # a line of the title with its own marks
+        own = []
+
+        def renum(m_):
+            own.append(mk0[int(m_.group(1))])
+            return f'\ue000{len(own) - 1}\ue001'
+        t = re.sub('\ue000(\\d+)\ue001', renum, t)
+        return (lvl, t, own) if own else (lvl, t)
     m = re.match(C['part_split'], head) if C.get('part_split') else None
-    if not m:
-        return [(1.0, head)], head, rest
-    lines = [(1.0, m.group(1))]
-    title = m.group(1)
-    if m.group(2):
-        lines.append((2.0, m.group(2)))
-        title += '　' + m.group(2)
-    if m.lastindex and m.lastindex >= 3 and m.group(3):
-        lines.append((3.0, m.group(3)))                          # an English sub-title line (page only, not in the contents)
+    if m:
+        lines = [line(1.0, m.group(1))]
+        title = clean(m.group(1))
+        if m.group(2):
+            lines.append(line(2.0, m.group(2)))
+            title += '　' + clean(m.group(2))
+        if m.lastindex and m.lastindex >= 3 and m.group(3):
+            lines.append(line(3.0, m.group(3)))                  # an English sub-title line (page only, not in the contents)
+    else:
+        lines, title = [line(1.0, head)], clean(head)
     sub = _cs(C, 'part_sub_cls')
-    while rest and rest[0]['k'] == 'p' and set(rest[0]['src'][2:].split()) & sub:
-        t_, mk = '', []                                           # (book 55: note marks inside the lines: linked on the page,
-        for r in rest[0]['runs']:                                 #  a placeholder in the text until divider_html sets them)
-            if r.get('s') and r.get('h') and not r.get('i'):
-                t_ += f'\ue000{len(mk)}\ue001'
-                mk.append((r['t'].strip(), r['h'], r.get('a', '')))
-            elif not r.get('i'):
-                t_ += r['t']
-        lines.append((3.0, t_, mk) if mk else (3.0, t_))
+    lvl_sub = C.get('part_sub_lvl', 3.0)                          # (book 57: the lines of a title page, small)
+    short = C.get('part_sub_short', 0)                            # (book 57: short lines of other classes too: a dedication)
+    stop = re.compile(C['part_sub_stop']) if C.get('part_sub_stop') else None
+    while rest and rest[0]['k'] == 'p' and (set(rest[0]['src'][2:].split()) & sub
+                                            or short and len(plain(rest[0]['runs'])) <= short) \
+            and not (stop and stop.match(plain(rest[0]['runs']))):
+        t_, mk = _mark_text(rest[0]['runs'])                      # (book 55: note marks inside the lines: linked on the page,
+        lines.append((lvl_sub, t_, mk) if mk else (lvl_sub, t_))  #  a placeholder in the text until divider_html sets them)
         if not C.get('part_sub_notoc') and (not C.get('part_sub_toc') or re.search(C['part_sub_toc'], t_)):
-            title += '　' + re.sub('\ue000\\d+\ue001', '', t_)   # (part_sub_toc: only the lines naming the part, book 55)
+            title += '　' + clean(t_)                             # (part_sub_toc: only the lines naming the part, book 55)
         rest = rest[1:]
     if C.get('part_img') and rest and rest[0]['k'] == 'fig':      # the picture of the part page (book 16)
         lines.append((98, rest[0]['src']))
@@ -2403,6 +2443,9 @@ def book(b):
                 if j and x['k'] == 'img' and x.get('style') == 'orn':
                     x['bef_opts'] = [(1, 0.0), (0, 20.0), (2, 20.0)]
         for x in blocks:
+            if x['k'] == 'h' and x.get('runs') and C.get('toc_src'):    # (book 53: titles linked to the ebook's own contents page)
+                x['runs'] = [{k: v for k, v in r.items() if k != 'h'} if (r.get('h') or '').startswith(P(C['toc_src']) + '#') else r
+                             for r in x['runs']]
             if x['k'] in ('p', 'h') and x.get('runs'):
                 x['runs'] = mark_runs(url_runs(x['runs']) if C.get('url_break') else x['runs'], fmt)
             if C.get('name_dot') and x['k'] == 'p' and x.get('runs'):
@@ -2416,7 +2459,12 @@ def book(b):
             for it in notes:                                       # 'see plate N', linked both ways
                 if it['k'] == 'img' and it['src'] in C['note_plates']:
                     k_ = fig_no(it['src'], '', ())
-                    it = dict(k='note', id='', notecap=True, runs=[run(f'（见书后插图{k_}）', h=f'plate-{k_}', a=f'figref-{k_}', c='fig')])
+                    ref = run(f'（见书后插图{k_}）', h=f'plate-{k_}', a=f'figref-{k_}', c='fig')
+                    prev = out_[-1] if out_ else None
+                    if prev and prev['k'] == 'note' and not prev.get('notecap') and len(prev.get('runs', [])) == 1 and (prev['runs'][0].get('h') or prev['runs'][0].get('a')):
+                        out_[-1] = dict(prev, runs=prev['runs'] + [ref])    # (book 49: a note that is only the picture: in its line)
+                        continue
+                    it = dict(k='note', id='', notecap=True, runs=[ref])
                 out_.append(it)
             notes = out_
         if C.get('url_break'):
@@ -2567,17 +2615,25 @@ def book(b):
             if not C.get('notes_end'):
                 flush(body, 'body')
             body.append(div)
-        pd2 = part_divider(dict(C, part_re=C['part_re2'], part_split=C.get('part_split2'), part_epi_cls=(), part_list=None), els) \
+        pd2 = part_divider(dict(C, part_re=C['part_re2'], part_split=C.get('part_split2'), part_epi_cls=(), part_list=None,
+                                **(dict(part_sub_cls=(), part_sub_short=0) if C.get('part2_nosub') else {})), els) \
             if C.get('part_re2') else None
         if pd2:                                                    # (book 48) the parts of a part ('第二卷' > '第一部分'): a page
             lines2, title2, els = pd2                              # of their own, smaller, one level down in the contents
-            lines2 = [(x[0] + 1.0, x[1]) for x in lines2]
+            lines2 = [(x[0] + 1.0,) + tuple(x[1:]) if x[0] < 50 else x for x in lines2]
             n0 = _parts(n)[0]
-            div2 = page_module(f'div{n0}b{sfx}', 'body', special.divider_html(lines2), toc=True, toc_title=title2, toc_level=0,
+            mk_out2 = []
+            dh2 = special.divider_html(lines2, marks_out=mk_out2)
+            if mk_out2:                                            # (book 57: the title's note marks: their anchors on this page)
+                def dh2(builder, page, _h=dh2, _m=tuple(mk_out2)):
+                    for a_, y_ in _m:
+                        builder.anchors.setdefault(a_, (page.index, y_))
+                    return _h
+            div2 = page_module(f'div{n0}b{sfx}', 'body', dh2, toc=True, toc_title=title2, toc_level=0,
                                title=title2, folio=False, head=False)
             div2.part = True
             div2.part2 = True
-            div2.lines = [x[1] for x in lines2]
+            div2.lines = [re.sub('\ue000\\d+\ue001', '', x[1]) for x in lines2 if x[0] != 98]
             div2.src_parts = [] if pd else _parts(n)
             if not C.get('notes_end') and not pd:
                 flush(body, 'body')
@@ -2687,7 +2743,7 @@ def book(b):
                 x['nosplit'] = True                                # (an entry of two lines is not split over two pages)
     if C.get('toc_even'):                                          # even spacing: fixed blank lines (one before a part, and where
         zone_of = {m.mid: m.zone for m in allm}                    # the front matter, the text and the back matter begin), none else
-        prev = None
+        prev = prev_st = None
         for x in toc_bl:
             if x['k'] != 'p' or not x.get('toc_ref'):
                 continue
@@ -2696,12 +2752,14 @@ def book(b):
                 n_ = 1
             elif x['style'].startswith('toc1'):
                 n_ = 1 if prev is not None and z != prev else (0 if not C.get('toc_sections', True) else 1)
-            else:
+                if C.get('toc_part_tight') and prev_st == 'toc0' and z == prev:
+                    n_ = 0                                         # (book 49: a part's first chapter right under it, else the
+            else:                                                  #  contents end on a page of one entry)
                 n_ = 0
             x['before'] = n_
             x['bef_opts'] = [(n_, 0.0)]
             x['toc_even'] = True                                   # (render: a page that ends short is not spread)
-            prev = z
+            prev, prev_st = z, x['style']
     toc = Mod(mid='toc', zone='front', title='目錄' if C.get('tc') else '目录', blocks=toc_bl, toc=False, head=True)
     toc.tail_min = 5
     tail = []

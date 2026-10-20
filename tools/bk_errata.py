@@ -57,6 +57,8 @@ def describe(f):
         return '', code(kind), code(f[2])
     if kind == 'HEAD':
         return '', code(f[2] + '…'), f'排为第 {f[3]} 级标题'
+    if kind == 'HEADRE':
+        return '', code('/' + f[2] + '/') + ' 的各段', f'排为第 {f[3]} 级标题'
     if kind == 'PARA':
         return '', code(f[2] + '…' + f[3]), f'自 {code(f[3])} 起另起一段' + (f'（{code(f[4])} 排为说话人）' if len(f) == 6 else '')
     if kind == 'JOIN':
