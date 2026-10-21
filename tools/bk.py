@@ -1041,6 +1041,74 @@ CFG[74] = _nb(scratch='q74', file='非理性繁荣', title='非理性繁荣', su
               front=[(683, 'text'), (684, 'text'), (685, 'text'), (687, 'text')],
               body=_chs([688, 693, 699, 700, 702, 715, 716, 729, 736, 741, 742, 747, 757, 758, 768, 773, 774], 788),
               back=[(789, 'hang')], notel_vary=True)  # (as book 70)
+# 理想国.  The chapters are files of a part title, the chapter title with its period under it ('（约公元前1600年—…）'),
+# and the four sections ('一、…', each a file of its own, notes numbered from [1] in each: renumbered by chapter).  The maps
+# and diagrams with their translator's legends under them ('① 今译为加沙。', '（I）“属于家主的火”…'); four oracle-bone
+# characters of the inscriptions quoted in chapter 1 (§3) as pictures, composed in fonts.py.
+CFG[75] = dict(scratch='q75', file='轴心时代', title='轴心时代', sub='人类伟大思想传统的开端', author='〔英〕凯伦·阿姆斯特朗 著',
+               credits=['孙艳燕\u3000白彦兵\u3000译'], publisher='上海三联书店', series='理想国', pdf_author='〔英〕凯伦·阿姆斯特朗',
+               cover='cover00428.jpeg', front_flaps=['image00424.jpeg', 'image00404.jpeg'], title_img=None, copyright=2,
+               tail=['image00423.jpeg'], tail_w=300.0, backcover='image00403.jpeg',
+               marker='sq', note_cls=('notecontent',), renum=True, lat_apos=True, toc_even=True, open_air=True, url_break=True,
+               name_dot=True, dedication_grid=True,
+               head_sub=[(r'^(第[一二三四五六七八九十]+章|推荐序|前言)[\s\u3000]+', '\\1\u3000')],
+               part_re=r'^第[一二三四]部分', part_split=r'^(第[一二三四]部分)[\s\u3000]*(.*)$',
+               cls_quote=('yinwen',), cls_right=('bodytext-right',), cls_center=('center',),
+               text_map=[(r'^(（本书所有地图|[①-⑳]\s|（I{1,3}）“|中间的祭坛（vedi）|祭台通常用沙子)', ('cap', 0, 0)),   # (the legends
+                         (r'^[A-Z]$', ('refhead', 0, 0))],                                      # of the maps; 术语's letters)
+               fig_inline=True, fig_dpi=150,
+               img_text={'image00426.jpeg': '\U000209AA',     # 𠦪（⿱卉夲, 祷）: “于父甲𠦪田”
+                         'image00406.jpeg': '\U000302F6',     # 𰋶（⿰女力, 嘉）: 婦好娩“𰋶”
+                         'image00416.jpeg': '\U0002298F',     # 𢦏（⿶戈十, 災）: “貞方𢦏征”
+                         'image00427.jpeg': '\U000211A5'},    # 𡆥（⿴囗卜, 祸）: “隹帝令乍我𡆥”
+               front=[(4, 'text'), (5, 'text')], body=_chs([6, 10, 14, 18, 22, 26, 30, 34, 37, 40], 44), back=[45, 46],
+               notel_vary=True, cap_left=True,         # (the notes are mostly references in Latin; the maps' legends flush left)
+               inplace=set(), errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 中信出版集团·见识城邦.  Every heading is two files: the label ('序言', '第一部分', '第一章') and the title; a part's
+# introduction a third.  The <p>s are all of one class, the style is the <span>'s (bk_extract.SPAN_PCLS): quotations and
+# captions in Kai (a caption: right after its picture), the epigraphs' sources right-aligned.  The notes, Duokan
+# footnotes with icon marks, numbered through the book [1]–[1013], after each chapter; the author's few footnotes ('[1]…
+# ——作者注', set in the text by the ebook) among them.  A plate section between chapters 10 and 11 (插图, 18 photographs).
+CFG[76] = dict(scratch='q76', file='细胞传', title='细胞传', sub='', author='〔美〕悉达多·穆克吉 著', credits=[],
+               publisher='中信出版集团', series='见识城邦', pdf_author='〔美〕悉达多·穆克吉', cover='cover00464.jpeg',
+               title_img=None, copyright=None,
+               marker='sq', note_by_marker=True, lat_apos=True, toc_even=True, open_air=True, url_break=True, name_dot=True,
+               dedication_grid=True, mark_para_join=True, notel_vary=True,   # (marks set as paragraphs of their own: [89]…)
+               head_join=[(r'^(第[一二三四五六七八九十]+章|序言|引言|后记)$', '／'), (r'^第[一二三四五六]部分$', '\u3000')],
+               head_split='／', head_split_join='\u3000',      # (the label above the title, as in the ebook; one line in the contents)
+               part_re=r'^第[一二三四五六]部分', part_split=r'^(第[一二三四五六]部分)[\s\u3000]*(.*)$', part_intro=True,
+               cls_quote=('calibre15',), cls_right=('calibre7', 'calibre16'), cls_center=('calibre5',), cls_cap=('figcap',),
+               fig_inline=True, fig_dpi=150, insert_plates={36: '插图'},
+               img_text={'svgimg0004.svg': '㹴'},          # 㹴（⿰犭更）: “编号为410的一只白色㹴犬”
+               front=[(1, 'dedication'), (2, 'text')],
+               body=[(3, 4), (5, 6), (7, 8, 9), (10, 11), (12, 13), (14, 15), (16, 17), (18, 19, 20), (21, 22), (23, 24),
+                     (25, 26), (27, 28), (29, 30, 31), (32, 33), (34, 35), 36, (37, 38), (39, 40), (41, 42), (43, 44),
+                     (45, 46), (47, 48), (49, 50, 51), (52, 53), (54, 55), (56, 57), (58, 59, 60), (61, 62), (63, 64),
+                     (65, 66), (67, 68), (69, 70)],
+               back=[71, 72, (73, 'hang'), 74], tail=[], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 湛庐.  Two series of notes: the author's ('26', superscript digits; the ebook's 注释 part, grouped by chapter) and the
+# editors' and translators' footnotes ('(12)', '——编者注'/'——译者注'), which the ebook puts after its 延伸阅读 pages: there
+# a part of their own (notes_take), the 延伸阅读 pages after it.  Each chapter's 本章要点 (a file of its own) a box; the
+# parts' introductions boxes too.  The figures' titles under them (tuti).  Two program listings (<pre>), line by line.
+CFG[77] = dict(scratch='q77', file='AI 3.0', title='AI 3.0', sub='', author='〔美〕梅拉妮·米歇尔 著',
+               credits=['王飞跃\u3000李玉珂\u3000王晓\u3000张慧\u3000译'], publisher='四川科学技术出版社', series='湛庐',
+               pdf_author='〔美〕梅拉妮·米歇尔', cover='cover00290.jpeg', title_img=None, copyright=0,
+               back_flaps=['image00278.jpeg', 'image00239.jpeg', 'image00259.jpeg'],    # (the imprint's three app pages)
+               marker='keep', lat_apos=True, toc_even=True, open_air=2, url_break=True, name_dot=True, dedication_grid=True,
+               head_sub=[(r'^(\d{2}|中文版序|序|译者序|引言|结语|致谢)[\s\u3000]+', '\\1\u3000')],
+               part_re=r'^第[一二三四五]部分', part_split=r'^(第[一二三四五]部分)[\s\u3000]*(.*)$', part_intro=True,
+               cls_quote=('bodycontent-2-kaiti', 'bodycontent-2-kaiti-top', 'bodycontent-2-fangsong', 'bodycontent-2-fangsong-top'),
+               cls_map={'noindent-bodycontent-1-fangsong-c': ('center', 0, 0, 'kai'), 'noindent-bodycontent-1-fangsong-c-top': ('center', 0, 0, 'kai'),
+                        'signcontent-1-fangsong': ('right', 0, 0, 'kai'), 'pre': ('noindent', 0, 2),
+                        'hang-bodycontent': ('noindent', -2, 4), 'bodycontent1': ('noindent', 0, 4)},
+               cls_cap=('tuti', 'tuzhu'), cls_skip=('fncontent',), fig_inline=True, fig_dpi=300,
+               note_group_h=True, notes_take={51: ('fncontent',)}, notes_titles={51: '编者注与译者注'},
+               front=[(1, 'dedication'), (2, 'text'), (3, 'text'), (4, 'text')],
+               body=[6, (7, 8), (9, 10), (11, 12), (13, 14), (15, 16), (17, 18), (19, 20), (21, 22), (23, 24), (25, 26),
+                     (27, 28), (29, 30), (31, 32), (33, 34), (35, 36), (37, 38), (39, 40), (41, 42), (43, 44), (45, 46), 47],
+               back=[48, (49, 'notes'), (51, 'notes'), 51], tail=[], inplace=set(),
+               errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -1138,7 +1206,9 @@ def url_runs(runs):
         for m in URL_RE.finditer(r['t']):
             if m.start() > pos:
                 out.append(dict(r, t=r['t'][pos:m.start()]))
-            out.append(dict(r, t=m.group(0), c=_cls_add(r.get('c'), 'url')))
+            u = m.group(0)
+            out.append(dict(r, t=u[:-3], c=_cls_add(r.get('c'), 'url')))
+            out.append(dict(r, t='\u2060' + u[-3:]))      # (book 76: its last characters with it, not alone on a line: '7）.')
             pos = m.end()
         if pos < len(r['t']):
             out.append(dict(r, t=r['t'][pos:]))
@@ -1489,6 +1559,11 @@ def elements(C, items, kaitext=False):
             runs = exp_sup(runs)
         if not runs:
             continue
+        if C.get('mark_para_join') and k == 'p' and all(r.get('h') and (r.get('s') or re.fullmatch(r'[\[［]\d+[\]］]', r['t'].strip()))
+                                                       for r in runs if r['t'].strip()) \
+                and els and els[-1]['k'] == 'p':
+            els[-1]['runs'] = merge_runs(els[-1]['runs'] + runs)    # (book 76) a paragraph of nothing but a note mark: the
+            continue                                                #  mark of the paragraph before
         cls = it['cls']
         if it.get('box') and not in_box:
             gap_before = True                                # a box (方框) starts: one blank line above it
@@ -2218,6 +2293,8 @@ def fig_block(C, e, fmt):
         b['align'] = 'right'                                    # (book 35) a signature above the signer's name: flush right like the name
     if caps or tops:
         b['cap'] = caps
+        if C.get('cap_left') and len(caps) > 1:
+            b['cap_left'] = 1                                   # (book 75) a legend of several items: all flush left, none centred
         if tops:
             b['cap_top'] = tops                                 # (the title of a table: above the picture)
     else:
@@ -2736,6 +2813,12 @@ def book(b):
                 e = [dict(x, k='scan') if x['k'] == 'fig' else x for x in e]
             elif C.get('scan_uncaptioned'):
                 e = scan_uncaptioned(C, e)
+            if els and e and els[-1]['k'] == 'h' and e[0]['k'] == 'h':     # (book 76) a heading's label and its title,
+                sep = next((sp for pat, sp in C.get('head_join', ())          # each a file of its own: one heading
+                            if re.fullmatch(pat, plain(els[-1]['runs']))), None)
+                if sep is not None:
+                    els[-1] = dict(els[-1], runs=merge_runs(els[-1]['runs'] + [run(sep)] + e[0]['runs']))
+                    e = e[1:]
             els += e
             notes += nt
         return els, notes
@@ -3072,8 +3155,12 @@ def book(b):
         if kind == 'notes':                                        # the ebook's own collection of notes (the translator's), in its place
             flush(back, 'back')
             title = next((plain(it['runs']) for it in BE.items(P(n)) if it['k'] == 'h'), '注释')
+            title = C.get('notes_titles', {}).get(n, title)
+            take = C.get('notes_take', {}).get(n)                  # (book 77: only the note entries of a part that has other things too)
             groups, gcls = [], _cs(C, 'note_group_cls')            # (headings of its own between the notes: one group per part of the book)
             for it in BE.items(P(n)):
+                if take and not set(it['cls'].split()) & set(take):
+                    continue
                 if it['k'] == 'p' and set(it['cls'].split()) & gcls or C.get('note_group_h') and it['k'] == 'h' \
                         and (it['lvl'] > 1 or C['note_group_h'] == 'all') or C.get('note_group_re') and it['k'] == 'p' \
                         and re.match(C['note_group_re'], plain(it['runs'])):   # (book 31: <h3> headings; book 33: '第一章　…' paragraphs)

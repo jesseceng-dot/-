@@ -66,7 +66,16 @@ for _k in ('q53', 'q57', 'q58'):                               # (books 53, 57, 
 RUN_CLS['q57']['span_1'] = (0, 'pmark')                         # (the mark of the last work's title)
 RUN_CLS['q61'] = {'underline': (0, 'ul'), 'fangsong': (0, 'kai')}   # 思维模型: the model names underlined; the quoted quadrants in Kai
 RUN_CLS['q64'] = {'ht': (1, 'hei'), 'sub': (0, 'msub')}   # 中国国家治理的制度逻辑: the run-in headings (bold 黑体); SO₂
+# Books whose <p>s are all of one class, the style (centred, right-aligned, Kai) set on the <span> that holds the text:
+# that span's class is added to the paragraph's; SPAN_CAP: the span class of a paragraph that is a picture's caption when it
+# follows the picture (key = scratch directory).
+SPAN_PCLS = {'q76': {'calibre5', 'calibre7', 'calibre15', 'calibre16'}}   # 细胞传: dedication, attributions, quotations
+SPAN_CAP = {'q76': 'calibre15'}
+# Note marks and entries that link to themselves (key = scratch directory): (the marks' anchor pattern, its entry's).
+SELF_NOTES = {'q76': (r'_C(\d+)$', r'_CK\1', r'_CK(\d+)$', r'_C\1')}   # 细胞传: the author's footnotes, '[1]…——作者注'
 EM_CLS = {'q64': 'emp'}                                         # <em> that is the emphasis dots (着重号), not italics (key: scratch)
+RUN_CLS['q76'] = {'calibre17': (1, '')}                       # 细胞传: the bold group labels of 图片来源 ('内文', '插页')
+RUN_CLS['q75'] = {'calibre10': (0, 'it'), 'o': (0, 'emp')}         # 轴心时代: titles in italics; the dotted underline ('天作高山') as emphasis dots
 RUN_CLS['q63'] = {'i': (0, 'it'), 'jiacu': (1, ''), 'k': (0, 'kai')}   # 追寻现代中国: titles in italics, the reading list's topics
                                                                 # bold, the translator's insertions '（即《大义觉迷录》……）' in Kai
 RUN_CLS['q60'] = {'italic': (0, 'it'), 'bold': (1, ''), 'sub': (0, 'msub'), 'super': (0, 'SUP')}   # 模型思维: variables, exponents, the
@@ -74,7 +83,7 @@ RUN_CLS['q60'] = {'italic': (0, 'it'), 'bold': (1, ''), 'sub': (0, 'msub'), 'sup
 # Note entries numbered '1.' with a separate '返回正文' link: the label their marks read (key = scratch directory).
 NUM_BACKLINK = {'q60': '[原注%s]'}                               # 模型思维: the reviser's two notes of chapter 17
 # Div classes of one book that are bordered boxes (方框) besides roundsolid / kx; key = scratch directory.
-BOX_CLS = {'q61': ('boxBlock-12',)}                             # 思维模型: 本章要点
+BOX_CLS = {'q61': ('boxBlock-12',), 'q77': ('boxblock', 'boxblock1', 'boxblock2')}   # 思维模型, AI 3.0: 本章要点                             # 思维模型: 本章要点
 # Tables of one book that are set as pictures (made by tools/snap.py from the ebook's own markup): bracket images
 # spanning rows, many columns, diagram-like layouts.  Key = scratch directory, value = {(part number, table index)}.
 SNAP = {
@@ -723,6 +732,8 @@ def inline(el, part, mark_breaks=False):
             elif t == 'a' and 'duokan-footnote' in cls and not ''.join(ch.itertext()).strip():
                 m = re.search(r'(\d+)$', ch.get('id') or '')
                 if m and ch.get('href'):                          # an icon (image) as the note mark: the number comes from the id
+                    if out and not out[-1].get('s') and out[-1]['t'] != OBJ:
+                        out[-1] = dict(out[-1], t=out[-1]['t'].rstrip())    # (book 76: the ebook's line break before the icon)
                     out.append(run(m.group(1), b, 1, resolve_href(part, ch.get('href')), anchor_key(part, ch.get('id')), c=c))
             elif t == 'a':
                 if ch.get('href'):
@@ -878,6 +889,19 @@ def plain(el):
     return re.sub(r'\s+', ' ', ''.join(el.itertext())).strip()
 
 
+def _span_pcls(el):
+    """The class of the one kind of <span> that holds all of a paragraph's text, when the book styles its paragraphs that
+    way (SPAN_PCLS) -- or None."""
+    want = SPAN_PCLS.get(os.path.basename(os.environ.get('BOOK_SCRATCH', '').rstrip('/')))
+    if not want:
+        return None
+    kids = [k for k in el if isinstance(k.tag, str)]
+    cs = {(k.get('class') or '') for k in kids if ln(k) == 'span'}
+    if len(cs) == 1 and next(iter(cs)) in want and not (el.text or '').strip():
+        return next(iter(cs))
+    return None
+
+
 def _imgs(el):
     return [c for c in el.iter() if isinstance(c.tag, str) and ln(c) == 'img']
 
@@ -938,7 +962,12 @@ def items(part):
                     continue
                 if note and runs and not runs[0].get('h') and not runs[0].get('a') and runs[0]['t'].strip('\u3000 ') == '' and len(runs) > 1:
                     runs = runs[1:]                                   # the ebook indents a note entry with ideographic spaces before its number
-                add('note' if (note or set(cls) & set(NOTE_CLS)) else 'p', el, runs=runs, q=q, box=box)
+                it = add('note' if (note or set(cls) & set(NOTE_CLS)) else 'p', el, runs=runs, q=q, box=box)
+                sc = _span_pcls(el)
+                if sc:                                            # (book 76) the paragraph's style is its <span>'s
+                    it['cls'] = f"{it['cls']} {sc}".strip()
+                    if sc == SPAN_CAP.get(key) and len(out) > 1 and out[-2]['k'] == 'img':
+                        it['cls'] += ' figcap'                    # (the caption: in the quotations' class, right after its picture)
             elif t == 'blockquote':
                 walk(el, q=1, box=box, fig=fig, note=note)
             elif t == 'section' and el.get(EPUB_TYPE) == 'footnote' and el.get('id'):
@@ -1024,8 +1053,14 @@ def items(part):
                     if '_end_' in li.get('id'):                        # (one entry of the ebook links to a non-existent anchor: derive the mark's id)
                         back = anchor_key(part, li.get('id').replace('_end_', '_start_'))
                     runs = clean_runs([dict(r, h='', a='') for r in inline(li, part)])
+                    label = m.group(1) if m else ''
+                    lead = re.match(r'\s*([\[［]%s[\]］])\s*' % label, runs[0]['t']) if runs and m else None
+                    if lead:                                      # (book 76) the entry begins with its number '[77]': that is
+                        label = lead.group(1)                     # the marker (not a second one before it)
+                        runs[0] = dict(runs[0], t=runs[0]['t'][lead.end():])
+                        runs = [r for r in runs if r['t'] or r.get('i')]
                     if runs and m:                                # the whole entry is one back-link in the ebook: marker = back-link, text plain
-                        add('note', li, runs=[run(m.group(1), 0, 0, back, anchor_key(part, li.get('id')))] + runs, q=0, box=0)
+                        add('note', li, runs=[run(label, 0, 0, back, anchor_key(part, li.get('id')))] + runs, q=0, box=0)
             elif t in ('ul', 'ol'):
                 if 'Level-1' in cls:
                     continue
@@ -1055,6 +1090,10 @@ def items(part):
                 last_img[:] = [add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig), el.getparent()]
             elif t in ('hr', 'nav', 'svg', 'br'):
                 continue
+            elif t == 'pre':                                    # (book 77) a program's lines: a paragraph each, the line breaks kept
+                for line in ''.join(el.itertext()).split('\n'):
+                    if line.strip():
+                        add('p', el, runs=[run(line.strip())], q=q, box=box)['cls'] = 'pre'
             elif t == 'a' and el.get('href') and out and last_img and out[-1] is last_img[0] and last_img[1] is el.getparent() \
                     and not out[-1].get('runs'):
                 wrap = etree.Element('span')                      # (book 65) a note mark right after a picture in its box: the
@@ -1100,4 +1139,19 @@ def items(part):
                 add('li', li, runs=runs, depth=depth, bullet=kind)
 
     walk(body)
+    if key in SELF_NOTES:
+        _self_notes(out, *SELF_NOTES[key])
     return _apply_fixes(part, out)
+
+
+def _self_notes(out, mark_re, to_note, note_re, to_mark):
+    """(book 76) Notes whose mark and entry each link to themselves ('…_C1' -> '…_C1', '…_CK1' -> '…_CK1'): the mark to
+    its entry, the entry's label back to the mark."""
+    for it in out:
+        for k, r in enumerate(it.get('runs') or []):
+            h = r.get('h') or ''
+            if h and h == r.get('a'):
+                for pat, sub in ((mark_re, to_note), (note_re, to_mark)):
+                    if re.search(pat, h):
+                        it['runs'][k] = dict(r, h=re.sub(pat, sub, h))
+                        break

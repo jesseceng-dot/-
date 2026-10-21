@@ -75,6 +75,7 @@ def corpus_codepoints():
     cps |= {0x9958}                       # 饘 (an inline glyph image of the ebook of 《叫魂》, transcribed to text)
     cps |= {0x2B695, 0x29F7E, 0x29F8C, 0x2B689}   # 𫚕 𩽾 𩾌 𫚉: fish characters behind the NFDA1-4 placeholders (Kant vol. 8)
     cps |= {0x9DC3}                       # 鷃: its left half 晏 builds 𮭨 (compose_yan)
+    cps |= {0x5349, 0x5932, 0x56D7, 0x535C}   # 卉 夲 囗 卜: they build 𠦪 𡆥 (compose_dao, compose_huo)
     scratch = os.environ.get('BOOK_SCRATCH', '/tmp/claude-0/-home-user--/243b6d09-d8f0-55ab-9830-1d98f5b584ee/scratchpad')
     for f in glob.glob(os.path.join(scratch, 'unpack/x/mobi8/OEBPS/Text/*.xhtml')):
         cps |= {ord(c) for c in open(f, encoding='utf8').read()}
@@ -221,6 +222,29 @@ def compose_gu(font, cp=0x2E774):
     return _add_glyph(font, cp, left)
 
 
+def compose_dao(font, cp=0x209AA):
+    """U+209AA 𠦪 (卉 over 夲: the oracle-bone 祷/求, 《轴心时代》 “于父甲𠦪田”, a picture in the ebook): 卉 pressed into the upper
+    part, 夲 into the lower."""
+    p = _fit(_outline(font, '卉'), (110, 470, 890, 845))
+    p.addPath(_fit(_outline(font, '夲'), (40, -79, 965, 430)))
+    return _add_glyph(font, cp, p)
+
+
+def compose_jia(font, cp=0x302F6):
+    """U+302F6 𰋶 (女 + 力: the oracle-bone 嘉, 《轴心时代》 婦好娩“𰋶”): the 女 of 好 beside the 力 of 功."""
+    left = _outline(font, '好', lambda b: b[2] <= 460)
+    li = _outline(font, '功', lambda b: b[2] > 900)
+    left.addPath(_fit(li, (left.bounds[2] + 20, li.bounds[1], 965, li.bounds[3]), sy=1.0))
+    return _add_glyph(font, cp, left)
+
+
+def compose_huo(font, cp=0x211A5):
+    """U+211A5 𡆥 (卜 in 囗: the oracle-bone 祸, 《轴心时代》 “隹帝令乍我𡆥”): 卜 set into the frame 囗."""
+    frame = _outline(font, '囗')
+    frame.addPath(_fit(_outline(font, '卜'), (330, 105, 690, 680)))
+    return _add_glyph(font, cp, frame)
+
+
 def compose_corner(font, cp=0x231F):
     """U+231F ⌟ (《气候赌场》 “悬崖形的或⌟形损失函数”, a picture in the ebook) is in no font here: the family's own 」, its
     corner on the baseline, centred in a narrower advance like a letter."""
@@ -251,6 +275,9 @@ def build(name):
         compose_yan(font)
         compose_gu(font)
         compose_corner(font)
+        compose_dao(font)
+        compose_jia(font)
+        compose_huo(font)
     os.makedirs(FONT_DIR, exist_ok=True)
     font.save(out); return out
 

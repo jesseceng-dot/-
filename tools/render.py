@@ -237,7 +237,7 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
                     starts = cl['starts']
                     ends = starts[1:] + [None]
                     cst = dict(cls=cls, fs=9.0, first=0, left=0, right=0, slots=1, pitch=CAP_PITCH,
-                               align='c' if len(starts) == 1 else 'j', W=b['capw'])
+                               align='c' if len(starts) == 1 and not b.get('cap_left') else 'j', W=b['capw'])
                     for j in range(len(starts)):
                         h = runs_html(runs, starts[j], ends[j], final=True)
                         parts.append(line_div(cst, j, len(starts), h, cx, yc, b['capw'], 0.0))

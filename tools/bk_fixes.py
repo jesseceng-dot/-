@@ -2477,4 +2477,30 @@ FIXES = {
         (652, 'IMGOUT', 'image02740.jpeg', 'before', '排版：表10—7的图片被电子书放进了表下的注“*显著水平为1％。”，移到注之前')],                                  # 东亚奇迹的反思（2013）
     'q74': _nb_rules() + [
         (737, '价格变化（％）', '价格变化\u2060（％）', '排版：表7—1至7—4的表头“价格变化（％）”不在“（％）”前断开（单独一行“（％）”是孤立的标点行）')],                                            # 非理性繁荣（第二版，2014）
+    'q75': _nb_rules('latsp') + [                                  # 轴心时代（上海三联书店 2019，理想国）
+        (39, '如果您舍弃了迷恋又坚信瑜伽,', '如果您舍弃了迷恋又坚信瑜伽，', '标点：《薄伽梵歌》引文诗句末的半角逗号改全角'),
+        (9, 'Unearthed：Archaeology', 'Unearthed: Archaeology', '标点：西文书名里的全角冒号改半角（The Bible Unearthed: Archaeology’s New Vision…）'),
+        ('*', re.compile(r'(?<=[?!]) (?=”)'), '', '排版：西文篇名的问号与后引号之间多余的空格（“…in China? ”：行在空格处断开，后引号落到下一行行首）')],
+    'q76': [                                                       # 细胞传（中信出版集团，见识城邦）
+        # (the notes and the references: Latin punctuation with no space after, some 1000 places; not inside the web
+        #  addresses, '…%20is,highly%20…')
+        ('*', re.compile(r'(?:(?<=[A-Za-z]{2})|(?<=[.)\]”]))([,;:])(?=[A-Z][a-z.\-\s]|[a-z]{2}|\(|\d)(?![A-Za-z]*%)'), '\\1 ',
+         '排版：注释、参考文献里西文逗号、分号、冒号后漏的空格（“Selected Poems: A New Collection”“Doyle, The Adventures”）'),
+        ('*', re.compile(r'(?<=[a-z]{2})\.(?=[A-Z][a-z])(?![A-Za-z]*%)'), '. ',
+         '排版：西文句点后漏的空格（“Erwin Heinz. Rudolf Virchow”“ed. John”）'),
+        ('*', re.compile(r'(?<=\b[A-Z])\.(?=[A-Z][a-z])(?![A-Za-z]*%)'), '. ', '排版：西文名字缩写的句点后漏的空格（“John N. Serio”）'),
+        ('*', re.compile(r'(?<=[,.])”(?=[A-Za-z])'), '” ', '排版：西文篇名后引号后漏的空格（“On the Road Home,” in Selected Poems”）'),
+        ('*', re.compile(r'(?<=[A-Za-z][,.])“(?=[A-Z])'), ' “', '排版：西文篇名前引号前漏的空格（“Wallace Stevens, “On the Road Home””）')],
+    'q77': [                                                       # AI 3.0（四川科学技术出版社 2021，湛庐）
+        (4, 'Machines：A Cybernetic', 'Machines: A Cybernetic', '标点：西文书名里的全角冒号改半角（Rise of the Machines: A Cybernetic History）'),
+        (49, re.compile(r'(?<=同上), (?=\d)'), '，', '标点：注释里“同上”后的半角逗号改全角（“同上，676。”）'),
+        # (chapter 12: the machine translations of a story into French and Italian and back, quoted in the original)
+        (37, re.compile(r"(?<=[A-Za-z])' (?=[a-zé])"), "'", '排版：法文、意大利文例句里省音撇号后多余的空格（“s’arrêta”“l’homme”“dell’uomo”“L’hamburger”）'),
+        (37, 'Estce que', 'Est-ce que', '错字：法文例句“Est-ce que”漏了连字符'),
+        (37, 'Perchéècosì', 'Perché è così', '排版：意大利文例句“Perché è così”漏的两个空格'),
+        (37, re.compile(r'(?<= )è(?=[a-z])'), 'è ', '排版：意大利文例句里“è”后漏的空格（“è arrivato”“è stato”“è semplicemente”）'),
+        (37, 'Ist he burger okay?', 'Is the burger okay?', '错字：英文例句“Is the burger okay?”的空格错位'),
+        (37, 'stooped over？”', 'stooped over?”', '标点：英文例句里的全角问号改半角'),
+        (37, re.compile(r'(?<=[.,?!a-z])“(?=[A-Z])'), ' “', '排版：英文、法文、意大利文例句里前引号前漏的空格（“the man’s table. “Is burger okay?””）'),
+        (37, re.compile(r'(?<=[.,?!])”(?=[A-Za-z])'), '” ', '排版：同上，后引号后漏的空格（“great,” the man said”）')],
 }
