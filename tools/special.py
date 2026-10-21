@@ -423,6 +423,7 @@ def plates_page_html(k, img, builder, page, caption='', ids=()):
     (plate-N) is registered here so that the link in the text lands on this page.  A long caption is set as a wrapped
     block under the 'Plate N' line and pushes the figure down."""
     from .style import LINK_BASE
+    caption = caption.replace('\u2060', '')            # (a word joiner steers the line breaking in the text only: drawn, it takes a width)
     long_cap = len(caption) > 24
     extra = (_caption_height(caption) + 6.0) if long_cap else 0.0
     iw, ih = plate_size(img, extra)

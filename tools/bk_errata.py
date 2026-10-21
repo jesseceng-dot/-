@@ -77,6 +77,8 @@ def describe(f):
         return '', '正文 ' + code('[n]') + '（纯文字上标）、书末注释 ' + code('[n]…'), '角标与书末注释互相链接（按章对应）'
     if kind == 'MOVE':
         return '', code(f[2] + '…'), f'这一段（或标题）移到 {code(f[3] + "…")} 之前'
+    if kind == 'IMGOUT':
+        return '', '段内的图片 ' + code(f[2]), '移出这一段，排在它' + ('之前' if f[3] == 'before' else '之后')
     return '', ' '.join(code(x) for x in f[2:-1] if isinstance(x, (str, int))), kind
 
 

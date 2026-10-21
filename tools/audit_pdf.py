@@ -121,7 +121,8 @@ def audit(path):
 
     def col_start(raw):                                # where the right column of a page of two columns starts: many
         rcol = [l for l in raw if l['x0'] > mid + 2]   # lines start at one place (the piece of a line after a note mark
-        st = [x for x, c in collections.Counter(round(l['x0']) for l in rcol).items() if c >= 4]   # does not)
+        st = [x for x, c in collections.Counter(round(l["x0"]) for l in rcol).items() if c >= 2]   # does not; book 67: a page with two
+                                                                                              #  main entries in the right column)
         st = [x for x in st if 0.3 < (rmax - x) / max(1, rmax - lmin) < 0.55]   # (no page numbers of a contents page)
         return min(st) if st else None
     starts = collections.Counter(x for x in map(col_start, drawn) if x is not None)
@@ -186,7 +187,10 @@ def audit(path):
         for l in inside:
             t = l['text'].replace('\u2060', '').strip()
             if t and len(t) <= 5 and LONE.fullmatch(t) and not set(t) <= set('*＊∗※-—─_=# ') and not re.fullmatch(r'[◀▶]+\s*(?:[（(\[]\d+[)）\]])?', t) \
-                    and not any(m is not l and abs(m['y'] - l['y']) < 0.8 * body for m in ls):   # (a row of asterisks or dashes: a section break)
+                    and not any(m is not l and abs(m['y'] - l['y']) < 0.8 * body for m in ls) \
+                    and not (re.fullmatch(r'\[[\d*]+\]|[）)，。；：、]', t) and any(im[1] - 2 < l['y'] < im[3] + 2 and (im[0] < l['x0'] or im[0] > l['x1'] - 1) for im in imgs[i])):
+                # (a row of asterisks or dashes: a section break; book 65: a note mark or a closing bracket after a line set as a picture;
+                #  book 72: a note's number before the first line of a note set as a picture)
                 rep['lone'].append((i + 1, t, round(l['y'])))               # a line of nothing but punctuation or a note mark (a raised mark beside its line is not one)
         if not imgs[i] and inside and all(abs(l['size'] - body) < 1.6 for l in inside) and len({round(l['y']) for l in inside}) <= 2 \
                 and i > 0 and pages[i - 1] and not opens(i) and folio:

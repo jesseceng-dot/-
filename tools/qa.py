@@ -45,6 +45,8 @@ def fidelity(bb, pdf):
             for _, runs in (b.get('cap') or []) + (b.get('cap_top') or []):                    # the caption of an in-text figure
                 exp += norm_counter(runs_text(runs))
             if b['k'] in ('img', 'space'):
+                exp += norm_counter(runs_text(b.get('mark') or []))     # (book 65) a note mark after a line set as a picture
+                exp += norm_counter(runs_text(b.get('num') or []))      # (book 72) a note's number beside its first line
                 continue
             exp += norm_counter(runs_plain(b['runs']))
         got = norm_counter(pdf_text_of_pages(doc, bb.pages_of(mod)))

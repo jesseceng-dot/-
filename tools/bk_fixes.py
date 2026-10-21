@@ -18,7 +18,7 @@ DASH1 = re.compile(r'(?<=[%s%s])—(?![—\d])|(?<![—\d])—(?=[%s%s])' % (CJK
 
 # books whose cross-references point at <span id=…> anchors (captured as link targets)
 SPAN_ANCHORS = {'q15': r'^jz_\d+_\d+$', 'q23': r'^source-page-\d+$'}
-SPECIAL = ('MOVE', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HEADRE', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN',
+SPECIAL = ('MOVE', 'IMGOUT', 'RENUM', 'SHIFT', 'SPLIT', 'PGNO', 'RELINK', 'ADDMARK', 'NOTEBACK', 'HEAD', 'HEADRE', 'HREF', 'ANCHOR', 'PARA', 'CELL', 'JOIN',
            'NOTELINK', 'MOVETAB', 'XNOTELINK', 'PARATABLE', 'FWPAREN', 'PNOTES')   # mark/structure fixes (not text replacements)
 
 ASCII_COMMA = re.compile(r'(?<=[%s）”])\s?,\s?(?=[%s“（])' % (CJK, CJK))
@@ -30,6 +30,28 @@ ASCII_EXCL = re.compile(r'(?<=[%s])!' % CJK)
 # at the start of a line ('注' + '①', '①' + '（2）' kept together by a word joiner)
 REF_JOIN = [('*', re.compile(r'注([①-⑳])'), '注\u2060\\1', '排版：“注①”不在“注”与“①”之间换行（词连接符，不占宽度）'),
             ('*', re.compile(r'([①-⑳])(?=[（(]\d)'), '\\1\u2060', '排版：“注①（2）”不在“①”与“（2）”之间换行（词连接符，不占宽度）')]
+
+# (books 65–74, 诺贝尔经济学奖获得者丛书) the mechanical punctuation of the ebook: half-width marks inside Chinese, half-width
+# brackets around Chinese or Latin glosses (not those of a formula), Latin commas / colons / semicolons with no space after.
+# The full-width marks of the Latin references ('Hughes，The Big Sea：An Autobiography') are the translation's own house
+# style, used throughout, and stay.
+def _nb_rules(*kinds):
+    """The rules of `kinds` (comma colon semi qm excl paren latsp latq brsp initial): a book takes those its text needs."""
+    R = dict(comma=('*', ASCII_COMMA, '，', '标点：中文里的半角逗号改为全角'), colon=('*', ASCII_COLON, '：', '标点：中文里的半角冒号改为全角'),
+             semi=('*', ASCII_SEMI, '；', '标点：中文里的半角分号改为全角'), qm=('*', ASCII_QM, '？', '标点：中文里的半角问号改为全角'),
+             excl=('*', ASCII_EXCL, '！', '标点：中文里的半角叹号改为全角'),
+             paren=('*', 'FWPAREN', r'[\u4e00-\u9fff“”‘’，。：；、》%％\]\d\0]',
+                    r'^(?!.*[=+×<>^≈≤≥]).*(?:[A-Za-z]{2,}|[\u4e00-\u9fff])|^\d{4}[a-z]?(?:[，,、]\s*\d{4}[a-z]?)*$',
+                    '标点：中文里夹注西文、年份的半角括号改全角（“戈尔巴乔夫（Mikhail Gorbachev）”）；式子里的照旧'),
+             latsp=('*', re.compile(r'(?:(?<=[A-Za-z]{2})|(?<=[.)\]”]))([,;:])(?=[A-Z][a-z.\-]|[a-z]{2}|\(|\d)'), '\\1 ',
+                    '排版：西文逗号、分号、冒号后漏的空格（“Fujita, M.”“Press, 2002”“Cambridge: Cambridge”“expectations”, Regional”）'),
+             brsp=('*', re.compile(r'(?<=[（《“])[ \u00a0]+(?=[A-Za-z])|(?<=[A-Za-z.])[ \u00a0]+(?=[）》”])'), '',
+                   '排版：全角括号、书名号、引号内侧多余的空格（“（ Capital Choices）”：括号后的空格让行在括号后断开）'),
+             latq=('*', re.compile(r'(?<=[.,!?])”(?=[A-Z][a-z])'), '” ',
+                   '排版：西文文献里篇名的后引号后漏的空格（“urban giants.” Quarterly Journal”）'),
+             initial=('*', re.compile(r'(?<=\b[A-Z])\.(?=[a-z]{2,})'), '. ', '排版：西文名字缩写的句点后漏的空格（“M. and Thisse”）'))
+    return [R[k] for k in kinds]
+
 
 FIXES = {
     'q9': [                                                        # 血酬定律（语文出版社）
@@ -2438,4 +2460,21 @@ FIXES = {
         (22, '”(Statistical Inquiries into the Efficacy of Prayer)的短文', '”（Statistical Inquiries into the Efficacy of Prayer）的短文', '标点：中文里的半角括号改全角'),
         (12, '263,130,836,933,693,530,167,218,012,160,000,000', '263,\u200b130,\u200b836,\u200b933,\u200b693,\u200b530,\u200b167,\u200b218,\u200b012,\u200b160,\u200b000,\u200b000', '排版：原注40 里的 36 位数在分节逗号后允许换行（零宽空格），不再把上一行拉开 10 个字宽'),
     ],
+    'q65': _nb_rules('comma', 'colon', 'semi', 'qm', 'latsp', 'latq', 'initial') + [
+        (10, '代入最小化问题的约束条件：=M', '代入最小化问题的约束条件：', '公式：电子书在公式图片前多排了“=M”（图片里的式子已以“=M”结尾）'),
+        (4, 'JOIN', '也可以被看作是新的经济地理学”。）', '，但“经济地理”和“地理经济”', '排版：一段被误拆为两段（后一段以逗号开头）'),
+        (17, re.compile(r'(?<=\d),(?=N)'), ', ', '排版：用半角逗号连成一串的式子（N₁=6.42,N₂=0.00691,…）无处断行，伸出版心：逗号后加空格')],                                            # 空间经济学（中国人民大学出版社 2012）
+    'q66': _nb_rules('paren', 'brsp', 'initial'),                                  # 默顿·米勒论金融衍生工具（2014）
+    'q67': _nb_rules('comma', 'colon', 'paren', 'latsp', 'latq'),                                  # 微观动机与宏观行为（2012）
+    'q68': _nb_rules('latq'),                                            # 身份与暴力（2012）
+    'q69': _nb_rules('latsp', 'latq') + [
+        (234, '本章注释37）', '本章注释\u206037）', '排版：注释末行只剩“37）。”（孤立的数字和标点行）：“注释”与“37”不拆开')],                                            # 报酬递增的源泉（2016）
+    'q70': _nb_rules('initial'),                                            # 正义的理念（2013）
+    'q71': _nb_rules(),                                            # 城镇化与增长（2016）
+    'q72': _nb_rules('comma', 'paren', 'latsp', 'initial'),                                  # 金融、研究、教育与增长（2012）
+    'q73': _nb_rules('comma', 'colon', 'qm', 'paren', 'latsp', 'latq', 'initial') + [
+        (652, 'IMGOUT', 'image02677.jpeg', 'before', '排版：表10—2的前半张图片被电子书放进了“续前表”一行，移到这一行之前'),
+        (652, 'IMGOUT', 'image02740.jpeg', 'before', '排版：表10—7的图片被电子书放进了表下的注“*显著水平为1％。”，移到注之前')],                                  # 东亚奇迹的反思（2013）
+    'q74': _nb_rules() + [
+        (737, '价格变化（％）', '价格变化\u2060（％）', '排版：表7—1至7—4的表头“价格变化（％）”不在“（％）”前断开（单独一行“（％）”是孤立的标点行）')],                                            # 非理性繁荣（第二版，2014）
 }

@@ -8,10 +8,11 @@ import os
 import re
 import shutil
 import zlib
-from . import bk_extract as BE, bk_text as BT, kant_struct as KS, normalize, special, style
+from . import bk_extract as BE, bk_text as BT, kant_struct as KS, normalize, scanlines, special, style
 from .book import Mod, title_text, toc_runs
 from .kant import finish_blocks, balance_headings, wrap_lines, repair_link
 from .dewey import make_toc as toc_blocks
+from .layout import STYLES_SMALL
 from .model import run, merge_runs, runs_text, BR
 from .books import page_module
 
@@ -946,6 +947,100 @@ CFG[64] = dict(scratch='q64', file='中国国家治理的制度逻辑', title='�
                cls_quote=('praise',), cap_mode='tabfig', cap_top_re=r'^表', fig_inline=True, fig_dpi=300,
                front=[(2, 'text'), (3, 'dedication'), (5, 'text')], body=list(range(6, 21)), back=[(21, 'hang'), 22],
                tail=[], inplace=set(), errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+# 诺贝尔经济学奖获得者丛书·大师经典（套装共10册）: one ebook, ten books (65–74), each its own PDF and a collection of all
+# (tools/bk_collection.py).  The scratch directories q65–q74 hold the same unpacked ebook, one font directory serves all
+# (BOOK_FONT_KEYS).  Each book: a cover picture, the shop's 版权信息 page (or the CIP page), the ebook's own contents
+# (not set: made anew), notes after each chapter ('注释', p.notecontent / p.fnote), the formula pictures of 65 and 72 in
+# tools/bk_img65.py.  A chapter whose sections are files of their own is one unit (_chs).
+_IMG65 = __import__('tools.bk_img65', fromlist=['IMG_TEXT']).IMG_TEXT
+_NB = dict(publisher='中国人民大学出版社', series='诺贝尔经济学奖获得者丛书', title_img=None, marker='sq',
+           note_cls=('notecontent', 'fnote'), skip_text=('注释', '【注释】'), lat_apos=True, toc_even=True, open_air=True,
+           url_break=True, name_dot=True, dedication_grid=True, cls_quote=('yinwen',), cls_right=('right',),
+           cls_center=('center', 'center1', 'center2'), cls_cap=('tuzhu-center', 'tuzhu-left'), fig_inline=True, fig_dpi=150,
+           img_text=_IMG65, head_sub=[(r'^(第[\dⅠⅡⅢⅣⅤ一二三四五六七八九十]+[章篇]|第[一二三四五]部分)[\s\u3000]+', '\\1\u3000')],
+           tail=[], inplace=set(), errata_note='按要求没有通读校订：这里只有转换时发现的排版问题。')
+
+
+def _nb(**kw):
+    return dict(_NB, **kw)
+
+
+def _chs(starts, last):
+    """Chapters that begin at the parts `starts` and run on to the next (the last to `last`): one unit each."""
+    out = []
+    for a, b in zip(starts, list(starts[1:]) + [last + 1]):
+        out.append(a if b - a == 1 else tuple(range(a, b)))
+    return out
+
+
+_PART_ROMAN = dict(part_re=r'^第[ⅠⅡⅢⅣⅤ]篇', part_split=r'^(第[ⅠⅡⅢⅣⅤ]篇)[\s\u3000]*(.*)$')
+_PART_CN = dict(part_re=r'^第[一二三四五]部分', part_split=r'^(第[一二三四五]部分)[\s\u3000]*(.*)$')
+CFG[65] = _nb(scratch='q65', file='空间经济学', title='空间经济学', sub='城市、区域与国际贸易',
+              author='〔日〕藤田昌久　〔美〕保罗·克鲁格曼　〔英〕安东尼·J·维纳布尔斯 著', credits=['梁琦　主译'],
+              pdf_author='〔日〕藤田昌久　〔美〕保罗·克鲁格曼　〔英〕安东尼·J·维纳布尔斯', cover='image02651.jpeg', copyright=2,
+              math_ops=True, **_PART_ROMAN,
+              front=[(4, 'text'), (5, 'text'), (6, 'text')], body=list(range(7, 26)), back=[(26, 'hang'), 27, 28],
+              scan_uncaptioned=True, scan_scale=[(1000, 10.5 / 24.3), (2100, 10.5 / 38.5), (99999, 10.5 / 79.0)],
+              # (the scans, the LaTeX pages, three scans at a higher resolution: pixels per character measured)
+              fig_gap_any=True)
+CFG[66] = _nb(scratch='q66', file='默顿·米勒论金融衍生工具', title='默顿·米勒论金融衍生工具', sub='', author='〔美〕默顿·米勒 著',
+              credits=[], pdf_author='〔美〕默顿·米勒', cover='image02698.jpeg', copyright=30, **_PART_CN,
+              mark_label='1-',                         # (the translator's notes '[1-1]' of chapters 15 and 19)
+              front=[(32, 'text'), (33, 'text')], body=list(range(34, 56)), back=[])
+CFG[67] = _nb(scratch='q67', file='微观动机与宏观行为', title='微观动机与宏观行为', sub='', author='〔美〕托马斯·C·谢林 著',
+              credits=['李天有　译'], pdf_author='〔美〕托马斯·C·谢林', cover='image02253.jpeg', copyright=57,
+              front=[(59, 'text'), (60, 'text')], body=_chs([61, 68, 78, 86, 101, 119, 132], 147), back=[(148, 'index')])
+CFG[68] = _nb(scratch='q68', file='身份与暴力', title='身份与暴力', sub='命运的幻象', author='〔印〕阿马蒂亚·森 著',
+              credits=['李风华　陈昌升　袁德良　译'], pdf_author='〔印〕阿马蒂亚·森', cover='image02721.jpeg', copyright=150,
+              front=[(152, 'text'), (153, 'dedication'), (154, 'text'), (155, 'text')],
+              body=_chs([156, 165, 172, 180, 189, 194, 201, 212, 217], 222), back=[(223, 'index'), (224, 'index')],
+              open_air=2, renum=True)                  # (第6章: the first page one line short with one line of air; the
+                                                       #  ebook numbers the notes of each section from [1]: by chapter)
+CFG[69] = _nb(scratch='q69', file='报酬递增的源泉', title='报酬递增的源泉', sub='', author='〔美〕西奥多·W·舒尔茨 著',
+              credits=['李海明　译'], pdf_author='〔美〕西奥多·W·舒尔茨', cover='image02164.jpeg', copyright=226, **_PART_CN,
+              front=[(228, 'text')],
+              body=_chs([229, 234, 238, 241, 250, 259, 262, 266, 278, 287, 292, 297, 301, 303, 308, 311, 315, 324, 331, 332], 338),
+              back=[339], open_air=2, renum=True, notel_vary=True)   # (第4章; notes by chapter, as book 68)
+CFG[70] = _nb(scratch='q70', file='正义的理念', title='正义的理念', sub='', author='〔印〕阿马蒂亚·森 著', credits=[],
+              pdf_author='〔印〕阿马蒂亚·森', cover='image02360.jpeg', copyright=341, **_PART_CN,
+              front=[(343, 'pageimg'), (344, 'pageimg'), (345, 'text'), (346, 'text'), (347, 'text'), (348, 'text')],
+              body=_chs([349, 360, 367, 375, 380, 389, 394, 403, 412, 418, 424, 429, 438, 444, 454, 462, 468, 474, 484], 495),
+              back=[496], notel_vary=True, renum=True)   # (notes half in English: all the spacings, no widows; by chapter)
+CFG[71] = _nb(scratch='q71', file='城镇化与增长', title='城镇化与增长', sub='城市是发展中国家繁荣和发展的发动机吗？',
+              author='〔美〕迈克尔·斯彭斯　〔美〕帕特里夏·克拉克·安妮兹　〔美〕罗伯特·M·巴克利 编', credits=[],
+              pdf_author='〔美〕迈克尔·斯彭斯　〔美〕帕特里夏·克拉克·安妮兹　〔美〕罗伯特·M·巴克利', cover='image02623.jpeg', copyright=498,
+              front=[(500, 'text'), (501, 'text'), (502, 'text'), (503, 'text'), (504, 'text'), (505, 'text')],
+              body=_chs([506, 515, 522, 528, 536, 542, 550], 560), back=[],
+              scan_parts=(514, 521, 527, 535, 541, 549, 560), fig_note_re=r'^(注[：:]|资料来源|[a-z]\.)',
+              fig_gap_any=True, open_air=2, cap_top_re=r'^表', renum=True,
+              plate_figs={'image02405.jpeg', 'image02010.jpeg'})   # (表A1.1, 图A2.1: with their other parts at the back)
+CFG[72] = _nb(scratch='q72', file='金融、研究、教育与增长', title='金融、研究、教育与增长', sub='',
+              author='〔意〕路易吉·帕加内托　〔美〕埃德蒙·S·费尔普斯 编', credits=['路蒙佳　译'],
+              pdf_author='〔意〕路易吉·帕加内托　〔美〕埃德蒙·S·费尔普斯', cover='image02368.jpeg', copyright=562, math_ops=True, **_PART_CN,
+              front=[(564, 'text'), (565, 'text'), (566, 'text'), (567, 'text')], body=list(range(568, 578)), back=[],
+              # (as book 65: the derivations are pictures, scans and pages set again; tables and graphs with their captions
+              #  inside the picture stay pictures: ruled lines across them, and the graph 图7.1 in two panels)
+              scan_uncaptioned=True, scan_scale=[(1000, 10.5 / 24.3), (99999, 10.5 / 25.5)], scan_keep={'image02481.jpeg'},
+              fig_gap_any=True, notes_tail=True,       # (notes [7] of 第5章 and [2] of 第6章 are pictures after their numbers)
+              toc_part_tight=True)                     # (else the contents end on a page of one entry, 第10章)
+CFG[73] = _nb(scratch='q73', file='东亚奇迹的反思', title='东亚奇迹的反思', sub='', author='〔美〕约瑟夫·E·斯蒂格利茨　沙希德·尤素福 编',
+              credits=['王玉清　等译'], pdf_author='〔美〕约瑟夫·E·斯蒂格利茨　沙希德·尤素福', cover='image02544.jpeg', copyright=580,
+              front=[(581, 'text'), (582, 'text')],
+              body=_chs([583, 595, 604, 610, 618, 629, 632, 637, 642, 649, 656, 662, 672], 677), back=[678],
+              # (tables are pictures: their titles above, centred paragraphs of their own classes, '单位：…' lines; the parts
+              #  of a long table with '续前表' between them; notes and sources under them, set as text paragraphs)
+              cls_cap=('tuzhu-center', 'tuzhu-left', 'calibre108', 'calibre111'), text_map=[(r'^单位[：:]', ('cap', 0, 0))],
+              cap_top_re=r'^(表\d|单位|[A-C]组|[（(])', cap_top_all=True, join_cont=r'\s*续前表\W*',
+              fig_note_re=r'^\s*(资料来源|注[：:]|—\s*表示|[a-z]\.|Na表示|\*)',
+              cap_label_re=r'^(表\d+—\d{1,2}?)(?=(?:1[89]|20)\d\d|[^\d\s\u3000\xa0—])', fig_gap_any=True,
+              note_by_marker=True,                     # (the notes are text paragraphs that open with their linked number '［1］')
+              endnotes=[679], endnotes_title='译者注',  # (one translator's note, '注1', the ebook keeps in a part of its own)
+              notel_vary=True)                         # (the notes are English: their lines in all the spacings, no widows)
+CFG[74] = _nb(scratch='q74', file='非理性繁荣', title='非理性繁荣', sub='第二版', author='〔美〕罗伯特·J·希勒 著',
+              credits=['李心丹　陈莹　夏乐　译'], pdf_author='〔美〕罗伯特·J·希勒', cover='image02105.jpeg', copyright=[681, 682], **_PART_ROMAN,
+              front=[(683, 'text'), (684, 'text'), (685, 'text'), (687, 'text')],
+              body=_chs([688, 693, 699, 700, 702, 715, 716, 729, 736, 741, 742, 747, 757, 758, 768, 773, 774], 788),
+              back=[(789, 'hang')], notel_vary=True)  # (as book 70)
 FILES = {b: f'{b:02d}-{CFG[b]["file"]}.pdf' for b in CFG}
 TITLES = {b: CFG[b]['file'] for b in CFG}
 
@@ -1002,6 +1097,7 @@ CIRC_LINK = None          # (set per book from C['circ_link']) marks and entries
 PAGE_ANCHOR = None        # (set per book from C['page_anchor']) anchors of the ends of printed pages, kept in the text
 MARK_LABEL = None         # (set per book from C['mark_label']) marks that carry a label before their number ('[原注3]', '[资料12]')
 NOTE_DPI = 220.0          # (set per book from C['note_dpi']) the resolution of the pictures inside notes
+NOTE_SCAN = None          # (set per book from C['scan_scale'], books 65, 72) the scale of the pictures of text
 SVG_PT = False            # (set per book from C['svg_pt']) the units of the ebook's SVG pictures are points (LaTeX drawings)
 
 
@@ -1204,14 +1300,18 @@ def _img_text(C, runs):
     return [x for k, r in enumerate(runs) if not r.get('i') or r['i'] in m for x in (sub(r, k) if r.get('i') else [r])]
 
 
-MATH_OPS = re.compile('[±×÷\u2190-\u21ff\u2200-\u22ff]+')
+SCRIPT_CLS = {'msup', 'msub', 'msup2', 'msupsub', 'msub2', 'msubsup'}
+MATH_OPS = re.compile('[±×÷\u2032\u2033\u2190-\u21ff\u2200-\u22ff]+')          # (′ ″: book 65)
 
 
 def math_runs(runs):
     """(C['math_ops'], book 60) The operators of the formulas (×, ≈, ≤, √, ∞, ∂ …) in a Latin math face (.mth): the CJK faces
-    set them full width.  The runs are split around them, their other classes kept."""
+    set them full width.  The runs are split around them, their other classes kept.  (Book 65) A hyphen in an exponent or
+    an index is a minus (f⁻ₗ, 1−ρ): as a hyphen it let the line break after it."""
     out = []
     for r in runs:
+        if '-' in r.get('t', '') and not r.get('i') and not r.get('h') and SCRIPT_CLS & set((r.get('c') or '').split()):
+            r = dict(r, t=r['t'].replace('-', '\u2212'))
         if r.get('i') or not MATH_OPS.search(r['t']) or 'mth' in (r.get('c') or '').split():
             out.append(r)
             continue
@@ -1374,7 +1474,8 @@ def elements(C, items, kaitext=False):
             if it['src'] in C['tail']:
                 continue                                    # the publisher's QR codes: kept as the last page of the book instead
             els.append(dict(k='orn' if (it.get('orn') or it['src'] in C.get('orn', ())) else 'fig', src=it['src'],
-                            grp=it.get('grp'), snap=it.get('snap'), id=it.get('id', '')))
+                            grp=it.get('grp'), snap=it.get('snap'), id=it.get('id', ''),
+                            **({'mark': it['runs']} if it.get('runs') else {})))   # (book 65: the note mark after it)
             continue
         if k == 'table':
             els.append(dict(k='table', rows=it['rows'], spans=it.get('spans'), heads=it.get('heads')))
@@ -1529,6 +1630,9 @@ def elements(C, items, kaitext=False):
                 b['runs'] = [dict(r, c=((r.get('c') or '') + ' ' + cm[3]).strip()) if not r.get('i') else r for r in b['runs']]
             if cm[0] in ('quote', 'smallkai', 'verse'):
                 b['right'] = 0
+        if b['style'] == 'cap' and C.get('cap_label_re') and b['runs'] and not b['runs'][0].get('i'):
+            b['runs'] = [dict(b['runs'][0], t=re.sub(C['cap_label_re'], '\\1\u3000', b['runs'][0]['t'], count=1))] + b['runs'][1:]
+            # (book 73: '表1—11973—1996年…', the ebook lost the space between a table's number and its title)
         if c & _cs(C, 'cls_hang'):                         # '● item' paragraphs: hanging indent under the bullet
             r0 = b['runs'][0]
             if r0['t'].startswith('·'):                    # (book 61) a narrow '·': in a 2-em box, the text at the turn
@@ -1936,6 +2040,30 @@ def join_continued(C, els):
     return out
 
 
+def scan_uncaptioned(C, els):
+    """(books 65, 72) Pictures without a caption are passages of text and formulas: set line by line (k='scan'); a run
+    of pictures that a caption follows (or a table title precedes) is a figure, its panels, and stays one; so does a
+    picture with ruled lines across it (a table, a graph with its caption in the picture: scanlines.ruled)."""
+    out = list(els)
+    is_cap = lambda x: x is not None and x['k'] == 'p' and x.get('style') == 'cap'
+    i = 0
+    while i < len(out):
+        if out[i]['k'] != 'fig':
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(out) and out[j + 1]['k'] == 'fig':
+            j += 1
+        nxt, prv = (out[j + 1] if j + 1 < len(out) else None), (out[i - 1] if i else None)
+        cap = is_cap(nxt) or is_cap(prv) and C.get('cap_top_re') and re.match(C['cap_top_re'], plain(prv['runs']))
+        if not cap:
+            for k in range(i, j + 1):
+                if out[k]['src'] not in C.get('scan_keep', ()) and scanlines.ruled(out[k]['src']) < 0.5:
+                    out[k] = dict(out[k], k='scan')                      # (a table, a graph: ruled lines across it; stays)
+        i = j + 1
+    return out
+
+
 def fig_paragraphs(C, els, fig_no):
     """Figures inside chapters -> 'see plate N' paragraphs; figures of appendices (C['inplace']) stay in the text."""
     els = join_continued(C, els)
@@ -1981,6 +2109,7 @@ def fig_paragraphs(C, els, fig_no):
 def fig_inline(C, els):
     """(book 16) Figures stay in the text: consecutive images of one figure are stacked, the caption paragraphs under
     them (title, sub-title) go with them; the result is one 'fig' element with 'caps'."""
+    els = join_continued(C, els)                                 # (book 73: the parts of a table, '续前表' between them)
     out = []
     i = 0
     while i < len(els):
@@ -2013,6 +2142,9 @@ def fig_inline(C, els):
                 and (not C.get('cap_below_re') or re.match(C['cap_below_re'], plain(els[i]['runs']))):
             caps.append(els[i])                                  # (C['cap_below_re'], book 63: only the notes under a table;
             i += 1                                               #  the next caption is the title of the next table)
+        while C.get('fig_note_re') and i < len(els) and els[i]['k'] == 'p' and re.match(C['fig_note_re'], plain(els[i]['runs'])):
+            caps.append(els[i])                                  # (book 71) the note and source lines under a figure, which the
+            i += 1                                               # ebook sets as quotations: part of the figure
         out.append(dict(k='fig', src=srcs[0] if len(srcs) == 1 else join_images(srcs), caps=caps, snap=e.get('snap'),
                         **({'caps_top': caps_top} if caps_top else {})))
     return out
@@ -2075,7 +2207,9 @@ def fig_block(C, e, fmt):
     sc = C.get('fig_scale', {}).get(e['src'], 1.0) * sc
     sc = min(sc, style.TEXT_W / w, max_h / h)
     iw, ih = round(w * sc, 2), round(h * sc, 2)
-    flt = bool(caps) and plain(caps[0][1]).startswith('图') or bool(tops) or ih > 6 * style.LINE   # numbered figures and tables, tall pictures may float
+    flt = bool(caps) and plain(caps[0][1]).startswith('图') or bool(tops) or ih > 6 * style.LINE and C.get('float_uncap', True)
+    # (numbered figures and tables, tall pictures may float; C['float_uncap']=False: a picture without a caption stays where
+    #  it is, as part of the text)
     b = dict(k='img', style='center', runs=[], src=special.img_url(e['src']), w=iw, h=ih, float=int(flt), id=fid, capw=capw,
              fig_src=e['src'])
     if e['src'] in C.get('fig_air', {}):
@@ -2207,10 +2341,18 @@ def note_blocks(items, fmt):
         if it['k'] == 'img':                               # (book 43) a table of a note, a picture: at its width at 220 dpi,
             iw, ih = special.img_size(it['src'])           # at most the text block's, centred on the small grid
             w = min(style.TEXT_W, iw if SVG_PT and it['src'].endswith('.svg') else iw * 72.0 / NOTE_DPI)   # (book 60: SVG in points)
-            h = w * ih / iw
             pitch = style.TEXT_H / style.SMALL_N
-            out.append(dict(k='img', style='orn', runs=[], src=special.img_url(it['src']), w=w, h=h,
-                            n=math.ceil(h / pitch) + 1))
+            if NOTE_SCAN and scanlines.ruled(it['src']) < 0.5:     # (book 72) a note that is a picture of text: line by line on
+                nst = STYLES_SMALL['note']                         # the notes' grid, as their text (scanlines.py), its number,
+                num = out.pop()['runs'] if out and out[-1]['k'] == 'p' and out[-1].get('numonly') else None   # alone on the
+                sb = scanlines.blocks(it['src'], dict(scan_scale=NOTE_SCAN), pitch=pitch, fs=nst['fs'],     # line above it
+                                      indent=nst['left'] * nst['fs'], cls=nst['cls'], centre=False)        # there: beside
+                if num:                                                                                      # its first line
+                    sb[0]['num'] = num
+                out += sb
+                continue
+            h = w * ih / iw
+            out.append(dict(k='img', style='orn', runs=[], src=special.img_url(it['src']), w=w, h=h, n=math.ceil(h / pitch) + 1))
             continue
         runs = BT.fix_edges(BT.fix_runs(it['runs']))
         if not runs:
@@ -2230,10 +2372,14 @@ def note_blocks(items, fmt):
                     rest[0] = dict(rest[0], t=re.sub(r'^[：:][\s\u3000]*', '', rest[0]['t']))     # '註9：text'
                 rest = [r for r in rest if r['t'] or r.get('i')]
             st = 'notel' if latin_ratio(rest) > 0.4 else 'note'
-            out.append(dict(k='p', style=st, runs=merge_runs(marks + rest), **({'id': it['id']} if it.get('id') else {})))
+            out.append(dict(k='p', style=st, runs=merge_runs(marks + rest), **({'id': it['id']} if it.get('id') else {}),
+                            **({'numonly': 1} if not any(r['t'].strip() or r.get('i') for r in rest) else {})))
             # (the entry's own id: book 59's source notes are linked to their paragraphs, not to their labels)
         else:
             out.append(dict(k='p', style='notecap' if it.get('notecap') else 'notec', runs=runs))   # (a figure's caption: centred)
+    for k, x in enumerate(out[:-1]):
+        if x['k'] == 'p' and out[k + 1]['k'] == 'img':
+            x['keep'] = 1                                  # (a note's text, then a picture of it: on one page)
     return display_formulas(out)
 
 
@@ -2508,7 +2654,7 @@ def part_divider(C, els):
 
 
 def book(b):
-    global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL, NOTE_DPI, SVG_PT
+    global CIRC_LINK, PAGE_ANCHOR, MARK_LABEL, NOTE_DPI, NOTE_SCAN, SVG_PT
     C = CFG[b]
     CIRC_LINK = C.get('circ_link')
     BT.SYM_MARKS = C.get('sym_marks', '')
@@ -2519,6 +2665,7 @@ def book(b):
     PAGE_ANCHOR = C.get('page_anchor')
     MARK_LABEL = C.get('mark_label')
     NOTE_DPI = C.get('note_dpi', 220.0)
+    NOTE_SCAN = C.get('scan_scale')
     SVG_PT = C.get('svg_pt', False)
     m = meta(b)
     cover = C['cover']
@@ -2585,6 +2732,10 @@ def book(b):
                 nt = an
             if n in C.get('insert_head', {}):                     # (book 35) a part with no heading of its own: the name the ebook's contents give it
                 e = [dict(k='h', lvl=1.0, runs=[run(C['insert_head'][n])], id=P(n) + '#head', src='insert_head', cls='')] + e
+            if n in C.get('scan_parts', ()):                    # (book 71) text set as pictures: set line by line (scanlines.py)
+                e = [dict(x, k='scan') if x['k'] == 'fig' else x for x in e]
+            elif C.get('scan_uncaptioned'):
+                e = scan_uncaptioned(C, e)
             els += e
             notes += nt
         return els, notes
@@ -2614,7 +2765,16 @@ def book(b):
         blocks = []
         osz = C.get('orn_size', (70.0, 9.9))
         for e in unit_blocks(els):
-            if e['k'] == 'fig' and C.get('fig_inline'):
+            if e['k'] == 'scan':
+                sb = scanlines.blocks(e['src'], C)
+                if blocks and blocks[-1]['k'] == 'h':
+                    sb[0]['keep'] = 1                               # (two lines under the heading, as for text)
+                if e.get('id'):
+                    sb[0]['id'] = e['id']
+                if e.get('mark'):
+                    sb[-1]['mark'] = mark_runs(BT.fix_runs(e['mark']), fmt)
+                blocks += sb
+            elif e['k'] == 'fig' and C.get('fig_inline'):
                 blocks += fig_plate_ref(e, fig_no) if e['src'] in plate_set else fig_block(C, e, fmt)
             elif e['k'] == 'fig':
                 blocks += image_blocks(e['src'], style.TEXT_H - 11 * style.LINE, max_scale=C.get('img_max_scale'))      # leaves room for the heading above and a source line below
@@ -2636,7 +2796,11 @@ def book(b):
             elif e['k'] == 'table':
                 blocks += table_blocks(e['rows'], C.get('table_head', True))
             else:
-                blocks.append(e)
+                r0 = e.get('runs') and e['runs'][0]
+                if blocks and blocks[-1].get('scan') and e['k'] == 'p' and r0 and not r0.get('i') and r0['t'][:1] in '）)，。；：、':
+                    blocks[-1]['mark'] = (blocks[-1].get('mark') or []) + [run(r0['t'][0])]   # (book 65) a closing bracket or
+                    e = dict(e, runs=[dict(r0, t=r0['t'][1:])] + e['runs'][1:])                # comma that ends the passage set as a
+                blocks.append(e)                                                              # picture: after its last line
         if len(blocks) > 1 and blocks[0].get('plate_ref') and blocks[1]['k'] == 'h':
             blocks[:2] = blocks[1::-1]                             # (a plate reference does not open a chapter: it goes under the title)
         blocks = wrap_lines(finish_blocks(blocks))

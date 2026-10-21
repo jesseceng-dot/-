@@ -57,7 +57,8 @@ def check(b):
     for a, (n, i, t, h) in marks.items():
         if h not in notes:
             bad.append(('角标指向不存在的注释', n, i, t, h))
-        elif _num(notes[h][2]) != re.sub(r'\D', '', t) or not re.sub(r'\D', '', t) and notes[h][2].strip() != t.strip():
+        elif (_num(notes[h][2]) != re.sub(r'\D', '', t) or not re.sub(r'\D', '', t) and notes[h][2].strip() != t.strip()) \
+                and not notes[h][2].strip().startswith(t.strip()):      # (book 66: the mark '[1-1]' of the note '[1-1]')
             bad.append(('角标与注释编号不同', n, i, t, notes[h][2]))
     orphan = []
     for a, (n, i, t, h) in notes.items():

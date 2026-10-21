@@ -22,6 +22,9 @@ SETS = {
                           51: '《非此即彼》（下）', 53: '《对〈哲学片断〉所做的最后的、非科学性的附言》',
                           57: '《克尔凯郭尔讲演集（1848—1855）》', 58: '《克尔凯郭尔日记选（1842—1846）》'}),
                    # (two volumes of one title told apart; a title inside the title in 〈〉)
+    'nobel': dict(title='诺贝尔经济学奖获得者丛书·大师经典', books=tuple(range(65, 75)), cover='cover02490.jpeg',
+                  file='65-74-诺贝尔经济学奖获得者丛书·大师经典（合集）',
+                  author='克鲁格曼　默顿·米勒　谢林　阿马蒂亚·森　舒尔茨　斯彭斯　费尔普斯　斯蒂格利茨　希勒'),
 }
 
 

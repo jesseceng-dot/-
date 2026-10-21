@@ -192,6 +192,33 @@ def logical_page_html(page, lbs, variants, grid='body', col=0, anchors=None, pag
                         y = last + 0.25 * style.FONT - ih                  # the image down to the descenders of a last line
                 else:
                     y += (slots * style.LINE - (ih + (5.0 + hc if hc else 0.0) + tt)) / 2 + tt
+            if b.get('scan'):                           # (books 65, 71) a line of text set as a picture (scanlines.py): the
+                sc = b['scan']                          # picture's line through windows within its slots, on the baseline
+                hs = lb.nl[vi] * st['pitch']            # (a taller line: centred in its slots)
+                stl = dict(cls=sc.get('cls', 's-body'), pitch=st['pitch'], slots=1)    # (book 72: a note's, the notes' baseline)
+                if sc['mid']:
+                    wy = y + (hs - sc['ink'][1]) / 2 - sc['ink'][0]
+                else:
+                    wy = y + baseline_dy(stl) + BASE.get(f'{stl["cls"]}@{stl["pitch"]}', 0.7 * st['pitch']) - sc['base']
+                wt, wb = max(wy, y), min(wy + sc['wh'], y + hs)
+                for sx, sw, dx in sc['pieces']:
+                    parts.append(f'<div style="position:absolute;left:0;top:0;width:{sw}pt;height:{wb - wt:.2f}pt;overflow:hidden;'
+                                 f'transform:translate({x0 + dx:.2f}pt,{wt:.2f}pt)"><img src="{b["src"]}" style="position:absolute;'
+                                 f'left:{-sx:.2f}pt;top:{wy - sc["top"] - wt:.2f}pt;width:{sc["fw"]}pt;height:{sc["fh"]}pt"></div>')
+                if b.get('mark'):                       # (book 65) the note mark after the passage: after its last line
+                    st1 = dict(st, cls='s-body', align='l', slots=1, pitch=style.LINE, fs=style.FONT, first=0, left=0, right=0)
+                    ym = y + (lb.nl[vi] - 1) / 2 * style.LINE if sc['mid'] else y        # (a taller line: by its middle)
+                    parts.append(line_div(st1, 0, 1, runs_html(b['mark'], final=True), x0 + sc['end'] + 1.0, ym, 40.0, 0.0))
+                    if anchors is not None:
+                        _register_anchors(anchors, {}, b['mark'], 0, None, page_ref, y, True)
+                if b.get('num'):                        # (book 72) the first line of a note that is a picture: its number
+                    from .layout import sty as _sty
+                    stn = dict(_sty(dict(k='p', style='note', runs=[]), grid), align='l')
+                    ym = y + (lb.nl[vi] - 1) / 2 * st['pitch'] if sc['mid'] else y
+                    parts.append(line_div(stn, 0, 1, runs_html(b['num'], final=True), x0, ym, 30.0, 0.0))
+                    if anchors is not None:
+                        _register_anchors(anchors, {}, b['num'], 0, None, page_ref, ym, True)
+                continue
             if anchors is not None and b.get('id') and b['id'] not in anchors:
                 anchors[b['id']] = (page_ref, y)
             parts.append(f'<img src="{b["src"]}" style="position:absolute;left:0;top:0;width:{iw}pt;height:{ih}pt;'

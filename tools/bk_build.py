@@ -7,14 +7,23 @@ from . import style, build, bk
 
 def blank_foot_figures(cfg):
     """In-text figures that leave the foot of a page blank: the figures of a page that holds nothing else and that the
-    solver could not fill (a chapter's last page aside: a chapter may end anywhere)."""
+    solver could not fill (a chapter's last page aside: a chapter may end anywhere).  Headings and the 'see plate N' lines
+    of figures moved before do not count as text (book 71: an appendix of figures under its heading); C['fig_gap_any']
+    (book 71): the figures of any page left short, also among text that the solver could not bring up to fill it."""
+    C = bk.CFG.get(cfg.get('vol'), {})
     out = []
     for mod in cfg['modules']:
         if mod.kind != 'text' or not mod.plan:
             continue
-        for p in mod.plan['pages'][:-1]:
-            blocks = [mod.lbs[it[0]].block for it in p['items']]
-            if p['gap'] and blocks and all(x['k'] == 'img' for x in blocks):
+        pages = mod.plan['pages']
+        for pi, p in enumerate(pages[:-1]):
+            lbs = [mod.lbs[it[0]] for it in p['items']]
+            blocks = [lb.block for lb in lbs]
+            nx = pages[pi + 1]['items'][0] if pages[pi + 1]['items'] else None
+            if C.get('fig_gap_any') and p['gap'] and p['items'] and nx and mod.lbs[nx[0]].block.get('fig_src'):
+                out.append(mod.lbs[nx[0]].block['fig_src'])  # (the figure that opens the next page, too big for this one)
+            if p['gap'] and any(x['k'] == 'img' for x in blocks) and (C.get('fig_gap_any') or
+                    all(x['k'] == 'img' or x['k'] == 'h' and lb.st.get('keep') or x.get('plate_ref') for lb, x in zip(lbs, blocks))):
                 out += [x['fig_src'] for x in blocks if x.get('fig_src')]
     return out
 

@@ -108,6 +108,9 @@ a{{color:inherit;text-decoration:none}}
 .msup{{font-size:.7em;position:relative;top:-.4em;line-height:0}}
 .msub{{font-size:.7em;position:relative;top:.28em;line-height:0}}
 .msub2{{font-size:.5em;position:relative;top:.5em;line-height:0}}
+.msup2{{font-size:.5em;position:relative;top:-1.25em;line-height:0}}
+.msupsub{{font-size:.5em;position:relative;top:-.35em;line-height:0}}
+.msubsup{{font-size:.5em;position:relative;top:-.1em;line-height:0}}
 .ov{{border-top:.5pt solid;padding:0 .06em 0 .1em}}
 .pgno{{font-size:.62em;color:#8a8a8a;letter-spacing:0;line-height:0;font-family:"Noto Serif",serif}}
 .it{{font-family:"LatIt","GrkSerif","SongBody","HanExt","Noto Serif",serif;font-style:italic;line-height:0}}

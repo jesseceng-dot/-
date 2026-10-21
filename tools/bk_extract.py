@@ -177,6 +177,36 @@ def fix_tree(part, el):
     return el
 
 
+_MK = r'[［\[]\d+[］\]]'
+_MK_PRE = re.compile(r'^([。，；：、！？）」』”]+)(%s)$' % _MK)          # '。［8］' linked as a whole
+_MK_POST = re.compile(r'^(%s)(\s*[^\d\]］\s][^\d\]］]{0,2})$' % _MK)   # '［18］从', '［7］ I'
+
+
+def mark_link_trim(runs):
+    """(book 73) A note mark whose link also takes in the punctuation before it or a character or two after it
+    ('。［8］', '［18］从', '［7］ I'), and a mark whose opening bracket the ebook left outside its link ('［' + '23］'): the
+    link on the mark alone, so that it is recognised and set as a mark."""
+    out = []
+    for r in runs:
+        if r.get('h') and not r.get('i'):
+            m = _MK_PRE.match(r['t']) or _MK_POST.match(r['t'])
+            if m and m.re is _MK_PRE:
+                out += [{k: v for k, v in r.items() if k not in ('h', 'a', 's')} | {'t': m.group(1)}, dict(r, t=m.group(2))]
+                continue
+            if m:
+                out += [dict(r, t=m.group(1)), {k: v for k, v in r.items() if k not in ('h', 'a', 's')} | {'t': m.group(2)}]
+                continue
+            if re.match(r'^\d+[］\]]$', r['t']) and out and not out[-1].get('h') and not out[-1].get('i') \
+                    and out[-1]['t'].endswith(('［', '[')):
+                out[-1] = dict(out[-1], t=out[-1]['t'][:-1])
+                if not out[-1]['t']:
+                    out.pop()
+                out.append(dict(r, t=('［' if True else '[') + r['t']))
+                continue
+        out.append(r)
+    return out
+
+
 def _txt(it):
     return ''.join(r['t'] for r in it.get('runs', []) if not r.get('i'))
 
@@ -422,6 +452,15 @@ def _apply_fixes(part, out):
                 FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
             else:
                 out.insert(src[0], it)
+    for f in [f for f in fx if f[1] == 'IMGOUT']:               # (part, 'IMGOUT', picture, 'before' | 'after'): a picture of a
+        for k, it in enumerate(out):                            # table that the ebook put inside a paragraph (book 73: in the line
+            runs = it.get('runs') or []                         # '续前表', in a note under the table): a picture of its own
+            if it['k'] == 'p' and any(r.get('i') == f[2] for r in runs):
+                it['runs'] = clean_runs([r for r in runs if r.get('i') != f[2]])
+                im = dict(k='img', tag='img', cls='', id='', src=f[2], runs=[], fig=0, grp=-k - 1)
+                out.insert(k + (1 if f[3] == 'after' else 0), im)
+                FIX_USED[id(f)] = FIX_USED.get(id(f), 0) + 1
+                break
     for f in [f for f in fx if f[1] == 'MOVETAB']:              # (part, 'MOVETAB', table title, paragraph prefix): a table with its
         src = [k for k, it in enumerate(out) if it['k'] == 'p' and _txt(it) == f[2]     # title goes after that paragraph (a float
                and k + 1 < len(out) and out[k + 1]['k'] == 'table']                    # to the top of the next page)
@@ -856,6 +895,8 @@ def items(part):
     pno = int(part[4:]) if part[4:].isdigit() else -1
 
     def add(k, el, **kw):
+        if kw.get('runs'):
+            kw['runs'] = mark_link_trim(kw['runs'])
         cls = el.get('class') or ''
         it = dict(k=k, tag=ln(el), cls=cls, id=anchor_key(part, el.get('id')) if el.get('id') else '', **kw)
         if dstack:
@@ -864,6 +905,8 @@ def items(part):
             it['grp'] = grp[1]
         out.append(it)
         return it
+
+    last_img = []                                         # (the last picture added and its parent element)
 
     def walk(nodes, q=0, box=0, fig=0, note=0):
         for el in nodes:
@@ -1009,9 +1052,14 @@ def items(part):
                         heads.append(bool(tds) and all(ln(td) == 'th' for td in tds))
                 add('table', el, rows=rows, runs=[], spans=spans, heads=heads, **({'innote': 1} if note else {}))   # (a table inside a note stays with it)
             elif t == 'img':
-                add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig)
+                last_img[:] = [add('img', el, src=os.path.basename(el.get('src') or ''), runs=[], fig=fig), el.getparent()]
             elif t in ('hr', 'nav', 'svg', 'br'):
                 continue
+            elif t == 'a' and el.get('href') and out and last_img and out[-1] is last_img[0] and last_img[1] is el.getparent() \
+                    and not out[-1].get('runs'):
+                wrap = etree.Element('span')                      # (book 65) a note mark right after a picture in its box: the
+                wrap.append(copy.deepcopy(el))                    # mark of the formula or passage the picture shows
+                out[-1]['runs'] = clean_runs(inline(wrap, part))
             else:
                 runs = clean_runs(inline(el, part))
                 if runs:
